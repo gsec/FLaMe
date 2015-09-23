@@ -1,2 +1,2 @@
 # thesis
-Flake Simulation / Literate Programming
+Flake Simulation

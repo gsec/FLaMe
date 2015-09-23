@@ -1,3 +1,7 @@
+# own things to exclude
+.ropeproject/
+tools/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
