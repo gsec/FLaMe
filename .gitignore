@@ -10,8 +10,8 @@ __pycache__/
 *.so
 
 #Swap files
-.swp
-.swo
+*.swp
+*.swo
 
 # Distribution / packaging
 .Python
