@@ -31,7 +31,7 @@ class Flake():
     if len(ordinals) == 2:
       vector_set = vector_set[:2]
     coords = matrix(ordinals)*matrix(vector_set)
-    return np.asarray(coords)
+    return np.array(coords)
 
   def plot(self, points=None):
     if points is None:
@@ -41,14 +41,30 @@ class Flake():
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     print("\npoints", points)
-    ax.scatter(*points)
+    ax.scatter(*points, s=1500)
     plt.show()
 
   def plane(self, z=0, size=2):
     """ Creates a plane of gold atoms.
     """
-    sites = it.permutations(range(size), 2)
-    return (self.coordinates(site) for site in sites)
+    sites = list(it.combinations_with_replacement(range(- size, size), 2))
+    # a = np.array(())
+    print("site combin", sites)
+    a = np.zeros(2)
+    # print(a.ndim)
+    for site in sites:
+      print("before", a)
+      # a = np.concatenate((a[:,np.newaxis], site[:,np.newaxis]), axis=1)
+      # a = np.concatenate((a, site), axis=0)
+      co = self.coordinates(site)
+      # import pdb; pdb.set_trace()
+      # print("len", len(a), len(co))
+      # print(co, type(co))
+      # print(co[:2])
+      a = np.vstack((a, co[:,:-1]))
+      print("after", a)
+    return a[1:]
+    # return np.asarray(self.coordinates(site) for site in sites)
 
 
 def main():
@@ -57,7 +73,9 @@ def main():
     # co = f.coordinates(atom)
   # f.plot(f.plane())
   # plt.show()
-  print("planes;", list(f.plane()))
+  pp = f.plane(size=5)
+  print("planes;", pp)
+  f.plot(pp)
 
 
 if False:
