@@ -3,39 +3,38 @@
 
 from math import sqrt
 import numpy as np
-from numpy import matrix
+from numpy import array, matrix
 import itertools as it
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 
 class Flake():
-  """ The actual Flake we want to let grow"""
+  """ The actual Flake we want to let grow. """
   def __init__(self):
-    # self.lattice  = np.zeros(5 * self.size**3).reshape(
-                    # self.size,      # x'
-                    # self.size,      # y'
-                    # self.size,      # z'
-                    # 5)              # (x, y, z, t, u)
+    # lattice base vector, transposed to match [a, b, c] structure
+    self.fcc_base = array(((1, 0, 0),
+                           (1/sqrt(2), 1/sqrt(2), 0),
+                           (1/2, 1/(2*sqrt(3)), sqrt(2/3))
+                          )).T
 
-    self.basis_vector = matrix(((1, 0, 0),
-                                (1/sqrt(2), 1/sqrt(2), 0),
-                                (1/2, 1/(2*sqrt(3)), sqrt(2/3))))
-
-  def coordinates(self, ordinals, vector_set=None):
+  def coordinates(self, step_vector, base_vectors=None):
     """ Create x, y, z coordinates from the basis vector and translation
     number.
     """
-    if vector_set is None:
-      vector_set = self.basis_vector
-    if len(ordinals) == 2:
-      vector_set = vector_set[:2]
-    coords = matrix(ordinals)*matrix(vector_set)
+    if base_vectors is None:
+      base_vectors = self.fcc_base
+    if len(step_vector) == 2:
+      base_vectors = base_vectors[:,:-1]
+      print("A Short one", base_vectors)
+    # Transpose, so we have each component in proper slot of return vector
+    # import pdb; pdb.set_trace()
+    coords = matrix(base_vectors) * matrix(step_vector).T
     return np.array(coords)
 
   def plot(self, points=None):
     if points is None:
-      points = self.basis_vector
+      points = self.fcc_base
     points = np.asarray(points).T
 
     fig = plt.figure()
@@ -45,8 +44,7 @@ class Flake():
     plt.show()
 
   def plane(self, z=0, size=2):
-    """ Creates a plane of gold atoms.
-    """
+    """ Creates a plane of gold atoms. """
     sites = list(it.combinations_with_replacement(range(- size, size), 2))
     # a = np.array(())
     print("site combin", sites)
@@ -78,8 +76,7 @@ def main():
   f.plot(pp)
 
 
-if False:
-  Axes3D
-
 if __name__ == '__main__':
   main()
+  if False:
+    Axes3D
