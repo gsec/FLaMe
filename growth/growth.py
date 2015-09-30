@@ -3,74 +3,105 @@
 
 from math import sqrt
 import numpy as np
-from numpy import array, matrix
 import itertools as it
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 
+# ---------------
+# -  The Flake  -
+# ---------------
 class Flake():
   """ The actual Flake we want to let grow. """
   def __init__(self):
     # lattice base vector, transposed to match [a, b, c] structure
-    self.fcc_base = array(((1, 0, 0),
+    self.fcc_base = np.array(((1, 0, 0),
                            (1/sqrt(2), 1/sqrt(2), 0),
                            (1/2, 1/(2*sqrt(3)), sqrt(2/3))
-                          )).T
+                           )).T
+    self.hcp_base = np.array(((1, 0, 0),
+                           (1/sqrt(2), 1/sqrt(2), 0),
+                           (1/2, 1/(2*sqrt(3)), sqrt(2/3))
+                           )).T
 
-  def coordinates(self, step_vector, base_vectors=None):
+  def plot(self, points=None):
+    """ Plot method of the flake. Should point to lattice as default. """
+    if points is None:
+      points = self.fcc_base
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(*points, s=1500)
+    plt.show(block=True)
+
+  def permutator(self, seed, inplane=True):
+    if inplane:
+      dimsize = 2
+    else:
+      dimsize = 3
+    types = it.combinations_with_replacement(seed, dimsize)
+    perms = []
+    for i in types:
+      t = set(it.permutations(i))
+      while t:
+        perms.append(t.pop())
+    return tuple(perms)
+
+  def constructor(self, step_vector, basis='inplane'):
     """ Create x, y, z coordinates from the basis vector and translation
     number.
     """
-    if base_vectors is None:
-      base_vectors = self.fcc_base
-    if len(step_vector) == 2:
-      base_vectors = base_vectors[:,:-1]
-      print("A Short one", base_vectors)
-    # Transpose, so we have each component in proper slot of return vector
-    # import pdb; pdb.set_trace()
-    coords = matrix(base_vectors) * matrix(step_vector).T
-    return np.array(coords)
-
-  def plot(self, points=None):
-    if points is None:
-      points = self.fcc_base
-    points = np.asarray(points).T
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    print("\npoints", points)
-    ax.scatter(*points, s=1500)
-    plt.show()
+    if basis == 'inplane':
+      basis = self.fcc_base[:, :-1]
+    elif basis == 'full':
+        basis = self.fcc_base
+    try:
+      coords = np.dot(basis, step_vector)
+    except:
+      print("\nBase:\n", basis)
+      print("\nStep:", step_vector)
+      raise
+    return coords.T
 
   def plane(self, z=0, size=2):
-    """ Creates a plane of gold atoms. """
-    sites = list(it.combinations_with_replacement(range(- size, size), 2))
-    # a = np.array(())
-    print("site combin", sites)
-    a = np.zeros(2)
-    # print(a.ndim)
+    """ Creates a plane of gold atoms.  `sites` create a list of all possible
+    2-tuple combinations of integers in the range of `size`.
+    """
+    sites = self.permutator(range(1 - size, size))
+    print("\nSITES: \n", sites)
+    ret = np.zeros(2)
     for site in sites:
-      print("before", a)
-      # a = np.concatenate((a[:,np.newaxis], site[:,np.newaxis]), axis=1)
-      # a = np.concatenate((a, site), axis=0)
-      co = self.coordinates(site)
-      # import pdb; pdb.set_trace()
-      # print("len", len(a), len(co))
-      # print(co, type(co))
-      # print(co[:2])
-      a = np.vstack((a, co[:,:-1]))
-      print("after", a)
-    return a[1:]
-    # return np.asarray(self.coordinates(site) for site in sites)
+      co = self.constructor(site)
+      ret = np.vstack((ret, co[:-1]))
+    print("RET, COORDS:\n", ret, co)
+    return ret[1:]
+
+  def builder(self, indices, struct='fcc'):
+    """ Build crystal as i*a + j*b + k*c with lattice vectors. """
+    if struct == 'fcc':
+      switch = 2
+    elif struct == 'hcp':
+      switch = 3
+    else:
+      raise NotImplementedError(
+        struct + " is not valid.\nPlease choose 'fcc' or 'hcp'.")
+
+    i, j, k = indices
+    prototype = np.array((2*i + (j+k)%2,
+                          sqrt(3)*(j + k%switch*1/3),
+                          k*2*sqrt(6)/3
+                          ))
+    return prototype
 
 
+  # def stack(height=5, size=3):
+    # for plane in range(height):
+
+
+# ----------
+# -  Main  -
+# ----------
 def main():
   f = Flake()
-  # for atom in f.plane():
-    # co = f.coordinates(atom)
-  # f.plot(f.plane())
-  # plt.show()
   pp = f.plane(size=5)
   print("planes;", pp)
   f.plot(pp)

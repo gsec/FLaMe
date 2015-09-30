@@ -1,6 +1,7 @@
 # own things to exclude
 .ropeproject/
 tools/
+ipython_log*.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
