@@ -1,1 +1,1 @@
-__all__ = ['np', 'matrix', 'Flake', 'sqrt', 'plt']
+__all__ = ['np', 'matrix', 'Flake', 'sqrt', 'plt', 'it']
