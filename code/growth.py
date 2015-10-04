@@ -23,15 +23,12 @@ class Flake():
     b = self.Vector(1/sqrt(2), 1/sqrt(2), 0)
     c = self.Vector(1/2, 1/(2*sqrt(3)), sqrt(2/3))
     self.fcc_base = self.LatticeBase(a, b, c)
-    # self.fcc_base = self.LatticeBase(a=(1, 0, 0),
-                                     # b=(1/sqrt(2), 1/sqrt(2), 0),
-                                     # c=(1/2, 1/(2*sqrt(3)), sqrt(2/3)))
-    # self.size = size
+
     self.grid_list = [[[False for _ in range(size)]
                        for _ in range(size)]
                       for _ in range(size)]
 
-  def grid(self, i, j, k, val=None, struct='fcc'):
+  def grid(self, i, j, k, val=None):
     if val is None:
       return self.grid_list[i][j][k]
     if val not in (True, False):
