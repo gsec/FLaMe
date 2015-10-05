@@ -30,13 +30,16 @@ class TestLattice(unittest.TestCase):
                   # values.
     self.assertEqual(g.grid_list[0][3][4], 0)
     self.assertEqual(g.grid(1, 2, 3, None), False)
-    # self.assertRaises(TypeError, g.grid(3, 3, 3, 'that_string'))
+    self.assertEqual(g.grid(0, 2, 0), False)
+
     grid_point = g.grid(4, 1, 2, val=1)
-    print("GP", grid_point, type(grid_point))
-    self.assertTrue(type(grid_point) is bool)
+    # print("GP", grid_point, type(grid_point))
+    self.assertTrue(isinstance(grid_point, bool))
     index = (2,1,4)
     g.grid(*index, val=1)
     self.assertEqual(g.grid(*index), True)
+    with self.assertRaises(TypeError):
+      g.grid(3, 3, 3, 'that_string')
 
 if __name__ == '__main__':
   unittest.main()

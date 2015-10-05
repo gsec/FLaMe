@@ -4,7 +4,7 @@
 
 from math import sqrt
 # import numpy as np
-import itertools as it
+# import itertools as it
 # import matplotlib.pyplot as plt
 # from mpl_toolkits.mplot3d import Axes3D
 from collections import namedtuple
@@ -31,9 +31,11 @@ class Flake():
   def grid(self, i, j, k, val=None):
     if val is None:
       return self.grid_list[i][j][k]
-    if val not in (True, False):
+    elif val in (True, False):
+      self.grid_list[i][j][k] = bool(val)
+      return self.grid_list[i][j][k]
+    else:
       raise TypeError("Value must be boolean!")
-    self.grid_list[i][j][k] = bool(val)
 
   def coord(self, i, j, k, struct='fcc'):
     """ Build crystal as i*a + j*b + k*c with lattice vectors. """
@@ -43,11 +45,11 @@ class Flake():
                             k*2*sqrt(6)/3)
     return prototype
 
-  def permutator(self, seed):
-    types = it.combinations_with_replacement(seed, 3)
-    perms = []
-    for i in types:
-      t = set(it.permutations(i))
-      while t:
-        perms.append(t.pop())
-    return perms
+  # def permutator(self, seed):
+    # types = it.combinations_with_replacement(seed, 3)
+    # perms = []
+    # for i in types:
+      # t = set(it.permutations(i))
+      # while t:
+        # perms.append(t.pop())
+    # return perms
