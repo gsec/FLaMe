@@ -2,6 +2,7 @@
 .ropeproject/
 tools/
 ipython_log*.py
+_OLD*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
