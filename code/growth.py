@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # encoding: utf-8              A flake growth simulation
-# pylint: disable=W0611
 
 from math import sqrt
-# import numpy as np
 import itertools as it
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -15,7 +13,7 @@ from collections import namedtuple
 # ---------------
 class Flake():
   """ The actual Flake we want to let grow. """
-  def __init__(self, size=7, twin_planes=None):
+  def __init__(self, size=7, twins=None):
     self.size = size
     self.Vector = namedtuple('Vector', ['x', 'y', 'z'])
     self.LatticeBase = namedtuple('Base', ['a', 'b', 'c'])
@@ -26,7 +24,7 @@ class Flake():
     self.grid_list = [[[False for _ in range(size)]
                        for _ in range(size)]
                       for _ in range(size)]
-    # self.layers =
+    self.layers = self.layer_generator(twins)
 
   def grid(self, i, j, k, val=None):
     if val is None:
@@ -53,15 +51,25 @@ class Flake():
 
   def layer_generator(self, twins=None):
     layers = [0 for _ in range(self.size)]
-    for i, v in enumerate(layers):
-      layers[i] = len([t for t in twins if i > t])
+    if twins:
+      if isinstance(twins, int):
+        twins = [twins]
+      if isinstance(twins, tuple):
+        twins = list(twins)
+      for i, v in enumerate(layers):
+        layers[i] = len([t for t in twins if i > t])
     return layers
 
   def plot(self, points):
     """ Plot method of the flake. """
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(*points, s=1500)
+    points = list(points)
+    ax.scatter(*points, s=1500, c=points[2])
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    ax.autoscale_view(None, False, False)
     plt.show()
 
   def permutator(self, seed):
@@ -77,12 +85,12 @@ class Flake():
 
 
 def main():
-  SIZE = 7
-  f = Flake(SIZE)
+  SIZE = 3
+  f = Flake(SIZE, twins=1)
   coords = []
   for idx in f.permutator(range(SIZE)):
     print(idx)
-    _c = f.coord(*idx, struct=1)
+    _c = f.coord(*idx)
     coords.append(_c)
     print(_c)
   print(coords)
@@ -91,5 +99,3 @@ def main():
 
 if __name__ == '__main__':
   main()
-if Axes3D:
-  pass
