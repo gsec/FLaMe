@@ -8,14 +8,14 @@ from growth import *
 
 
 class TestLattice(unittest.TestCase):
-  """ Test the Flake. """
+  """ Flake with lattice, atoms and growth. """
 
   def setUp(self):
     """ Instantiate the class. """
     self.F = Flake()
 
   def test_basis_vector(self):
-    """ Base Vector of the lattice. """
+    """ FCC base vectors of the lattice (a,b,c) """
     a = (1, 0, 0)
     b = (1/sqrt(2), 1/sqrt(2), 0)
     c = (1/2, 1/(2*sqrt(3)), sqrt(2/3))
@@ -25,9 +25,9 @@ class TestLattice(unittest.TestCase):
     self.assertTrue(len(self.F.fcc_base) == 3)
 
   def test_grid(self):
-    """ Test the boolean grid_list of atoms. """
-    g = Flake()   # Create new Flake instance of to ensure no altering of inner
-                  # values.
+    """ Boolean n*n*n list of atoms.
+    Creates new instance to ensure no altering of attributes."""
+    g = Flake()
     self.assertEqual(g.grid_list[0][3][4], 0)
     self.assertEqual(g.grid(1, 2, 3, None), False)
     self.assertEqual(g.grid(0, 2, 0), False)
@@ -42,6 +42,8 @@ class TestLattice(unittest.TestCase):
       g.grid(3, 3, 3, 'that_string')
 
   def test_coord(self):
+    """ Retrieve cartesian coordinates from lattice indices.
+    """
     func = self.F.coord
     index = (1, 2, 3)
     self.assertEqual(func(*index), self.F.Vector(3, 4.041451884327381,
@@ -53,6 +55,8 @@ class TestLattice(unittest.TestCase):
       func(2, 3, 4, 'nonexistent_structure')
 
   def test_displacement_vector(self):
+    """ Displacement vector between `fcc` and `hcp` plane.
+    """
     delta_expected = -0.5773502691896262
     delta_output = self.F.coord(2, 2, 3, struct='hcp').y - self.F.coord(
       2, 2, 3, 'fcc').y
