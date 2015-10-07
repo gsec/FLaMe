@@ -46,23 +46,22 @@ class TestLattice(unittest.TestCase):
     """
     func = self.F.coord
     index = (1, 2, 3)
-    self.assertEqual(func(*index), self.F.Vector(3, 4.041451884327381,
-                                              4.898979485566356))
-    self.assertEqual(func(*index, struct='hcp'),
-                     self.F.Vector(3, 3.4641016151377544, 4.898979485566356))
-    self.assertEqual(func(*index), func(*index, struct='fcc'))
-    with self.assertRaises(KeyError):
-      func(2, 3, 4, 'nonexistent_structure')
+    res1 = func(*index, twin=0)
+    exp1 = self.F.Vector(3, 3.4641016151377544, 4.898979485566356)
+    res2 = func(*index, twin=1).y
+    exp2 = sqrt(3)*(2+2 * 1/3)
+    self.assertEqual(res1, exp1)
+    self.assertEqual(res2, exp2)
 
-  def test_displacement_vector(self):
-    """ Displacement vector between `fcc` and `hcp` plane.
-    """
-    delta_expected = -0.5773502691896262
-    delta_output = self.F.coord(2, 2, 3, struct='hcp').y - self.F.coord(
-      2, 2, 3, 'fcc').y
-    expected_lattice_delta = self.F.Vector(0, delta_expected, 0)
-    self.assertEqual(delta_expected, delta_output)
-    self.assertEqual(expected_lattice_delta, self.F.lattice_delta)
+  def test_layer_generator(self):
+    """ Sets the configuration of twin planes. """
+    g = Flake(14)
+    twins = (2, 3, 5)
+    layers = g.layer_generator(twins)
+    self.assertTrue(all(layers[i] == 0 for i in range(0, 3)))
+    self.assertTrue(all(layers[i] == 1 for i in range(3, 4)))
+    self.assertTrue(all(layers[i] == 2 for i in range(4, 6)))
+    self.assertTrue(all(layers[i] == 3 for i in range(7, 10)))
 
 if __name__ == '__main__':
   unittest.main()

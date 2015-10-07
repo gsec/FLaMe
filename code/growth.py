@@ -15,7 +15,7 @@ from collections import namedtuple
 # ---------------
 class Flake():
   """ The actual Flake we want to let grow. """
-  def __init__(self, size=5):
+  def __init__(self, size=7, twin_planes=None):
     self.size = size
     self.Vector = namedtuple('Vector', ['x', 'y', 'z'])
     self.LatticeBase = namedtuple('Base', ['a', 'b', 'c'])
@@ -23,13 +23,10 @@ class Flake():
     b = self.Vector(1/sqrt(2), 1/sqrt(2), 0)
     c = self.Vector(1/2, 1/(2*sqrt(3)), sqrt(2/3))
     self.fcc_base = self.LatticeBase(a, b, c)
-    y_hcp = self.coord(1, 2, 3, 'hcp').y
-    y_fcc = self.coord(1, 2, 3, 'fcc').y
-    self.lattice_delta = self.Vector(0, y_hcp - y_fcc, 0)
     self.grid_list = [[[False for _ in range(size)]
                        for _ in range(size)]
                       for _ in range(size)]
-    self.layers = [0 for _ in range(size)]
+    # self.layers =
 
   def grid(self, i, j, k, val=None):
     if val is None:
@@ -40,22 +37,25 @@ class Flake():
     else:
       raise TypeError("Value must be boolean!")
 
-  def coord(self, i, j, k, struct=None):
-    """ Build crystal as i*a + j*b + k*c with lattice vectors. """
-    if not struct:
-      struct = self.layers[j]
-    elif struct in ('fcc', 0):
-      struct = 0
-    elif struct in ('hcp', 1):
-      struct = 1
-    else:
-      raise KeyError("The structure `" + str(struct)  + "` is not defined")
-    # This is the modulo base depending on the lattice structure:
-    switch = {0: 2, 1: 3}[struct]
+  def coord(self, i, j, k, twin=None):
+    """ Build crystal as i*a + j*b + k*c with lattice vectors.
+    `twin` is the variable that is increased by one for every twin plane we
+    introduce. All layers _after_ the twin (greater positive and negative
+    values) are mirrored. """
+    if twin is None:
+      twin = self.layers[k]
+    layer = ((-1)**twin * k - twin) % 3
+    # -1**t is to invert the order, -t to displace the index properly
     prototype = self.Vector(2*i + (j+k) % 2,
-                            sqrt(3)*(j + k % switch * 1/3),
+                            sqrt(3)*(j + layer * 1/3),
                             k*2*sqrt(6)/3)
     return prototype
+
+  def layer_generator(self, twins=None):
+    layers = [0 for _ in range(self.size)]
+    for i, v in enumerate(layers):
+      layers[i] = len([t for t in twins if i > t])
+    return layers
 
   def plot(self, points):
     """ Plot method of the flake. """
@@ -80,7 +80,7 @@ def main():
   SIZE = 7
   f = Flake(SIZE)
   coords = []
-  for idx in f.permutator(range(-SIZE//2, SIZE//2)):
+  for idx in f.permutator(range(SIZE)):
     print(idx)
     _c = f.coord(*idx, struct=1)
     coords.append(_c)
