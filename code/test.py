@@ -63,5 +63,9 @@ class TestLattice(unittest.TestCase):
     self.assertTrue(all(layers[i] == 2 for i in range(4, 6)))
     self.assertTrue(all(layers[i] == 3 for i in range(7, 10)))
 
+  def test_nn_gen(self):
+    """ Next neighbours vector generator. """
+    pass
+
 if __name__ == '__main__':
   unittest.main()
