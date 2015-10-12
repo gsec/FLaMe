@@ -16,11 +16,11 @@ class Flake():
   def __init__(self, size=7, twins=None):
     self.size = size
     self.Vector = namedtuple('Vector', ['x', 'y', 'z'])
-    self.LatticeBase = namedtuple('Base', ['a', 'b', 'c'])
-    a = self.Vector(1, 0, 0)
-    b = self.Vector(1/sqrt(2), 1/sqrt(2), 0)
-    c = self.Vector(1/2, 1/(2*sqrt(3)), sqrt(2/3))
-    self.fcc_base = self.LatticeBase(a, b, c)
+    # self.LatticeBase = namedtuple('Base', ['a', 'b', 'c'])
+    # a = self.Vector(1, 0, 0)
+    # b = self.Vector(1/sqrt(2), 1/sqrt(2), 0)
+    # c = self.Vector(1/2, 1/(2*sqrt(3)), sqrt(2/3))
+    # self.fcc_base = self.LatticeBase(a, b, c)
     self.grid_list = [[[False for _ in range(size)]
                        for _ in range(size)]
                       for _ in range(size)]
@@ -37,8 +37,8 @@ class Flake():
 
   def coord(self, i, j, k, twin=None):
     """ Build crystal as i*a + j*b + k*c with lattice vectors.
-    `twin` is the variable that is increased by one for every twin plane we
-    introduce. All layers _after_ the twin (greater positive and negative
+    `twin` is the variable that is increased by one for every twin plane
+    we introduce. All layers _after_ the twin (greater positive and negative
     values) are mirrored. """
     if twin is None:
       twin = self.layers[k]

@@ -14,8 +14,9 @@ class TestLattice(unittest.TestCase):
     """ Instantiate the class. """
     self.F = Flake()
 
-  def test_basis_vector(self):
+  def NOT_test_basis_vector(self):
     """ FCC base vectors of the lattice (a,b,c) """
+
     a = (1, 0, 0)
     b = (1/sqrt(2), 1/sqrt(2), 0)
     c = (1/2, 1/(2*sqrt(3)), sqrt(2/3))
