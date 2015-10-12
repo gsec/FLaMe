@@ -13,7 +13,7 @@ from collections import namedtuple
 # ---------------
 class Flake():
   """ The actual Flake we want to let grow. """
-  def __init__(self, size=7, twins=None):
+  def __init__(self, size: int=7, twins=None):
     self.size = size
     self.Vector = namedtuple('Vector', ['x', 'y', 'z'])
     # self.LatticeBase = namedtuple('Base', ['a', 'b', 'c'])
@@ -26,7 +26,7 @@ class Flake():
                       for _ in range(size)]
     self.layers = self.layer_generator(twins)
 
-  def grid(self, i, j, k, val=None):
+  def grid(self, i, j, k, val=None) -> bool:
     if val is None:
       return self.grid_list[i][j][k]
     elif val in (True, False):
@@ -35,7 +35,7 @@ class Flake():
     else:
       raise TypeError("Value must be boolean!")
 
-  def coord(self, i, j, k, twin=None):
+  def coord(self, i, j, k, twin=None) -> 'Vector':
     """ Build crystal as i*a + j*b + k*c with lattice vectors.
     `twin` is the variable that is increased by one for every twin plane
     we introduce. All layers _after_ the twin (greater positive and negative
@@ -49,7 +49,9 @@ class Flake():
                             k*2*sqrt(6)/3)
     return prototype
 
-  def layer_generator(self, twins=None):
+  def layer_generator(self, twins=None) -> list:
+    """ Create a z-list representing the number of twin-planes until up to this
+    layer. """
     layers = [0 for _ in range(self.size)]
     if twins:
       if isinstance(twins, int):
@@ -60,17 +62,77 @@ class Flake():
         layers[i] = len([t for t in twins if i > t])
     return layers
 
-  def plot(self, points):
+  def plot(self, points: 'Vector'):
     """ Plot method of the flake. """
+    points = list(points)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    points = list(points)
-    ax.scatter(*points, s=1500, c=points[2])
+    pts = zip(*points)
+
+    ax.scatter(*pts, s=1500, c=points[2])
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
     ax.autoscale_view(None, False, False)
     plt.show()
+
+  def nn_gen(self, i, j, k, stack_list=None):
+    """ Return the combination of next neighbours diff vectors, depending on
+    the upper and lower plane indices.
+    TP: twin plane; U(D): Up/Down; N: normal plane
+    """
+    IN_PLANE = [(1, 0, 0), (-1, 0, 0), (0, 1, 0),
+                (0, -1, 0), (1, -1, 0), (-1, 1, 0)]
+    N_U_N = [(0, 0, 1), (-1, 0, 1), (0, -1, 1)]
+    N_D_N = [(0, 0, -1), (-1, 0, -1), (0, 1, -1)]
+    TP_D_N = [(0, 0, -1), (1, 0, -1), (0, -1, -1)]    # same as TP_D_TP
+    TP_U_N = [(0, 0, 1), (1, 0, 1), (0, 1, 1)]        # same as TP_U_TP
+    N_U_TP = [(0, 0, 1), (1, 0, 1), (0, -1, 1)]
+    N_D_TP = [(0, 0, -1), (1, 0, -1), (0, 1, -1)]
+
+    if not stack_list:
+      stack_list = self.layers
+    try:
+      tp_next = stack_list[k+1] - stack_list[k]
+    except IndexError:
+      print("Upper lattice border reached")
+      tp_next = 0
+    is_tp = stack_list[k] - stack_list[k-1]
+    try:
+      tp_prev = stack_list[k-1] - stack_list[k-2]
+    except IndexError:
+      print("Lower lattice border reached")
+      tp_prev = 0
+
+    neighbours = IN_PLANE
+    if is_tp:
+      neighbours.extend(TP_U_N)
+      neighbours.extend(TP_D_N)
+    if not is_tp:
+      if tp_next:
+        neighbours.extend(N_U_TP)
+        if tp_prev:
+          neighbours.extend(N_D_TP)
+        elif not tp_prev:
+          neighbours.extend(N_D_N)
+      elif not tp_next:
+        neighbours.extend(N_U_N)
+        if tp_prev:
+          neighbours.extend(N_D_TP)
+        elif not tp_prev:
+          neighbours.extend(N_D_N)
+    return neighbours
+
+  def neighbours(self, i, j, k):
+    """ Return a list of next neighbours of `i, j, k` """
+    site = (i, j, k)
+    nn_vec = self.nn_gen(i, j, k)
+    pairs = [zip(site, nn) for nn in nn_vec]
+    return [tuple(sum(y) for y in x) for x in pairs]
+
+  def set_neighbours(self, i, j, k):
+    for n in self.neighbours(i, j, k):
+      self.grid(*n, val=True)
 
   def permutator(self, seed):
     """ Creates all possible permutations of length three of all given objects
@@ -95,6 +157,13 @@ def main():
     print(_c)
   print(coords)
   f.plot(zip(*coords))
+
+
+# ------------------
+# -  Global Stuff  -
+# ------------------
+# class LayerError(Exception):
+  # pass
 
 
 if __name__ == '__main__':
