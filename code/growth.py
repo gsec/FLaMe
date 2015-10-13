@@ -10,7 +10,6 @@ from collections import namedtuple
 import numpy as np
 
 
-
 # ---------------
 # -  The Flake  -
 # ---------------
@@ -199,7 +198,7 @@ def main():
   coords = []
   cols = []
   if True:
-    special_one = (2, 2, 2)
+    special_one = (0, 0, 0)
     f.set_neighbours(*special_one, val=(1, 3))
     f.grid(*special_one, val=(1, 5))
     print('\nRendering:')
@@ -208,11 +207,11 @@ def main():
         pass
       _c = f.coord(*idx)
       coords.append(_c)
-      cols.append(f.grid(*idx, val='energy'))
-        # print(idx, _c, sep='\t')
+      cols.append(f.grid(*idx, val='energy') + 0.2 * idx[2])
+      print(idx, _c, sep='\t')
   # valid = [i[0] for k in f.grid_list for j in k for i in j]
   # print(valid)
-  f.plot2(coords, cols)
+  f.plot(coords, cols)
 
 
 # ------------------
