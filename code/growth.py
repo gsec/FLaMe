@@ -4,8 +4,11 @@
 from math import sqrt
 import itertools as it
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.patches import Circle, PathPatch
+from mpl_toolkits.mplot3d import Axes3D, art3d
 from collections import namedtuple
+import numpy as np
+
 
 
 # ---------------
@@ -16,24 +19,26 @@ class Flake():
   def __init__(self, size: int=7, twins=None):
     self.size = size
     self.Vector = namedtuple('Vector', ['x', 'y', 'z'])
-    # self.LatticeBase = namedtuple('Base', ['a', 'b', 'c'])
-    # a = self.Vector(1, 0, 0)
-    # b = self.Vector(1/sqrt(2), 1/sqrt(2), 0)
-    # c = self.Vector(1/2, 1/(2*sqrt(3)), sqrt(2/3))
-    # self.fcc_base = self.LatticeBase(a, b, c)
-    self.grid_list = [[[False for _ in range(size)]
+    self.grid_list = [[[[0, 0] for _ in range(size)]
                        for _ in range(size)]
                       for _ in range(size)]
     self.layers = self.layer_generator(twins)
 
   def grid(self, i, j, k, val=None) -> bool:
     if val is None:
+      return self.grid_list[i][j][k][0]
+    elif val == 'full':
       return self.grid_list[i][j][k]
     elif val in (True, False):
-      self.grid_list[i][j][k] = bool(val)
+      self.grid_list[i][j][k][0] = val
       return self.grid_list[i][j][k]
+    elif val == 'energy':
+      return self.grid_list[i][j][k][1]
+    elif isinstance(val, (list, tuple)) and len(val) == 2:
+      self.grid_list[i][j][k] = val
     else:
-      raise TypeError("Value must be boolean!")
+      raise TypeError("Unrecognized type of `val`. Must be either `keyword`, "
+                      "`boolean` or an iterable with length two.")
 
   def coord(self, i, j, k, twin=None) -> 'Vector':
     """ Build crystal as i*a + j*b + k*c with lattice vectors.
@@ -62,18 +67,61 @@ class Flake():
         layers[i] = len([t for t in twins if i > t])
     return layers
 
-  def plot(self, points: 'Vector'):
+  def plot(self, points: list, color: list=None):
     """ Plot method of the flake. """
     points = list(points)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    pts = zip(*points)
+    pts = list(zip(*points))
+    # print(pts)
+    if not color:
+      color = pts[2]
 
-    ax.scatter(*pts, s=1500, c=points[2])
+    ax.scatter(*pts, s=1500, c=color)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
     ax.autoscale_view(None, False, False)
+    plt.show()
+
+  def plot2(self, points: list, color: list=None):
+    """ Alternative plot method of the flake. """
+    points = list(points)
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    pts = list(zip(*points))
+    if not color:
+      color = pts[2]
+    #draw sphere
+
+    u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
+    for i, p in enumerate(points):
+      x=np.cos(u)*np.sin(v) + p[0]
+      y=np.sin(u)*np.sin(v) + p[1]
+      z=np.cos(v) + p[2]
+      ax.plot_wireframe(x, y, z, color = color)
+      # ax.plot_surface(*p)
+
+    # for p in points:
+      # for i in ["x", "y", 'z']:
+        # circle = Circle((p[0], p[1]), 1)
+        # ax.add_patch(circle)
+        # art3d.pathpatch_2d_to_3d(circle, z=p[2], zdir=p)
+
+
+    # print(pts)
+    # ll= ( (0, i*0.01) for i in range(len(points)) )
+    # print(ll)
+    # trafo = ax.transData.transform(( (0, i*0.01) for i in range(len(points)) ))
+    # print(trafo)
+
+
+    # ax.scatter3D(*pts, s=ax.transData.transform([(0, i*0.01) for i in range(len(points))]), c=color)
+    # ax.plot_surface(*pts, color=color)
+    # ax.set_xlabel('x')
+    # ax.set_ylabel('y')
+    # ax.set_zlabel('z')
+    # ax.autoscale_view(True, True, True)
     plt.show()
 
   def nn_gen(self, i, j, k, stack_list=None):
@@ -82,8 +130,8 @@ class Flake():
     TP: twin plane; U(D): Up/Down; N: normal plane
     """
     IN_PLANE = [(1, 0, 0), (-1, 0, 0), (0, 1, 0),
-                (0, -1, 0), (1, -1, 0), (-1, 1, 0)]
-    N_U_N = [(0, 0, 1), (-1, 0, 1), (0, -1, 1)]
+                (0, -1, 0), (-1, -1, 0), (-1, 1, 0)]
+    N_U_N = [(0, 0, 1), (-1, 0, 1), (0, 1, 1)]
     N_D_N = [(0, 0, -1), (-1, 0, -1), (0, 1, -1)]
     TP_D_N = [(0, 0, -1), (1, 0, -1), (0, -1, -1)]    # same as TP_D_TP
     TP_U_N = [(0, 0, 1), (1, 0, 1), (0, 1, 1)]        # same as TP_U_TP
@@ -130,9 +178,9 @@ class Flake():
     pairs = [zip(site, nn) for nn in nn_vec]
     return [tuple(sum(y) for y in x) for x in pairs]
 
-  def set_neighbours(self, i, j, k):
+  def set_neighbours(self, i, j, k, val=1):
     for n in self.neighbours(i, j, k):
-      self.grid(*n, val=True)
+      self.grid(*n, val=val)
 
   def permutator(self, seed):
     """ Creates all possible permutations of length three of all given objects
@@ -147,16 +195,24 @@ class Flake():
 
 
 def main():
-  SIZE = 3
-  f = Flake(SIZE, twins=1)
+  f = Flake(size=5, twins=None)
   coords = []
-  for idx in f.permutator(range(SIZE)):
-    print(idx)
-    _c = f.coord(*idx)
-    coords.append(_c)
-    print(_c)
-  print(coords)
-  f.plot(zip(*coords))
+  cols = []
+  if True:
+    special_one = (2, 2, 2)
+    f.set_neighbours(*special_one, val=(1, 3))
+    f.grid(*special_one, val=(1, 5))
+    print('\nRendering:')
+    for idx in f.permutator(range(f.size)):
+      if f.grid(*idx):
+        pass
+      _c = f.coord(*idx)
+      coords.append(_c)
+      cols.append(f.grid(*idx, val='energy'))
+        # print(idx, _c, sep='\t')
+  # valid = [i[0] for k in f.grid_list for j in k for i in j]
+  # print(valid)
+  f.plot2(coords, cols)
 
 
 # ------------------
