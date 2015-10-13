@@ -4,6 +4,8 @@ tools/
 ipython_log*.py
 _OLD*
 
+doc/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
