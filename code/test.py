@@ -16,7 +16,6 @@ class TestLattice(unittest.TestCase):
 
   def NOT_test_basis_vector(self):
     """ FCC base vectors of the lattice (a,b,c) """
-
     a = (1, 0, 0)
     b = (1/sqrt(2), 1/sqrt(2), 0)
     c = (1/2, 1/(2*sqrt(3)), sqrt(2/3))
@@ -34,7 +33,7 @@ class TestLattice(unittest.TestCase):
     self.assertEqual(g.grid(0, 2, 0), False)
 
     grid_point = g.grid(4, 1, 2, val=1)
-    print("GP", grid_point, type(grid_point[0]))
+    # print("GP", grid_point, type(grid_point[0]))
     self.assertTrue(grid_point[0] in (True, False))
     index = (2, 1, 4)
     g.grid(*index, val=1)

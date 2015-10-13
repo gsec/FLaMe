@@ -4,10 +4,8 @@
 from math import sqrt
 import itertools as it
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, PathPatch
-from mpl_toolkits.mplot3d import Axes3D, art3d
+from mpl_toolkits.mplot3d import Axes3D
 from collections import namedtuple
-import numpy as np
 
 
 # ---------------
@@ -23,16 +21,16 @@ class Flake():
                       for _ in range(size)]
     self.layers = self.layer_generator(twins)
 
-  def grid(self, i, j, k, val=None) -> bool:
+  def grid(self, i, j, k, val=None):
     if val is None:
       return self.grid_list[i][j][k][0]
+    elif val == 'energy':
+      return self.grid_list[i][j][k][1]
     elif val == 'full':
       return self.grid_list[i][j][k]
     elif val in (True, False):
       self.grid_list[i][j][k][0] = val
       return self.grid_list[i][j][k]
-    elif val == 'energy':
-      return self.grid_list[i][j][k][1]
     elif isinstance(val, (list, tuple)) and len(val) == 2:
       self.grid_list[i][j][k] = val
     else:
@@ -68,59 +66,15 @@ class Flake():
 
   def plot(self, points: list, color: list=None):
     """ Plot method of the flake. """
-    points = list(points)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     pts = list(zip(*points))
-    # print(pts)
     if not color:
       color = pts[2]
-
     ax.scatter(*pts, s=1500, c=color)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
-    ax.autoscale_view(None, False, False)
-    plt.show()
-
-  def plot2(self, points: list, color: list=None):
-    """ Alternative plot method of the flake. """
-    points = list(points)
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    pts = list(zip(*points))
-    if not color:
-      color = pts[2]
-    #draw sphere
-
-    u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
-    for i, p in enumerate(points):
-      x=np.cos(u)*np.sin(v) + p[0]
-      y=np.sin(u)*np.sin(v) + p[1]
-      z=np.cos(v) + p[2]
-      ax.plot_wireframe(x, y, z, color = color)
-      # ax.plot_surface(*p)
-
-    # for p in points:
-      # for i in ["x", "y", 'z']:
-        # circle = Circle((p[0], p[1]), 1)
-        # ax.add_patch(circle)
-        # art3d.pathpatch_2d_to_3d(circle, z=p[2], zdir=p)
-
-
-    # print(pts)
-    # ll= ( (0, i*0.01) for i in range(len(points)) )
-    # print(ll)
-    # trafo = ax.transData.transform(( (0, i*0.01) for i in range(len(points)) ))
-    # print(trafo)
-
-
-    # ax.scatter3D(*pts, s=ax.transData.transform([(0, i*0.01) for i in range(len(points))]), c=color)
-    # ax.plot_surface(*pts, color=color)
-    # ax.set_xlabel('x')
-    # ax.set_ylabel('y')
-    # ax.set_zlabel('z')
-    # ax.autoscale_view(True, True, True)
     plt.show()
 
   def nn_gen(self, i, j, k, stack_list=None):
@@ -194,32 +148,25 @@ class Flake():
 
 
 def main():
-  f = Flake(size=5, twins=None)
+  f = Flake(size=7, twins=None)
   coords = []
   cols = []
   if True:
-    special_one = (0, 0, 0)
+    special_one = (3, 3, 3)
     f.set_neighbours(*special_one, val=(1, 3))
     f.grid(*special_one, val=(1, 5))
     print('\nRendering:')
     for idx in f.permutator(range(f.size)):
       if f.grid(*idx):
-        pass
-      _c = f.coord(*idx)
-      coords.append(_c)
-      cols.append(f.grid(*idx, val='energy') + 0.2 * idx[2])
-      print(idx, _c, sep='\t')
-  # valid = [i[0] for k in f.grid_list for j in k for i in j]
-  # print(valid)
+        _c = f.coord(*idx)
+        coords.append(_c)
+        cols.append(f.grid(*idx, val='energy') + 0.2 * idx[2])
+        print(idx, _c, sep='\t')
   f.plot(coords, cols)
 
 
 # ------------------
 # -  Global Stuff  -
 # ------------------
-# class LayerError(Exception):
-  # pass
-
-
 if __name__ == '__main__':
   main()
