@@ -89,7 +89,7 @@ class Flake():
     TP_D_N = [(0, 0, -1), (1, 0, -1), (0, -1, -1)]    # same as TP_D_TP
     TP_U_N = [(0, 0, 1), (1, 0, 1), (0, 1, 1)]        # same as TP_U_TP
     N_U_TP = [(0, 0, 1), (1, 0, 1), (0, -1, 1)]
-    N_D_TP = [(0, 0, -1), (1, 0, -1), (0, 1, -1)]
+    N_D_TP = [(0, 0, -1), (-1, 0, -1), (0, 1, -1)]
 
     if not stack_list:
       stack_list = self.layers
@@ -148,11 +148,11 @@ class Flake():
 
 
 def main():
-  f = Flake(size=7, twins=None)
+  f = Flake(size=12, twins=None)
   coords = []
   cols = []
-  if True:
-    special_one = (3, 3, 3)
+  if Axes3D:
+    special_one = (5, 5, 5)
     f.set_neighbours(*special_one, val=(1, 3))
     f.grid(*special_one, val=(1, 5))
     print('\nRendering:')
