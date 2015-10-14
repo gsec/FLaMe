@@ -42,10 +42,14 @@ class Flake():
     `twin` is the variable that is increased by one for every twin plane
     we introduce. All layers _after_ the twin (greater positive and negative
     values) are mirrored. """
+    # -1**t is to invert the order, -t to displace the index properly
     if twin is None:
       twin = self.layers[k]
-    layer = ((-1)**twin * k - twin) % 3
-    # -1**t is to invert the order, -t to displace the index properly
+    # layer = ((-1)**twin * (k - twin)) % 3
+    # Count occurences: from collections import counter
+    # we have to redefine the twin planes count:
+    # -1**t * (k + dt) , where dt is distance from zero at tp creation
+    layer = ((-1)**twin * k ) % 3
     prototype = self.Vector(2*i + (j+k) % 2,
                             sqrt(3)*(j + layer * 1/3),
                             k*2*sqrt(6)/3)
@@ -61,7 +65,7 @@ class Flake():
       if isinstance(twins, tuple):
         twins = list(twins)
       for i, v in enumerate(layers):
-        layers[i] = len([t for t in twins if i > t])
+        layers[i] = len([t for t in twins if i >= t])
     return layers
 
   def plot(self, points: list, color: list=None):
@@ -146,18 +150,27 @@ class Flake():
         perms.append(t.pop())
     return perms
 
+  def all_points(self):
+    coords = []
+    colors = []
+    for idx in self.permutator(range(self.size)):
+      _c = self.coord(*idx)
+      coords.append(_c)
+      colors.append(self.grid(*idx, val='energy') + 0.1 * idx[2])
+    return coords, colors
+
 
 def main():
-  f = Flake(size=12, twins=None)
+  f = Flake(size=9, twins=(2,8,5))
   coords = []
   cols = []
   if Axes3D:
-    special_one = (5, 5, 5)
+    special_one = (2, 2, 1)
     f.set_neighbours(*special_one, val=(1, 3))
     f.grid(*special_one, val=(1, 5))
     print('\nRendering:')
     for idx in f.permutator(range(f.size)):
-      if f.grid(*idx):
+      # if f.grid(*idx):
         _c = f.coord(*idx)
         coords.append(_c)
         cols.append(f.grid(*idx, val='energy') + 0.2 * idx[2])
