@@ -49,24 +49,27 @@ class Flake():
     # Count occurences: from collections import counter
     # we have to redefine the twin planes count:
     # -1**t * (k + dt) , where dt is distance from zero at tp creation
-    layer = ((-1)**twin * k ) % 3
+    # permutations = k +
+    layer = ((-1)**twin * k) % 3
     prototype = self.Vector(2*i + (j+k) % 2,
                             sqrt(3)*(j + layer * 1/3),
                             k*2*sqrt(6)/3)
     return prototype
 
-  def layer_generator(self, twins=None) -> list:
+  def layer_generator(self, *twins, length=None) -> list:
     """ Create a z-list representing the number of twin-planes until up to this
     layer. """
-    layers = [0 for _ in range(self.size)]
-    if twins:
-      if isinstance(twins, int):
-        twins = [twins]
-      if isinstance(twins, tuple):
-        twins = list(twins)
-      for i, v in enumerate(layers):
-        layers[i] = len([t for t in twins if i >= t])
-    return layers
+    if not length:
+      length = self.size
+    L = []
+    counter = 0
+    sign = 1
+    for layer in range(length):
+      L.append(counter % 3)
+      if layer in twins:
+        sign = -1*sign
+      counter += sign
+    return L
 
   def plot(self, points: list, color: list=None):
     """ Plot method of the flake. """
@@ -161,7 +164,7 @@ class Flake():
 
 
 def main():
-  f = Flake(size=9, twins=(2,8,5))
+  f = Flake(size=9, twins=(2, 8, 5))
   coords = []
   cols = []
   if Axes3D:
