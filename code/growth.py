@@ -19,7 +19,7 @@ class Flake():
     self.grid_list = [[[[0, 0] for _ in range(size)]
                        for _ in range(size)]
                       for _ in range(size)]
-    self.layers = self.layer_generator(twins)
+    self.layers = self.layer_generator(*twins)
 
   def grid(self, i, j, k, val=None):
     if val is None:
@@ -37,28 +37,20 @@ class Flake():
       raise TypeError("Unrecognized type of `val`. Must be either `keyword`, "
                       "`boolean` or an iterable with length two.")
 
-  def coord(self, i, j, k, twin=None) -> 'Vector':
+  def coord(self, i, j, k, perms=None) -> 'Vector':
     """ Build crystal as i*a + j*b + k*c with lattice vectors.
     `twin` is the variable that is increased by one for every twin plane
     we introduce. All layers _after_ the twin (greater positive and negative
     values) are mirrored. """
-    # -1**t is to invert the order, -t to displace the index properly
-    if twin is None:
-      twin = self.layers[k]
-    # layer = ((-1)**twin * (k - twin)) % 3
-    # Count occurences: from collections import counter
-    # we have to redefine the twin planes count:
-    # -1**t * (k + dt) , where dt is distance from zero at tp creation
-    # permutations = k +
-    layer = ((-1)**twin * k) % 3
+    if perms is None:
+      perms = self.layers[k]
     prototype = self.Vector(2*i + (j+k) % 2,
-                            sqrt(3)*(j + layer * 1/3),
+                            sqrt(3)*(j + perms * 1/3),
                             k*2*sqrt(6)/3)
     return prototype
 
   def layer_generator(self, *twins, length=None) -> list:
-    """ Create a z-list representing the number of twin-planes until up to this
-    layer. """
+    """ Create a z-list representing the permutation of the layer. """
     if not length:
       length = self.size
     L = []
@@ -164,7 +156,7 @@ class Flake():
 
 
 def main():
-  f = Flake(size=9, twins=(2, 8, 5))
+  f = Flake(size=9, twins=(3, 5))
   coords = []
   cols = []
   if Axes3D:
@@ -178,7 +170,7 @@ def main():
         coords.append(_c)
         cols.append(f.grid(*idx, val='energy') + 0.2 * idx[2])
         print(idx, _c, sep='\t')
-  f.plot(coords, cols)
+    f.plot(coords, cols)
 
 
 # ------------------
