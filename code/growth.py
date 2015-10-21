@@ -13,50 +13,55 @@ from collections import namedtuple
 # ---------------
 class Flake():
   """ The actual Flake we want to let grow. """
-  def __init__(self, size: int=7, twins=None):
-    self.size = size
+  def __init__(self, size: int=7, twins=tuple()):
     self.Vector = namedtuple('Vector', ['x', 'y', 'z'])
     self.grid_list = [[[[0, 0] for _ in range(size)]
                        for _ in range(size)]
                       for _ in range(size)]
-    self.layers = self.layer_generator(*twins)
+
+    self.size = size
+    self.layer_permutations = self.layer_gen(*twins)
 
   def grid(self, i, j, k, val=None):
+    """ Interface to acess the `grid_list` containing information about each atom.
+    """
+    point = self.grid_list[i][j][k]
+
     if val is None:
-      return self.grid_list[i][j][k][0]
+      return point[0]
     elif val == 'energy':
-      return self.grid_list[i][j][k][1]
+      return point[1]
     elif val == 'full':
-      return self.grid_list[i][j][k]
+      return point
     elif val in (True, False):
-      self.grid_list[i][j][k][0] = val
-      return self.grid_list[i][j][k]
+      point[0] = val
+      return point
     elif isinstance(val, (list, tuple)) and len(val) == 2:
-      self.grid_list[i][j][k] = val
+      point = val
     else:
-      raise TypeError("Unrecognized type of `val`. Must be either `keyword`, "
+      raise TypeError("Unrecognized type of `val`.\nMust be either `keyword`, "
                       "`boolean` or an iterable with length two.")
 
-  def coord(self, i, j, k, perms=None) -> 'Vector':
+  def coord(self, i, j, k) -> 'Vector':
     """ Build crystal as i*a + j*b + k*c with lattice vectors.
-    `twin` is the variable that is increased by one for every twin plane
-    we introduce. All layers _after_ the twin (greater positive and negative
-    values) are mirrored. """
-    if perms is None:
-      perms = self.layers[k]
+
+    `perms` is the permutation (0, 1 or 2) of the layer displacement according to the
+    fcc-stacking and the twin plane configuration (every twin plane inverts the
+    permutation order).  """
+    perms = self.layer_permutations[k]
     prototype = self.Vector(2*i + (j+k) % 2,
                             sqrt(3)*(j + perms * 1/3),
                             k*2*sqrt(6)/3)
     return prototype
 
-  def layer_generator(self, *twins, length=None) -> list:
-    """ Create a z-list representing the permutation of the layer. """
-    if not length:
-      length = self.size
+  def layer_gen(self, *twins) -> list:
+    """ Create a z-list representing the permutation of the layer.
+    """
     L = []
-    counter = 0
     sign = 1
-    for layer in range(length):
+    counter = 0
+
+    for layer in range(self.size):
       L.append(counter % 3)
       if layer in twins:
         sign = -1*sign
@@ -77,9 +82,12 @@ class Flake():
     plt.show()
 
   def nn_gen(self, i, j, k, stack_list=None):
-    """ Return the combination of next neighbours diff vectors, depending on
-    the upper and lower plane indices.
-    TP: twin plane; U(D): Up/Down; N: normal plane
+    """ Return the combination of next neighbours diff vectors, depending on the upper and
+    lower plane indices.
+
+    TP: twin plane
+    U(D): Up/Down
+    N: normal plane
     """
     IN_PLANE = [(1, 0, 0), (-1, 0, 0), (0, 1, 0),
                 (0, -1, 0), (-1, -1, 0), (-1, 1, 0)]
@@ -91,7 +99,7 @@ class Flake():
     N_D_TP = [(0, 0, -1), (-1, 0, -1), (0, 1, -1)]
 
     if not stack_list:
-      stack_list = self.layers
+      stack_list = self.layer_permutations
     try:
       tp_next = stack_list[k+1] - stack_list[k]
     except IndexError:
@@ -156,7 +164,7 @@ class Flake():
 
 
 def main():
-  f = Flake(size=9, twins=(3, 5))
+  f = Flake(size=7, twins=(3, 5))
   coords = []
   cols = []
   if Axes3D:

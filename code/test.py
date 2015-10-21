@@ -57,7 +57,7 @@ class TestLattice(unittest.TestCase):
     """ Sets the configuration of twin planes. """
     g = Flake(14)
     twins = (2, 3, 5)
-    layers = g.layer_generator(twins)
+    layers = g.layer_gen(twins)
     self.assertTrue(all(layers[i] == 0 for i in range(0, 3)))
     self.assertTrue(all(layers[i] == 1 for i in range(3, 4)))
     self.assertTrue(all(layers[i] == 2 for i in range(4, 6)))
