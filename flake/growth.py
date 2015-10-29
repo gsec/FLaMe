@@ -20,13 +20,14 @@ from collections import namedtuple
 # ---------------
 class Flake():
   """ The actual Flake we want to let grow. """
-  def __init__(self, size: int=7, twins=tuple()):
+  def __init__(self, size=7, twins=tuple()):
     self.Vector = namedtuple('Vector', ['x', 'y', 'z'])
     self.grid_list = [[[[0, 0] for _ in range(size)]
                        for _ in range(size)]
                       for _ in range(size)]
 
     self.size = size
+    self.twins = twins
     self.layer_permutations = self.layer_gen(*twins)
 
   def grid(self, i, j, k, val=None):
@@ -49,7 +50,7 @@ class Flake():
       raise TypeError("Unrecognized type of `val`.\nMust be either `keyword`, "
                       "`boolean` or an iterable with length two.")
 
-  def coord(self, i, j, k) -> 'Vector':
+  def coord(self, i, j, k):
     """ Build crystal as i*a + j*b + k*c with lattice vectors.
 
     `perms` is the permutation (0, 1 or 2) of the layer displacement according to the
@@ -61,8 +62,15 @@ class Flake():
                             k*2*sqrt(6)/3)
     return prototype
 
-  def layer_gen(self, *twins) -> list:
+  def layer_gen(self, *twins):
     """ Create a z-list representing the permutation of the layer.
+
+    Mapping an ABC layer to:
+      A -> 0
+      B -> 1
+      C -> 2
+
+    Flipping the order at the twin plane: ABCABCAB... -> AB'C'BACBA...
     """
     L = []
     sign = 1
@@ -75,7 +83,7 @@ class Flake():
       counter += sign
     return L
 
-  def plot(self, points: list, color: list=None):
+  def plot(self, points, color=None):
     """ Plot method of the flake. """
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -89,7 +97,7 @@ class Flake():
     ax.set_zlabel('z')
     plt.show()
 
-  def nn_gen(self, i, j, k, stack_list=None):
+  def nn_gen(self, i, j, k):
     """ Return the combination of next neighbours diff vectors, depending on the upper and
     lower plane indices.
 
@@ -97,25 +105,31 @@ class Flake():
     U(D): Up/Down
     N: normal plane
     """
+    # TODO:
+    # Manually check for  all twinplane combinations the next neighbours
     IN_PLANE = [(1, 0, 0), (-1, 0, 0), (0, 1, 0),
                 (0, -1, 0), (-1, -1, 0), (-1, 1, 0)]
-    N_U_N = [(0, 0, 1), (-1, 0, 1), (0, 1, 1)]
+    N_U_N = [(0, 0, 1), (-1, 0, 1), (0, -1, 1)]
     N_D_N = [(0, 0, -1), (-1, 0, -1), (0, 1, -1)]
     TP_D_N = [(0, 0, -1), (1, 0, -1), (0, -1, -1)]    # same as TP_D_TP
     TP_U_N = [(0, 0, 1), (1, 0, 1), (0, 1, 1)]        # same as TP_U_TP
     N_U_TP = [(0, 0, 1), (1, 0, 1), (0, -1, 1)]
     N_D_TP = [(0, 0, -1), (-1, 0, -1), (0, 1, -1)]
 
-    if not stack_list:
-      stack_list = self.layer_permutations
+    stack_list = self.layer_permutations
+
     try:
-      tp_next = stack_list[k+1] - stack_list[k]
+      tp_next = stack_list[k+1] in self.twins
+      print("Next plane TP?", tp_next)
+      # = lambda x: True if stack_list[k+1] in self.twins
     except IndexError:
       print("Upper lattice border reached")
       tp_next = 0
-    is_tp = stack_list[k] - stack_list[k-1]
+    is_tp = stack_list[k] in self.twins
+    print("This plane TP?", is_tp)
     try:
-      tp_prev = stack_list[k-1] - stack_list[k-2]
+      tp_prev = stack_list[k-1] in self.twins
+      print("Previous plane TP?", tp_prev)
     except IndexError:
       print("Lower lattice border reached")
       tp_prev = 0
@@ -175,7 +189,7 @@ class Flake():
 # -  main  -
 # ----------
 def main():
-  f = Flake(size=3)
+  f = Flake(size=3, twins=(0,))
   coords = []
   cols = []
   if Axes3D:
