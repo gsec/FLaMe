@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-# encoding: utf-8              A flake growth simulation
+# encoding: utf-8
+"""                              FLAKE GROWTH SIMULATION
+                                 ~~~~~~~~~~~~~~~~~~~~~~~
+
+        :copyright: (c) 2015     Guilherme Stein
+                                 University of Würzburg
+                                 <guilherme.stein@physik.uni-wuerzburg.de>
+"""
 
 from math import sqrt
 import itertools as it
@@ -34,10 +41,10 @@ class Flake():
     elif val == 'full':
       return point
     elif val in (True, False):
-      point[0] = val
+      self.grid_list[i][j][k] = val
       return point
     elif isinstance(val, (list, tuple)) and len(val) == 2:
-      point = val
+      self.grid_list[i][j][k] = val
     else:
       raise TypeError("Unrecognized type of `val`.\nMust be either `keyword`, "
                       "`boolean` or an iterable with length two.")
@@ -74,7 +81,8 @@ class Flake():
     ax = fig.add_subplot(111, projection='3d')
     pts = list(zip(*points))
     if not color:
-      color = pts[2]
+      # color = pts[2]
+      color = []
     ax.scatter(*pts, s=1500, c=color)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
@@ -163,26 +171,26 @@ class Flake():
     return coords, colors
 
 
+# ----------
+# -  main  -
+# ----------
 def main():
-  f = Flake(size=7, twins=(3, 5))
+  f = Flake(size=3)
   coords = []
   cols = []
   if Axes3D:
-    special_one = (2, 2, 1)
-    f.set_neighbours(*special_one, val=(1, 3))
+    special_one = (1, 1, 1)
     f.grid(*special_one, val=(1, 5))
+    f.set_neighbours(*special_one, val=(1, 3))
     print('\nRendering:')
     for idx in f.permutator(range(f.size)):
       # if f.grid(*idx):
         _c = f.coord(*idx)
         coords.append(_c)
-        cols.append(f.grid(*idx, val='energy') + 0.2 * idx[2])
-        print(idx, _c, sep='\t')
+        cols.append(f.grid(*idx, val='energy') + 0.1 * idx[2])
+        # print(idx, _c, sep='\t')
     f.plot(coords, cols)
 
 
-# ------------------
-# -  Global Stuff  -
-# ------------------
 if __name__ == '__main__':
   main()
