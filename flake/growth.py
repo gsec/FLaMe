@@ -3,9 +3,9 @@
 """                              FLAKE GROWTH SIMULATION
                                  ~~~~~~~~~~~~~~~~~~~~~~~
 
-        :copyright: (c) 2015     Guilherme Stein
-                                 University of Würzburg
-                                 <guilherme.stein@physik.uni-wuerzburg.de>
+                                Guilherme Stein         :copyright: 2015
+                                University of Würzburg
+                                <guilherme.stein@physik.uni-wuerzburg.de>
 """
 
 from math import sqrt
@@ -19,19 +19,18 @@ from collections import namedtuple
 # -  The Flake  -
 # ---------------
 class Flake():
-  """ The actual Flake we want to let grow. """
+  """ Class containing the atom and lattice informations about the flake."""
   def __init__(self, size=7, twins=tuple()):
     self.Vector = namedtuple('Vector', ['x', 'y', 'z'])
     self.grid_list = [[[[0, 0] for _ in range(size)]
                        for _ in range(size)]
                       for _ in range(size)]
-
     self.size = size
     self.twins = twins
     self.layer_permutations = self.layer_gen(*twins)
 
   def grid(self, i, j, k, val=None):
-    """ Interface to acess the `grid_list` containing information about each atom.
+    """ Interface to access the `grid_list` containing information about each atom.
     """
     point = self.grid_list[i][j][k]
 
@@ -55,7 +54,8 @@ class Flake():
 
     `perms` is the permutation (0, 1 or 2) of the layer displacement according to the
     fcc-stacking and the twin plane configuration (every twin plane inverts the
-    permutation order).  """
+    permutation order).
+    """
     perms = self.layer_permutations[k]
     prototype = self.Vector(2*i + (j+k) % 2,
                             sqrt(3)*(j + perms * 1/3),
@@ -65,12 +65,8 @@ class Flake():
   def layer_gen(self, *twins):
     """ Create a z-list representing the permutation of the layer.
 
-    Mapping an ABC layer to:
-      A -> 0
-      B -> 1
-      C -> 2
-
-    Flipping the order at the twin plane: ABCABCAB... -> AB'C'BACBA...
+    Mapping an ABC layer to: A -> 0, B -> 1, C -> 2
+    And flipping the order at each twin plane: ABCABCAB... -> AB'C'BACBA...
     """
     L = []
     sign = 1
@@ -102,7 +98,7 @@ class Flake():
     lower plane indices.
 
     TP: twin plane
-    U(D): Up/Down
+    U/D: Up/Down
     N: normal plane
     """
     # TODO:

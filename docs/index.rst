@@ -11,9 +11,10 @@ Contents:
 .. toctree::
    :maxdepth: 4
 
-   README
-   growth
-   test
+   main
+   ..README
+   ..growth
+   ..test
 
 
 Indices and tables
@@ -22,4 +23,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
