@@ -3,8 +3,10 @@
 # The test module for our program
 # pylint: disable=W0401
 
+#                     The test module for the flake simulation
 import unittest
 from growth import *
+# from growth import Flake, GridError
 
 
 class TestLattice(unittest.TestCase):
@@ -12,60 +14,36 @@ class TestLattice(unittest.TestCase):
 
   def setUp(self):
     """ Instantiate the class. """
-    self.F = Flake()
-
-  def NOT_test_basis_vector(self):
-    """ FCC base vectors of the lattice (a,b,c) """
-    a = (1, 0, 0)
-    b = (1/sqrt(2), 1/sqrt(2), 0)
-    c = (1/2, 1/(2*sqrt(3)), sqrt(2/3))
-    expected = self.F.LatticeBase(a, b, c)
-    output = self.F.fcc_base
-    self.assertEqual(expected, output)
-    self.assertTrue(len(self.F.fcc_base) == 3)
+    global F
+    F = Flake()
 
   def test_grid(self):
-    """ Boolean n*n*n list of atoms.
-    Creates new instance to ensure no altering of attributes."""
-    g = Flake()
-    self.assertEqual(g.grid_list[0][3][4][0], 0)
-    self.assertEqual(g.grid(1, 2, 3, None), False)
-    self.assertEqual(g.grid(0, 2, 0), False)
+    """ Test the raw_grid list and its access method grid().
 
-    grid_point = g.grid(4, 1, 2, val=1)
-    # print("GP", grid_point, type(grid_point[0]))
-    self.assertTrue(grid_point[0] in (True, False))
-    index = (2, 1, 4)
-    g.grid(*index, val=1)
-    self.assertEqual(g.grid(*index), True)
-    with self.assertRaises(TypeError):
-      g.grid(3, 3, 3, 'that_string')
-
-  def test_coord(self):
-    """ Retrieve cartesian coordinates from lattice indices.
+    Creates new instance to ensure no altering of attributes. Ensure raw_grid and grid
+    access method return False since no atom is present at initialization.
     """
-    func = self.F.coord
-    index = (1, 2, 3)
-    res1 = func(*index, twin=0)
-    exp1 = self.F.Vector(3, 3.4641016151377544, 4.898979485566356)
-    res2 = func(*index, twin=1).y
-    exp2 = sqrt(3)*(2+2 * 1/3)
-    self.assertEqual(res1, exp1)
-    self.assertEqual(res2, exp2)
-
-  def test_layer_generator(self):
-    """ Sets the configuration of twin planes. """
-    g = Flake(14)
-    twins = (2, 3, 5)
-    layers = g.layer_gen(twins)
-    self.assertTrue(all(layers[i] == 0 for i in range(0, 3)))
-    self.assertTrue(all(layers[i] == 1 for i in range(3, 4)))
-    self.assertTrue(all(layers[i] == 2 for i in range(4, 6)))
-    self.assertTrue(all(layers[i] == 3 for i in range(7, 10)))
+    g = Flake(size=8)
+    self.assertEqual(g.raw_grid[0][3][4][0], 0)
+    self.assertEqual(g.grid(1, 2, 3), False)
+    g.grid(3, 3, 3, 'set')      # Set atom
+    self.assertEqual(g.grid(3, 3, 3), True)
+    g.grid(3, 3, 3, 'remove')   # and remove it again
+    self.assertEqual(g.grid(3, 3, 3), False)
+    g.grid(3, 3, 3, 17)         # Set atom with specific energy parameter
+    self.assertEqual(g.grid(3, 3, 3, 'get'), [True, 17])
+    with self.assertRaises(GridError):
+      g.grid(3, 3, 3, [2, 2])
+    with self.assertRaises(GridError):
+      g.grid(3, 3, 3, 'test_arg')
 
   def test_nn_gen(self):
-    """ Next neighbours vector generator. """
-    pass
+    """ Checks that all next neighbours are translated correctly into the grid.
+    """
+    choice = (2, 2, 2)
+    nn_pos = [F.coord(*x) for x in F.neighbours(*choice)]
+    nn_diffs = [abs(F.coord(*choice) - x) for x in nn_pos]
+    print(nn_diffs)
 
 if __name__ == '__main__':
   unittest.main()

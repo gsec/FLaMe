@@ -12,7 +12,6 @@ from math import sqrt
 import itertools as it
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from collections import namedtuple
 
 
 # ---------------
@@ -21,33 +20,44 @@ from collections import namedtuple
 class Flake():
   """ Class containing the atom and lattice informations about the flake."""
   def __init__(self, size=7, twins=tuple()):
-    self.Vector = namedtuple('Vector', ['x', 'y', 'z'])
-    self.grid_list = [[[[0, 0] for _ in range(size)]
-                       for _ in range(size)]
-                      for _ in range(size)]
+    """
+    Initialize Vector tuple.
+    Initialize `raw_grid` as size**3 array of [0, 0].
+    """
+    self.raw_grid = [[[
+                    [False, 0]
+                    for _ in range(size)]
+                    for _ in range(size)]
+                    for _ in range(size)]
     self.size = size
     self.twins = twins
     self.layer_permutations = self.layer_gen(*twins)
 
-  def grid(self, i, j, k, val=None):
+  def grid(self, i, j, k, value=None):
     """ Interface to access the `grid_list` containing information about each atom.
-    """
-    point = self.grid_list[i][j][k]
 
-    if val is None:
-      return point[0]
-    elif val == 'energy':
-      return point[1]
-    elif val == 'full':
-      return point
-    elif val in (True, False):
-      self.grid_list[i][j][k] = val
-      return point
-    elif isinstance(val, (list, tuple)) and len(val) == 2:
-      self.grid_list[i][j][k] = val
+    Needs indices (i,j,k) and can access the slots `occupation` and `energy` of atom on
+    this site.
+    """
+    atom = self.raw_grid[i][j][k]
+
+    if not value:
+      return atom[0]
+
+    elif isinstance(value, int):
+      self.raw_grid[i][j][k] = [True, value]
+
+    elif isinstance(value, str):
+      if value == 'get':
+        return atom
+      elif value == 'set':
+        self.raw_grid[i][j][k][0] = True
+      elif value == 'remove':
+        self.raw_grid[i][j][k] = [False, 0]
+      else:
+        raise GridError("Option `" + value + "` not available.")
     else:
-      raise TypeError("Unrecognized type of `val`.\nMust be either `keyword`, "
-                      "`boolean` or an iterable with length two.")
+      raise GridError("Wrong arguments.")
 
   def coord(self, i, j, k):
     """ Build crystal as i*a + j*b + k*c with lattice vectors.
@@ -57,9 +67,9 @@ class Flake():
     permutation order).
     """
     perms = self.layer_permutations[k]
-    prototype = self.Vector(2*i + (j+k) % 2,
-                            sqrt(3)*(j + perms * 1/3),
-                            k*2*sqrt(6)/3)
+    prototype = Vector(2*i + (j+k) % 2,
+                       sqrt(3)*(j + perms * 1/3),
+                       k*2*sqrt(6)/3)
     return prototype
 
   def layer_gen(self, *twins):
@@ -79,27 +89,11 @@ class Flake():
       counter += sign
     return L
 
-  def plot(self, points, color=None):
-    """ Plot method of the flake. """
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    pts = list(zip(*points))
-    if not color:
-      # color = pts[2]
-      color = []
-    ax.scatter(*pts, s=1500, c=color)
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-    plt.show()
-
   def nn_gen(self, i, j, k):
     """ Return the combination of next neighbours diff vectors, depending on the upper and
     lower plane indices.
 
-    TP: twin plane
-    U/D: Up/Down
-    N: normal plane
+    T: twin plane   -  U: Up  -  D: Down  -  N: normal plane
     """
     # TODO:
     # Manually check for  all twinplane combinations the next neighbours
@@ -107,44 +101,43 @@ class Flake():
                 (0, -1, 0), (-1, -1, 0), (-1, 1, 0)]
     N_U_N = [(0, 0, 1), (-1, 0, 1), (0, -1, 1)]
     N_D_N = [(0, 0, -1), (-1, 0, -1), (0, 1, -1)]
-    TP_D_N = [(0, 0, -1), (1, 0, -1), (0, -1, -1)]    # same as TP_D_TP
-    TP_U_N = [(0, 0, 1), (1, 0, 1), (0, 1, 1)]        # same as TP_U_TP
-    N_U_TP = [(0, 0, 1), (1, 0, 1), (0, -1, 1)]
-    N_D_TP = [(0, 0, -1), (-1, 0, -1), (0, 1, -1)]
+    T_D_N = [(0, 0, -1), (1, 0, -1), (0, -1, -1)]    # same as TP_D_TP
+    T_U_N = [(0, 0, 1), (1, 0, 1), (0, 1, 1)]        # same as TP_U_TP
+    N_U_T = [(0, 0, 1), (1, 0, 1), (0, -1, 1)]
+    N_D_T = [(0, 0, -1), (-1, 0, -1), (0, 1, -1)]
 
     stack_list = self.layer_permutations
+    is_tp = stack_list[k] in self.twins
+    print("This plane TP?", is_tp)
 
     try:
       tp_next = stack_list[k+1] in self.twins
       print("Next plane TP?", tp_next)
-      # = lambda x: True if stack_list[k+1] in self.twins
     except IndexError:
       print("Upper lattice border reached")
-      tp_next = 0
-    is_tp = stack_list[k] in self.twins
-    print("This plane TP?", is_tp)
+      tp_next = False
     try:
       tp_prev = stack_list[k-1] in self.twins
       print("Previous plane TP?", tp_prev)
     except IndexError:
       print("Lower lattice border reached")
-      tp_prev = 0
+      tp_prev = False
 
     neighbours = IN_PLANE
     if is_tp:
-      neighbours.extend(TP_U_N)
-      neighbours.extend(TP_D_N)
-    if not is_tp:
+      neighbours.extend(T_U_N)
+      neighbours.extend(T_D_N)
+    elif not is_tp:
       if tp_next:
-        neighbours.extend(N_U_TP)
+        neighbours.extend(N_U_T)
         if tp_prev:
-          neighbours.extend(N_D_TP)
+          neighbours.extend(N_D_T)
         elif not tp_prev:
           neighbours.extend(N_D_N)
       elif not tp_next:
         neighbours.extend(N_U_N)
         if tp_prev:
-          neighbours.extend(N_D_TP)
+          neighbours.extend(N_D_T)
         elif not tp_prev:
           neighbours.extend(N_D_N)
     return neighbours
@@ -155,10 +148,14 @@ class Flake():
     nn_vec = self.nn_gen(i, j, k)
     pairs = [zip(site, nn) for nn in nn_vec]
     return [tuple(sum(y) for y in x) for x in pairs]
+    # return [Vector(*x) for x in ret]
 
-  def set_neighbours(self, i, j, k, val=1):
+  def set_neighbours(self, i, j, k, val=None):
     for n in self.neighbours(i, j, k):
-      self.grid(*n, val=val)
+      if not val:
+        self.grid(*n, value='set')
+      else:
+        self.grid(*n, value=val)
 
   def permutator(self, seed):
     """ Creates all possible permutations of length three of all given objects
@@ -177,8 +174,87 @@ class Flake():
     for idx in self.permutator(range(self.size)):
       _c = self.coord(*idx)
       coords.append(_c)
-      colors.append(self.grid(*idx, val='energy') + 0.1 * idx[2])
+      colors.append(self.grid(*idx, value='get')[1] + 0.1 * idx[2] + 10)
     return coords, colors
+
+  def plot(self, points=None, color=[]):
+    # TODO: plot method should plot whole flake when no argmuents are passed
+    """ Plot method of the flake. """
+    if not points:
+      points = self.all_points()[0]
+    # if not color:
+      # color = self.all_points()[1]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    pts = list(zip(*points))
+    # if not color:
+      # color = pts[2]
+      # color = []
+    ax.scatter(*pts, s=1500, c=color)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    plt.show()
+
+
+class Vector():
+  """ Self defined Vector object.
+  """
+  def __init__(self, x, y, z):
+    self.x = x
+    self.y = y
+    self.z = z
+
+  def __repr__(self):
+    return 'Vector:({}, {}, {})'.format(self.x, self.y, self.z)
+
+  def __iter__(self):
+    for comp in (self.x, self.y, self.z):
+      yield comp
+
+  def __add__(self, other):
+    if isinstance(other, Vector):
+      new_x = self.x + other.x
+      new_y = self.y + other.y
+      new_z = self.z + other.z
+      return Vector(new_x, new_y, new_z)
+    elif isinstance(other, (int, float)):
+      new_x = self.x + other
+      new_y = self.y + other
+      new_z = self.z + other
+      return Vector(new_x, new_y, new_z)
+    else:
+      raise VectorException()
+
+  def __sub__(self, other):
+    if isinstance(other, Vector):
+      new_x = self.x - other.x
+      new_y = self.y - other.y
+      new_z = self.z - other.z
+      return Vector(new_x, new_y, new_z)
+    elif isinstance(other, (int, float)):
+      new_x = self.x - other
+      new_y = self.y - other
+      new_z = self.z - other
+      return Vector(new_x, new_y, new_z)
+    else:
+      raise VectorException()
+
+  def __abs__(self):
+    return sqrt(self.x**2 + self.y**2 + self.z**2)
+
+
+class GridError(Exception):
+  pass
+
+
+class LayerError(GridError):
+  pass
+
+
+class VectorException(Exception):
+  pass
 
 
 # ----------
@@ -190,15 +266,15 @@ def main():
   cols = []
   if Axes3D:
     special_one = (1, 1, 1)
-    f.grid(*special_one, val=(1, 5))
-    f.set_neighbours(*special_one, val=(1, 3))
+    f.grid(*special_one, value=5)
+    f.set_neighbours(*special_one, val=3)
     print('\nRendering:')
     for idx in f.permutator(range(f.size)):
       # if f.grid(*idx):
         _c = f.coord(*idx)
         coords.append(_c)
-        cols.append(f.grid(*idx, val='energy') + 0.1 * idx[2])
-        # print(idx, _c, sep='\t')
+        cols.append(f.grid(*idx, value='get')[1] + 0.1 * idx[2])
+        print(idx, _c, sep='\t')
     f.plot(coords, cols)
 
 
