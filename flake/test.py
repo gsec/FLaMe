@@ -1,14 +1,9 @@
 #!/usr/bin/env python3
 #coding: utf-8
-# The test module for our program
-# pylint: disable=W0401
 #                     The test module for the flake simulation
-
 import unittest
-from growth import (Flake,
-                    Vector,
-                    # VectorException,
-                    GridError)
+from growth import Flake, Vector, VectorException, GridError
+
 global F
 F = Flake()
 
@@ -35,14 +30,6 @@ class TestLattice(unittest.TestCase):
       g.grid(3, 3, 3, [2, 2])
     with self.assertRaises(GridError):
       g.grid(3, 3, 3, 'test_arg')
-
-  def NOT_test_nn_gen(self):
-    """ Checks that all next neighbours are translated correctly into the grid.
-    """
-    choice = (2, 2, 2)
-    nn_pos = [F.coord(*x) for x in F.neighbours(*choice)]
-    nn_diffs = [abs(F.coord(*choice) - x) for x in nn_pos]
-    print(nn_diffs)
 
 
 class TestVector(unittest.TestCase):
@@ -72,6 +59,21 @@ class TestVector(unittest.TestCase):
     res = vec1 - num
     for (rcomp, vcomp) in zip(res, vec1):
       self.assertEqual(rcomp, vcomp - num)
+
+  def test_dist(self):
+    vec1 = Vector(2, 5, 0)
+    vec2 = Vector(3, 3, -7)
+    self.assertEqual(7.3484692283495345, vec1.dist(vec2))
+    self.assertEqual(vec1.dist(vec2), vec2.dist(vec1))
+    self.assertEqual(0, vec1.dist(vec1))
+
+  def test_dist_exception(self):
+    with self.assertRaises(VectorException):
+      Vector(1, 2, 3).dist("Failboat")
+
+  def test_abs(self):
+    vec1 = Vector(2, 5, 0)
+    self.assertEqual(abs(vec1), vec1.dist(Vector(0, 0, 0)))
 
 
 if __name__ == '__main__':

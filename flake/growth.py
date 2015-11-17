@@ -122,10 +122,7 @@ class Flake:
     all_diffs = [abs(site - self.coord(*choice)) for site in all_coordinated]
     all_associated = list(zip(all_relative, all_indexed, all_diffs))
     next_relatives = [each[0] for each in all_associated if each[2] <= 2.1]
-    print('len is: ', len(next_relatives))
-    # if len(next_relatives) < 12:
-      # print(all_associated)
-      # raise InsufficientNeighbours
+    print('len of nn is: ', len(next_relatives))
     return next_relatives
 
   def neighbours(self, i, j, k, relative_neighbours=None):
@@ -144,9 +141,17 @@ class Flake:
       else:
         self.grid(*n, value=val)
 
-  def permutator(self, seed):
+  def create_surface(self):
+    self.surface = []
+    for atom in self.permutator():
+      #if true, has NN surface.append(atom)
+      pass
+
+  def permutator(self, seed=None):
     """ Creates all possible permutations of length three of all given objects
     in `seed`. """
+    if not seed:
+      seed = range(self.size)
     types = it.combinations_with_replacement(seed, 3)
     perms = []
     for i in types:
@@ -156,7 +161,7 @@ class Flake:
     return perms
 
   def whole_crystal(self):
-    return (self.coord(*idx) for idx in self.permutator(range(self.size)))
+    return (self.coord(*idx) for idx in self.permutator())
 
   def plot(self, sites=None, color=['yellow']):
     """ Plot method of the flake. """
@@ -174,7 +179,7 @@ class Flake:
     plt.show()
 
 
-class Vector():
+class Vector:
   """ Self defined Vector object.
 
   Supports addition/subtraction with other vectors, addition/ subtraction with floats and
@@ -224,6 +229,13 @@ class Vector():
       return Vector(new_x, new_y, new_z)
     else:
       raise VectorException()
+
+  def dist(self, other):
+    try:
+      diff = self - other
+    except:
+      raise VectorException("Error: `dist()` argument must be a vector")
+    return abs(diff)
 
   def __abs__(self):
     return sqrt(self.x**2 + self.y**2 + self.z**2)
