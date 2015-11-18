@@ -2,7 +2,8 @@
 #coding: utf-8
 #                     The test module for the flake simulation
 import unittest
-from growth import Flake, Vector, VectorException, GridError
+from growth import Flake, GridError
+from helper import Vector, VectorException
 
 global F
 F = Flake()
@@ -33,7 +34,6 @@ class TestLattice(unittest.TestCase):
 
 
 class TestVector(unittest.TestCase):
-
   def test_equality(self):
     vec = Vector(3, 4, 8)
     self.assertEqual(vec, Vector(3, 4, 8))
@@ -68,7 +68,7 @@ class TestVector(unittest.TestCase):
     self.assertEqual(0, vec1.dist(vec1))
 
   def test_dist_exception(self):
-    with self.assertRaises(VectorException):
+    with self.assertRaises(TypeError):
       Vector(1, 2, 3).dist("Failboat")
 
   def test_abs(self):

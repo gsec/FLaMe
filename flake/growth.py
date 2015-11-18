@@ -9,6 +9,7 @@
 """
 from math import sqrt
 import itertools as it
+from helper import Vector, VectorException
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -55,17 +56,14 @@ class Flake:
       return atom[0]
     elif isinstance(value, (int, float)):
       self.raw_grid[i][j][k] = [True, value]
-    elif isinstance(value, str):
-      if value == 'get':
-        return atom
-      elif value == 'set':
-        self.raw_grid[i][j][k][0] = True
-      elif value == 'remove':
-        self.raw_grid[i][j][k] = [False, 0]
-      else:
-        raise GridError("Option `" + value + "` not available.")
+    elif value == 'get':
+      return atom
+    elif value == 'set':
+      self.raw_grid[i][j][k][0] = True
+    elif value == 'remove':
+      self.raw_grid[i][j][k] = [False, 0]
     else:
-      raise GridError("Wrong arguments.")
+      raise GridError("Option `" + str(value) + "` not available.")
 
   def coord(self, i, j, k):
     """ Return Cartesian coordinates vector of a given lattice point.
@@ -119,7 +117,7 @@ class Flake:
     all_indexed = list(self.neighbours(*choice, relative_neighbours=all_relative))
     all_coordinated = [self.coord(*site) for site in all_indexed]
     # round for numerical issues
-    all_diffs = [abs(site - self.coord(*choice)) for site in all_coordinated]
+    all_diffs = [site.dist(self.coord(*choice)) for site in all_coordinated]
     all_associated = list(zip(all_relative, all_indexed, all_diffs))
     next_relatives = [each[0] for each in all_associated if each[2] <= 2.1]
     print('len of nn is: ', len(next_relatives))
@@ -144,8 +142,9 @@ class Flake:
   def create_surface(self):
     self.surface = []
     for atom in self.permutator():
-      #if true, has NN surface.append(atom)
-      pass
+      for nb in self.real_neighbours(*atom):
+        if nb not in self.surface:
+          self.surface.extend(nb)
 
   def permutator(self, seed=None):
     """ Creates all possible permutations of length three of all given objects
@@ -179,68 +178,6 @@ class Flake:
     plt.show()
 
 
-class Vector:
-  """ Self defined Vector object.
-
-  Supports addition/subtraction with other vectors, addition/ subtraction with floats and
-  integers (for each component) and the length through the `abs()` method.
-  """
-  def __init__(self, x, y, z):
-    self.x = x
-    self.y = y
-    self.z = z
-
-  def __repr__(self):
-    return 'Vector:({}, {}, {})'.format(self.x, self.y, self.z)
-
-  def __iter__(self):
-    """ Iteration over a Vector yields it's components. """
-    for comp in (self.x, self.y, self.z):
-      yield comp
-
-  def __eq__(self, other):
-    eq_list = [self.__dict__[comp] == other.__dict__[comp] for comp in ('x', 'y', 'z')]
-    return all(eq_list)
-
-  def __add__(self, other):
-    if isinstance(other, Vector):
-      new_x = self.x + other.x
-      new_y = self.y + other.y
-      new_z = self.z + other.z
-      return Vector(new_x, new_y, new_z)
-    elif isinstance(other, (int, float)):
-      new_x = self.x + other
-      new_y = self.y + other
-      new_z = self.z + other
-      return Vector(new_x, new_y, new_z)
-    else:
-      raise VectorException
-
-  def __sub__(self, other):
-    if isinstance(other, Vector):
-      new_x = self.x - other.x
-      new_y = self.y - other.y
-      new_z = self.z - other.z
-      return Vector(new_x, new_y, new_z)
-    elif isinstance(other, (int, float)):
-      new_x = self.x - other
-      new_y = self.y - other
-      new_z = self.z - other
-      return Vector(new_x, new_y, new_z)
-    else:
-      raise VectorException()
-
-  def dist(self, other):
-    try:
-      diff = self - other
-    except:
-      raise VectorException("Error: `dist()` argument must be a vector")
-    return abs(diff)
-
-  def __abs__(self):
-    return sqrt(self.x**2 + self.y**2 + self.z**2)
-
-
 class GridError(Exception):
   pass
 
@@ -250,10 +187,6 @@ class InsufficientNeighbours(GridError):
 
 
 class LayerError(GridError):
-  pass
-
-
-class VectorException(Exception):
   pass
 
 
