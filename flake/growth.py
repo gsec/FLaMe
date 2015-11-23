@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 # encoding: utf-8
-"""                             FLAKE GROWTH SIMULATION
-                                ~~~~~~~~~~~~~~~~~~~~~~~
+"""                       FLAKE GROWTH SIMULATION
+                          ~~~~~~~~~~~~~~~~~~~~~~~
 
-                                Guilherme Stein         : 2015
-                                University of Würzburg
-                                <guilherme.stein@physik.uni-wuerzburg.de>
+                          Guilherme Stein         : 2015
+                          University of Würzburg
+                          <guilherme.stein@physik.uni-wuerzburg.de>
 """
 from math import sqrt
 import itertools as it
-from helper import Vector, VectorException
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from helper import Vector
 
 
 # ---------------
@@ -34,20 +34,22 @@ class Flake:
                     for _ in range(size)]
 
   def grid(self, i, j, k, value=None):
-    """ Interface to access the `grid_list` containing information about each atom.
+    """ Interface to access the `grid_list` containing information about each
+    atom.
 
-    Needs indices (i,j,k) and can access the slots `occupation` and `energy` of the atom
-    on this site. The `raw_grid` has  a list of length two for each atom it represents at
-    each site of the lattice. The first one is a boolean that signals if there is an atom
-    at this site, the second one is a float or int representing the energy and
-    therefore the associated probability of an atom attaching to this site. If called only
-    with the indices it returns True or False, whether there is an atom present at the
-    site. The three index arguments are mandatory. Further there is an optional *value*
-    parameter which can be:
+    Needs indices (i,j,k) and can access the slots `occupation` and `energy` of
+    the atom on this site. The `raw_grid` has  a list of length two for each
+    atom it represents at each site of the lattice. The first one is a boolean
+    that signals if there is an atom at this site, the second one is a float or
+    int representing the energy and therefore the associated probability of an
+    atom attaching to this site. If called only with the indices it returns True
+    or False, whether there is an atom present at the site. The three index
+    arguments are mandatory. Further there is an optional *value* parameter
+    which can be:
       'set'   : Sets the occupation entry to True.
       'get'   : Returns the occupation and energy for that site.
-      'remove': Deletes atom from this site, setting `occupation` to False and `energy` to
-                zero.
+      'remove': Deletes atom from this site, setting `occupation` to False and
+                `energy` to zero.
       #float  : Set `energy` entry to that value.
     """
     atom = self.raw_grid[i][j][k]
@@ -68,13 +70,13 @@ class Flake:
   def coord(self, i, j, k):
     """ Return Cartesian coordinates vector of a given lattice point.
 
-    (i, j, k) are the indices and (a, b, c) are lattice base vectors. Crystal sites then
-    are i*a + j*b + k*c.  `_perms` is the permutation (0, 1 or 2) of the layer
-    displacement according to the fcc-stacking and the twin plane configuration. Every
-    twin plane inverts the permutation order.
+    (i, j, k) are the indices and (a, b, c) are lattice base vectors. Crystal
+    sites then are i*a + j*b + k*c.  `_perms` is the permutation (0, 1 or 2) of
+    the layer displacement according to the fcc-stacking and the twin plane
+    configuration. Every twin plane inverts the permutation order.
     """
     _perms = self.layer_permutations[k]
-    prototype = Vector(2*i + (j+k) % 2,
+    prototype = Vector(2*i + j % 2 + k % 3,
                        sqrt(3)*(j + _perms * 1/3),
                        k*2*sqrt(6)/3)
     return prototype
@@ -103,18 +105,21 @@ class Flake:
     * choose a site (ensure later that every possibility is covered...)
     * get coordinates of all surrounding sites
     * get vector differences of these sites with the chosen site
-    * filter those, which are larger than two (two diameters equivalent to next neighbor)
+    * filter those, which are larger than two (two diameters equivalent to next
+      neighbor)
     * zip them together
 
-    Actually performs about one order of magnitude slower than self.neighbours(), while
+    Performs about one order of magnitude slower than self.neighbours(), while
     containing it as a step.
     """
-    # TODO: not enough (<12) neighbours in some constellations/permutations CHECK THAT !!!
+    # TODO: not enough (<12) neighbours in some constellations/permutations
+    # CHECK THAT !!!
 
     choice = i, j, k
     all_relative = self.permutator((1, -1, 0))
     all_relative.remove((0, 0, 0))              # (0, 0, 0) is not a neighbor
-    all_indexed = list(self.neighbours(*choice, relative_neighbours=all_relative))
+    all_indexed = list(self.neighbours(*choice,
+                                       relative_neighbours=all_relative))
     all_coordinated = [self.coord(*site) for site in all_indexed]
     # round for numerical issues
     all_diffs = [site.dist(self.coord(*choice)) for site in all_coordinated]
@@ -193,8 +198,8 @@ class LayerError(GridError):
 # ----------
 # -  main  -
 # ----------
-def main(i=1, j=1, k=1):
-  f = Flake(size=5, twins=(5,))
+def main(i=2, j=2, k=2):
+  f = Flake(size=5, twins=(2, ))
   special_one = (i, j, k)
   coords = []
   cols = []
