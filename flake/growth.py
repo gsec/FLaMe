@@ -3,7 +3,7 @@
 """                       FLAKE GROWTH SIMULATION
                           ~~~~~~~~~~~~~~~~~~~~~~~
 
-                          Guilherme Stein         : 2015
+                          Guilherme Stein © 2015
                           University of Würzburg
                           <guilherme.stein@physik.uni-wuerzburg.de>
 """
@@ -11,7 +11,7 @@ from math import sqrt
 import itertools as it
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from helper import Vector
+from helper import Vector, GridError
 
 
 # ---------------
@@ -26,6 +26,7 @@ class Flake:
     """
     self.size = size
     self.twins = twins
+    self.surface = []
     self.layer_permutations = self.layer_gen(*twins)
     self.raw_grid = [[[
                     [False, 0]
@@ -76,7 +77,7 @@ class Flake:
     configuration. Every twin plane inverts the permutation order.
     """
     _perms = self.layer_permutations[k]
-    prototype = Vector(2*i + j % 2 + k % 3,
+    prototype = Vector(2*i + (j+k) % 2,
                        sqrt(3)*(j + _perms * 1/3),
                        k*2*sqrt(6)/3)
     return prototype
@@ -98,7 +99,7 @@ class Flake:
       counter += sign
     return L
 
-  def real_neighbours(self, i, j, k):
+  def real_neighbours(self, i, j, k, nn_switch='NN'):
     """ Creates next neighbours based on the distances.
 
     * build all (1, -1, 0) permutations
@@ -112,40 +113,39 @@ class Flake:
     Performs about one order of magnitude slower than self.neighbours(), while
     containing it as a step.
     """
-    # TODO: not enough (<12) neighbours in some constellations/permutations
-    # CHECK THAT !!!
+    # TODO: not enough (<12) neighbours in some twinplane constellations
 
-    choice = i, j, k
-    all_relative = self.permutator((1, -1, 0))
-    all_relative.remove((0, 0, 0))              # (0, 0, 0) is not a neighbor
-    all_indexed = list(self.neighbours(*choice,
-                                       relative_neighbours=all_relative))
-    all_coordinated = [self.coord(*site) for site in all_indexed]
-    # round for numerical issues
-    all_diffs = [site.dist(self.coord(*choice)) for site in all_coordinated]
-    all_associated = list(zip(all_relative, all_indexed, all_diffs))
-    next_relatives = [each[0] for each in all_associated if each[2] <= 2.1]
-    print('len of nn is: ', len(next_relatives))
-    return next_relatives
+    choice = self.coord(i, j, k)
+    all_indexed = self.abs_neighbours(i, j, k)
+    all_coordinated = (self.coord(*site) for site in all_indexed)
+    all_diffs = (choice.dist(site) for site in all_coordinated)
+    all_associated = zip(all_indexed, all_diffs)
+    if nn_switch == 'NN':
+      next_relatives = [nb for nb, dist in all_associated if dist <= 2.1]
+      print('Atom {idx} with {vec} has {num} next neighbours.'.format(
+          idx=(i, j, k), vec=choice, num=len(next_relatives)))
+      return next_relatives
+    elif nn_switch == 'diff':
+      next_diffs = [dist for nb, dist in all_associated if dist <= 2.1]
+      return next_diffs
 
-  def neighbours(self, i, j, k, relative_neighbours=None):
+  def abs_neighbours(self, i, j, k, relative_neighbours=None):
     """ Return a list of next neighbours of `i, j, k` """
     site = (i, j, k)
     if not relative_neighbours:
-      relative_neighbours = self.real_neighbours(*site)
+      relative_neighbours = self.permutator((1, -1, 0))
+      relative_neighbours.remove((0, 0, 0))
     pairs = (zip(site, nn) for nn in relative_neighbours)
     return (tuple(sum(y) for y in x) for x in pairs)
-    # return [Vector(*x) for x in ret]
 
-  def set_neighbours(self, i, j, k, val=None):
-    for n in self.neighbours(i, j, k):
+  def set_neighbours(self, i, j, k, val=None, **kwargs):
+    for n in self.abs_neighbours(i, j, k, **kwargs):
       if not val:
         self.grid(*n, value='set')
       else:
         self.grid(*n, value=val)
 
   def create_surface(self):
-    self.surface = []
     for atom in self.permutator():
       for nb in self.real_neighbours(*atom):
         if nb not in self.surface:
@@ -183,29 +183,16 @@ class Flake:
     plt.show()
 
 
-class GridError(Exception):
-  pass
-
-
-class InsufficientNeighbours(GridError):
-  pass
-
-
-class LayerError(GridError):
-  pass
-
-
 # ----------
 # -  main  -
 # ----------
-def main(i=2, j=2, k=2):
-  f = Flake(size=5, twins=(2, ))
-  special_one = (i, j, k)
+def main():
+  f = Flake(size=5, twins=(3, ))
+  choice = (2, 2, 2)
   coords = []
   cols = []
-  f.grid(*special_one, value=5)
-  f.set_neighbours(*special_one, val=3)
-  print('\nRendering:')
+  f.grid(*choice, value=0)
+  f.set_neighbours(*choice, val=3)
   for idx in f.permutator(range(f.size)):
     _c = f.coord(*idx)
     coords.append(_c)
