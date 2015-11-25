@@ -3,20 +3,21 @@
 #                     The test module for the flake simulation
 import unittest
 from growth import Flake, GridError
-from helper import Vector, VectorException
+from helper import Vector
 
 global F
-F = Flake()
+F = Flake(5, twins=(3, ))
 
 
-class TestLattice(unittest.TestCase):
+class TestGrid(unittest.TestCase):
   """ Flake with lattice, atoms and growth. """
 
   def test_grid(self):
     """ Test the raw_grid list and its access method grid().
 
-    Creates new instance to ensure no altering of attributes. Ensure raw_grid and grid
-    access method return False since no atom is present at initialization.
+    Creates new instance to ensure no altering of attributes. Ensure raw_grid
+    and grid access method return False since no atom is present at
+    initialization.
     """
     g = Flake(size=8)
     self.assertEqual(g.raw_grid[0][3][4][0], 0)
@@ -33,9 +34,21 @@ class TestLattice(unittest.TestCase):
       g.grid(3, 3, 3, 'test_arg')
 
 
+class Neighbours(unittest.TestCase):
+  def test_abs_neighbours(self):
+    res = F.abs_neighbours(2, 3, 2)
+    desired = [(3, 4, 3), (3, 4, 1), (3, 2, 3), (1, 4, 3), (3, 4, 2), (2, 4, 3),
+               (3, 3, 3), (3, 2, 1), (1, 2, 3), (1, 4, 1), (1, 4, 2), (2, 2, 3),
+               (3, 2, 2), (3, 3, 1), (1, 3, 3), (2, 4, 1), (3, 3, 2), (2, 4, 2),
+               (2, 3, 3), (1, 2, 1), (2, 2, 1), (1, 3, 1), (1, 2, 2), (1, 3, 2),
+               (2, 3, 1), (2, 2, 2)]
+    self.assertEqual(list(res), desired)
+
+
 class TestVector(unittest.TestCase):
   def test_equality(self):
     vec = Vector(3, 4, 8)
+    print(vec)
     self.assertEqual(vec, Vector(3, 4, 8))
 
   def test_add(self):

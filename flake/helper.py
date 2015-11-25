@@ -16,7 +16,8 @@ class Vector:
     self.z = z
 
   def __repr__(self):
-    return 'Vector:({}, {}, {})'.format(self.x, self.y, self.z)
+    x, y, z = (round(r, 2) for r in (self.x, self.y, self.z))
+    return 'Vector:({}, {}, {})'.format(x, y, z)
 
   def __iter__(self):
     """ Iteration over a Vector yields it's components. """
@@ -59,5 +60,5 @@ class Vector:
     return sqrt(self.x**2 + self.y**2 + self.z**2)
 
 
-class VectorException(Exception):
+class GridError(Exception):
   pass
