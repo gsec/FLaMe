@@ -26,13 +26,16 @@ class Flake:
     """
     self.size = size
     self.twins = twins
-    self.surface = []
     self.layer_permutations = self.layer_gen(*twins)
     self.raw_grid = [[[
                     [False, 0]
                     for _ in range(size)]
                     for _ in range(size)]
                     for _ in range(size)]
+
+# # ################
+#   FUNDAMENTALS  #
+# #################
 
   def grid(self, i, j, k, value=None):
     """ Interface to access the `grid_list` containing information about each
@@ -53,7 +56,11 @@ class Flake:
                 `energy` to zero.
       #float  : Set `energy` entry to that value.
     """
-    atom = self.raw_grid[i][j][k]
+    try:
+      atom = self.raw_grid[i][j][k]
+    except IndexError as e:
+      print("An error occured while acessing a wrong index.", e)
+      return None
 
     if not value:
       return atom[0]
@@ -61,6 +68,8 @@ class Flake:
       self.raw_grid[i][j][k] = [True, value]
     elif value == 'get':
       return atom
+    elif value == 'val':
+      return atom[1]
     elif value == 'set':
       self.raw_grid[i][j][k][0] = True
     elif value == 'remove':
@@ -76,11 +85,24 @@ class Flake:
     the layer displacement according to the fcc-stacking and the twin plane
     configuration. Every twin plane inverts the permutation order.
     """
-    _perms = self.layer_permutations[k]
+    try:
+      _perms = self.layer_permutations[k]
+    except IndexError as e:
+      print(e)
+      return Vector(0, 0, 0)
     prototype = Vector(2*i + (j+k) % 2,
                        sqrt(3)*(j + _perms * 1/3),
                        k*2*sqrt(6)/3)
     return prototype
+
+# # ###########
+#   GLOBALS  #
+# ############
+
+  def whole_crystal(self):
+    status = (self.grid(*idx, value='get') for idx in self.permutator())
+    coords = (self.coord(*idx) for idx in self.permutator())
+    return zip(status, coords)
 
   def layer_gen(self, *twins):
     """ Create a z-list representing the permutation of the layer.
@@ -91,65 +113,12 @@ class Flake:
     L = []
     sign = 1
     counter = 0
-
     for layer in range(self.size):
       L.append(counter % 3)
       if layer in twins:
         sign = -1*sign
       counter += sign
     return L
-
-  def real_neighbours(self, i, j, k, nn_switch='NN'):
-    """ Creates next neighbours based on the distances.
-
-    * build all (1, -1, 0) permutations
-    * choose a site (ensure later that every possibility is covered...)
-    * get coordinates of all surrounding sites
-    * get vector differences of these sites with the chosen site
-    * filter those, which are larger than two (two diameters equivalent to next
-      neighbor)
-    * zip them together
-
-    Performs about one order of magnitude slower than self.neighbours(), while
-    containing it as a step.
-    """
-    # TODO: not enough (<12) neighbours in some twinplane constellations
-
-    choice = self.coord(i, j, k)
-    all_indexed = self.abs_neighbours(i, j, k)
-    all_coordinated = (self.coord(*site) for site in all_indexed)
-    all_diffs = (choice.dist(site) for site in all_coordinated)
-    all_associated = zip(all_indexed, all_diffs)
-    if nn_switch == 'NN':
-      next_relatives = [nb for nb, dist in all_associated if dist <= 2.1]
-      print('Atom {idx} with {vec} has {num} next neighbours.'.format(
-          idx=(i, j, k), vec=choice, num=len(next_relatives)))
-      return next_relatives
-    elif nn_switch == 'diff':
-      next_diffs = [dist for nb, dist in all_associated if dist <= 2.1]
-      return next_diffs
-
-  def abs_neighbours(self, i, j, k, relative_neighbours=None):
-    """ Return a list of next neighbours of `i, j, k` """
-    site = (i, j, k)
-    if not relative_neighbours:
-      relative_neighbours = self.permutator((1, -1, 0))
-      relative_neighbours.remove((0, 0, 0))
-    pairs = (zip(site, nn) for nn in relative_neighbours)
-    return (tuple(sum(y) for y in x) for x in pairs)
-
-  def set_neighbours(self, i, j, k, val=None, **kwargs):
-    for n in self.abs_neighbours(i, j, k, **kwargs):
-      if not val:
-        self.grid(*n, value='set')
-      else:
-        self.grid(*n, value=val)
-
-  def create_surface(self):
-    for atom in self.permutator():
-      for nb in self.real_neighbours(*atom):
-        if nb not in self.surface:
-          self.surface.extend(nb)
 
   def permutator(self, seed=None):
     """ Creates all possible permutations of length three of all given objects
@@ -164,17 +133,87 @@ class Flake:
         perms.append(t.pop())
     return perms
 
-  def whole_crystal(self):
-    return (self.coord(*idx) for idx in self.permutator())
+  def create_surface(self):
+    for atom in self.permutator():
+      if self.grid(*atom, value='val') == 10:
+        for nb in self.real_neighbours(*atom):
+          if not self.grid(*nb):
+            self.grid(*nb, value=2)
 
-  def plot(self, sites=None, color=['yellow']):
-    """ Plot method of the flake. """
-    if not sites:
-      sites = self.whole_crystal()
+  def make_seed(self):
+    i = self.size // 2
+    for x in self.permutator((i-1, i, i+1)):
+      self.grid(*x, value=10)
+
+# # #################
+#   NEIGHBOURHOOD  #
+# ##################
+
+  def real_neighbours(self, i, j, k, nn_switch='NN'):
+    """ Creates next neighbours based on the distances.
+
+    * build all (1, -1, 0) permutations
+    * choose a site (ensure later that every possibility is covered...)
+    * get coordinates of all surrounding sites
+    * get vector differences of these sites with the chosen site
+    * filter those, which are larger than two (two diameters equivalent to next
+      neighbor)
+    * zip them together
+
+    """
+    # TODO: not enough (<12) neighbours in some twinplane constellations
+
+    choice = self.coord(i, j, k)
+    all_indexed = self.abs_neighbours(i, j, k)
+    all_coordinated = (self.coord(*site) for site in all_indexed)
+    all_diffs = (choice.dist(site) for site in all_coordinated)
+    all_associated = zip(all_indexed, all_diffs)
+    if nn_switch == 'NN':
+      next_relatives = [nb for nb, dist in all_associated if dist <= 2.1]
+      # print('Atom {idx} with {vec} has {num} next neighbours.'.format(
+          # idx=(i, j, k), vec=choice, num=len(next_relatives)))
+      return next_relatives
+    elif nn_switch == 'diff':
+      next_diffs = [dist for nb, dist in all_associated if dist <= 2.1]
+      return next_diffs
+
+  def abs_neighbours(self, i, j, k):
+    """ Return a list of next neighbours of `i, j, k`
+
+    Here we should introduces a `idx_combinations` var and move (1, -1, 0)
+    there.
+    """
+    relative_neighbours = self.permutator((1, -1, 0))
+    relative_neighbours.remove((0, 0, 0))
+    pairs = (zip((i, j, k), nn) for nn in relative_neighbours)
+    return (tuple(sum(y) for y in x) for x in pairs)
+
+# # ########
+#   PLOT  #
+# #########
+
+  def plot(self, color=None):
+    """ Plot method of the flake.
+
+    `scatter` expects three lists of xs, ys, zs, therefore zip and unpack
+    action. We only plot points that 'are' something.
+    """
+    whole = list(self.whole_crystal())
+    status, pts = zip(*[(s, c) for s, c in whole if s[0]])
+    if not color:
+      color = []
+      for each in status:
+        if each[1] <= 1:
+          color.append((1, 1, 1, 0))
+        elif 1 < each[1] <= 2:
+          color.append((0.5, 0.5, 0, 0.5))
+        elif each[1] > 2:
+          color.append((1, 0, 0, 1))
+    points = list(zip(*pts))
+
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    pts = list(zip(*sites))
-    ax.scatter(*pts, s=1000, c=color)
+    ax.scatter(*points, s=1000, c=color)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
@@ -187,17 +226,10 @@ class Flake:
 # -  main  -
 # ----------
 def main():
-  f = Flake(size=5, twins=(3, ))
-  choice = (2, 2, 2)
-  coords = []
-  cols = []
-  f.grid(*choice, value=0)
-  f.set_neighbours(*choice, val=3)
-  for idx in f.permutator(range(f.size)):
-    _c = f.coord(*idx)
-    coords.append(_c)
-    cols.append(f.grid(*idx, value='get')[1] + 0.1 * idx[2])
-  f.plot(coords, cols)
+  f = Flake(size=5, twins=(2, ))
+  f.make_seed()
+  f.create_surface()
+  f.plot()
 
 
 if __name__ == '__main__':
