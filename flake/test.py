@@ -2,7 +2,7 @@
 #coding: utf-8
 #                     The test module for the flake simulation
 import unittest
-from growth import Flake, GridError
+from growth import Flake
 from helper import Vector
 
 global F
@@ -20,23 +20,21 @@ class TestGrid(unittest.TestCase):
     initialization.
     """
     g = Flake(size=8)
-    self.assertEqual(g.raw_grid[0][3][4][0], 0)
-    self.assertEqual(g.grid(1, 2, 3), False)
-    g.grid(3, 3, 3, 'set')      # Set atom
-    self.assertEqual(g.grid(3, 3, 3), True)
-    g.grid(3, 3, 3, 'remove')   # and remove it again
-    self.assertEqual(g.grid(3, 3, 3), False)
-    g.grid(3, 3, 3, 17)         # Set atom with specific energy parameter
-    self.assertEqual(g.grid(3, 3, 3, 'get'), [True, 17])
-    with self.assertRaises(GridError):
-      g.grid(3, 3, 3, [2, 2])
-    with self.assertRaises(GridError):
-      g.grid(3, 3, 3, 'test_arg')
+    idx = (1, 3, 2)
+    self.assertEqual(g.grid.data[0][3][4], None)
+    self.assertEqual(bool(g.grid.get(idx)), False)
+    g.grid.set(idx, testkey=45)
+    self.assertEqual(bool(g.grid.get(idx)), True)
+
+    # self.assertEqual(g.grid(idx, 'set'),
+    # self.assertEqual(g.
+    # self.assertEqual(g.
+
 
 
 class Neighbours(unittest.TestCase):
   def test_abs_neighbours(self):
-    res = F.abs_neighbours(2, 3, 2)
+    res = F.abs_neighbours((2, 3, 2))
     desired = [(3, 4, 3), (3, 4, 1), (3, 2, 3), (1, 4, 3), (3, 4, 2), (2, 4, 3),
                (3, 3, 3), (3, 2, 1), (1, 2, 3), (1, 4, 1), (1, 4, 2), (2, 2, 3),
                (3, 2, 2), (3, 3, 1), (1, 3, 3), (2, 4, 1), (3, 3, 2), (2, 4, 2),

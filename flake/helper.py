@@ -4,6 +4,65 @@ Utilities needed but not especially part of the Flake Project.
 from math import sqrt
 
 
+class Grid(list):
+  def __init__(self, size, twins):
+    self.size = size
+    self.data = [[[None
+      for _ in range(size)]
+      for _ in range(size)]
+      for _ in range(size)]
+    self.layer_permutations = self.layer_gen(twins)
+
+  def get(self, idx):
+    i, j, k = idx
+    return self.data[i][j][k]
+
+  def set(self, idx, **value):
+    i, j, k = idx
+    if not self.data[i][j][k]:
+      if not value:
+        value = {'type': 'atom'}
+      self.data[i][j][k] = value
+    else:
+      self.data[i][j][k].update(value)
+
+  def coord(self, idx):
+    """ Return Cartesian coordinates vector of a given lattice point.
+
+    (i, j, k) are the indices and (a, b, c) are lattice base vectors. Crystal
+    sites then are i*a + j*b + k*c.  `_perms` is the permutation (0, 1 or 2) of
+    the layer displacement according to the fcc-stacking and the twin plane
+    configuration. Every twin plane inverts the permutation order.
+    """
+    i, j, k = idx
+    try:
+      return self.data[i][j][k]['coord']
+    except Exception as e:
+      _perms = self.layer_permutations[k]
+      prototype = Vector(2*i + (j+k) % 2,
+                        sqrt(3)*(j + _perms * 1/3),
+                        k*2*sqrt(6)/3)
+      if isinstance(e, KeyError):
+        self.data[i][j][k]['coord'] = prototype
+      return prototype
+
+  def layer_gen(self, twins):
+    """ Create a z-list representing the permutation of the layer.
+
+    Mapping an ABC layer to: A -> 0, B -> 1, C -> 2
+    And flipping the order at each twin plane: ABCABCAB... -> AB'C'BACBA...
+    """
+    L = []
+    sign = 1
+    counter = 0
+    for layer in range(self.size):
+      L.append(counter % 3)
+      if layer in twins:
+        sign = -1*sign
+      counter += sign
+    return L
+
+
 class Vector:
   """ Self defined Vector object.
 
@@ -58,7 +117,3 @@ class Vector:
 
   def __abs__(self):
     return sqrt(self.x**2 + self.y**2 + self.z**2)
-
-
-class GridError(Exception):
-  pass
