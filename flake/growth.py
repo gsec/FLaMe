@@ -13,17 +13,11 @@ from mpl_toolkits.mplot3d import Axes3D
 from helper import Grid
 
 
-# ---------------
-# -  The Flake  -
-# ---------------
 class Flake:
   """ Class containing the atom and lattice informations about the flake."""
 
   def __init__(self, size=7, twins=()):
-    """
-    # Initialize `raw_grid` as size**3 array of [0, 0].
-
-    Here we will replace each spot on the grid with a NONE value.
+    """ Contains higher level methods for manipulating the flake.
     """
     self.size = size
     self.grid = Grid(size, twins)
@@ -45,42 +39,25 @@ class Flake:
         perms.append(t.pop())
     return perms
 
+  def make_seed(self):
+    """ Populates the lattice points around the middle of the grid.
+
+    This is used as initial flake seed.
+    """
+    mid = self.size // 2
+    for x in self.permutator((mid-1, mid, mid+1)):
+      self.grid.set(x, type='atom', domain='seed')
+
   def create_surface(self):
     occupied = (s for s in self.permutator() if self.grid.get(s))
     valid = (s for s in occupied if self.grid.get(s)['type'] == 'atom')
     for site in valid:
       [self.grid.set(nb, type='surface') for nb, diffs in
-       self.real_neighbours(site) if not self.grid.get(nb)]
-
-  def make_seed(self):
-    i = self.size // 2
-    for x in self.permutator((i-1, i, i+1)):
-      self.grid.set(x, type='atom')
+       self.real_neighbours(site) if not self.grid.get(nb) and diffs < 3]
 
 # # #################
 #   NEIGHBOURHOOD  #
 # ##################
-
-  def real_neighbours(self, idx, nn_switch='NN'):
-    """ Creates next neighbours based on the distances.
-
-    * build all (1, -1, 0) permutations
-    * choose a site (ensure later that every possibility is covered...)
-    * get coordinates of all surrounding sites
-    * get vector differences of these sites with the chosen site
-    * filter those, which are larger than two (two diameters equivalent to next
-      neighbor)
-    * zip them together
-
-    """
-    # TODO: not enough (<12) neighbours in some twinplane constellations
-
-    choice_vec = self.grid.coord(idx)
-    all_indexed = self.abs_neighbours(idx)
-    all_coordinated = (self.grid.coord(site) for site in all_indexed)
-    all_diffs = (choice_vec.dist(site) for site in all_coordinated)
-    all_associated = zip(all_indexed, all_diffs)
-    return list(all_associated)
 
   def abs_neighbours(self, idx):
     """ Return a list of next neighbours of `i, j, k`
@@ -93,6 +70,26 @@ class Flake:
     pairs = (zip(idx, nn) for nn in relative_neighbours)
     return (tuple(sum(y) for y in x) for x in pairs)
 
+  def real_neighbours(self, idx, nn_switch='NN'):
+    """ Creates next neighbours based on the distances.
+
+    * choose a site (ensure later that every possibility is covered...)
+    * build all (1, -1, 0) permutations
+    * get coordinates of all surrounding sites
+    * get vector differences between the atom and its neighbours
+    * filter those, which are larger than two (two diameters equivalent to next
+      neighbor)
+      * zip them together and return zipped list as (indices, distance) pairs.
+    """
+    # TODO: Check for correct nn in different twin plane constellations.
+
+    choice_vec = self.grid.coord(idx)
+    all_indexed = self.abs_neighbours(idx)
+    all_coordinated = (self.grid.coord(site) for site in all_indexed)
+    all_diffs = (choice_vec.dist(site) for site in all_coordinated)
+    all_associated = zip(all_indexed, all_diffs)
+    return list(all_associated)
+
 # # ########
 #   PLOT  #
 # #########
@@ -100,8 +97,10 @@ class Flake:
   def plot(self, color=None):
     """ Plot method of the flake.
 
-    `scatter` expects three lists of xs, ys, zs, therefore zip and unpack
-    action. We only plot points that 'are' something.
+    `scatter` expects three lists of xs, ys, zs, therefore the whole zip and
+    unpack action. We only plot points that 'are' something.
+    This is checked at creation of `valid` and then translated into vectors in
+    `points`.
     """
     valid = [idx for idx in self.permutator() if self.grid.get(idx)]
     points = list(zip(*(self.grid.coord(site) for site in valid)))
@@ -131,7 +130,7 @@ class Flake:
 # -  main  -
 # ----------
 def main():
-  f = Flake(size=5, twins=(2, ))
+  f = Flake(size=8, twins=(2, 4))
   f.make_seed()
   f.create_surface()
   f.plot()
