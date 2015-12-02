@@ -17,9 +17,11 @@ class Vector:
     self.y = y
     self.z = z
 
+
   def __repr__(self):
     x, y, z = (round(r, 2) for r in (self.x, self.y, self.z))
     return 'Vector:({}, {}, {})'.format(x, y, z)
+
 
   def __iter__(self):
     """ Iteration over a Vector yields it's components.
@@ -27,12 +29,14 @@ class Vector:
     for comp in (self.x, self.y, self.z):
       yield comp
 
+
   def __eq__(self, other):
     """ Equality check is done by comparing each component.
     """
     eq_list = [self.__dict__[comp] ==
                other.__dict__[comp] for comp in ('x', 'y', 'z')]
     return all(eq_list)
+
 
   def __add__(self, other):
     try:
@@ -45,6 +49,7 @@ class Vector:
       new_z = self.z + other
     return Vector(new_x, new_y, new_z)
 
+
   def __sub__(self, other):
     try:
       new_x = self.x - other.x
@@ -56,6 +61,7 @@ class Vector:
       new_z = self.z - other
     return Vector(new_x, new_y, new_z)
 
+
   def dist(self, other):
     """ Require: Vector object. Return: distance between the vectors.
     """
@@ -63,6 +69,7 @@ class Vector:
       raise TypeError("Argument for `dist` must be another Vector.")
     delta = self - other
     return abs(delta)
+
 
   def __abs__(self):
     return sqrt(self.x**2 + self.y**2 + self.z**2)
@@ -86,9 +93,14 @@ class Grid(list):
       for _ in range(size)]
     self.layer_permutations = self.layer_gen(twins)
 
+
   def get(self, idx):
     i, j, k = idx
-    return self.data[i][j][k]
+    try:
+      return self.data[i][j][k]
+    except IndexError:
+      return None
+
 
   def set(self, idx, **value):
     i, j, k = idx
@@ -99,9 +111,28 @@ class Grid(list):
     else:
       self.data[i][j][k].update(value)
 
+
   def delete(self, idx):
     i, j, k = idx
     self.data[i][j][k] = None
+
+
+  def layer_gen(self, twins):
+    """ Create a z-list representing the permutation of the layer.
+
+    Mapping an ABC layer to: A -> 0, B -> 1, C -> 2
+    And flipping the order at each twin plane: ABCABCAB... -> AB'C'BACBA...
+    """
+    L = []
+    sign = 1
+    counter = 0
+    for layer in range(self.size):
+      L.append(counter % 3)
+      if layer in twins:
+        sign = -1*sign
+      counter += sign
+    return L
+
 
   def coord(self, idx):
     """ Return Cartesian coordinates vector of a given lattice point.
@@ -122,19 +153,3 @@ class Grid(list):
       if isinstance(e, KeyError):
         self.data[i][j][k]['coord'] = prototype
       return prototype
-
-  def layer_gen(self, twins):
-    """ Create a z-list representing the permutation of the layer.
-
-    Mapping an ABC layer to: A -> 0, B -> 1, C -> 2
-    And flipping the order at each twin plane: ABCABCAB... -> AB'C'BACBA...
-    """
-    L = []
-    sign = 1
-    counter = 0
-    for layer in range(self.size):
-      L.append(counter % 3)
-      if layer in twins:
-        sign = -1*sign
-      counter += sign
-    return L

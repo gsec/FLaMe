@@ -31,6 +31,11 @@ class TestGrid(unittest.TestCase):
     # self.assertEqual(g.
 
 
+class TestGrow(unittest.TestCase):
+  def test_choice(self):
+    choice = F.grow()
+    self.assertTrue(isinstance(choice, list))
+
 
 class Neighbours(unittest.TestCase):
   def test_abs_neighbours(self):
