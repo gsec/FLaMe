@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
-# encoding: utf-8
+#!/usr/bin/env python
+## encoding: utf-8
 """                       FLAKE GROWTH SIMULATION
                           ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -8,11 +8,12 @@
                           <guilherme.stein@physik.uni-wuerzburg.de>
 """
 import itertools as it
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from random import randrange, choice
 import pickle
 from helper import Grid
+from mayavi import mlab as m
 
 
 class Flake:
@@ -76,8 +77,8 @@ class Flake:
 
 
   def chk(self, idx):
-    for m in idx:
-      if m not in range(self.size):
+    for n in idx:
+      if n not in range(self.size):
         return False
     return True
 
@@ -188,11 +189,11 @@ class Flake:
 
     def color(idx, type=None):
       if type == 'atom':
-        color_list.append((1, 0, 0, 1))
+        color_list.append((1, 0, 0))
       elif type == 'surface':
-        color_list.append((0.1, 0.1, 0.1, 0.3))
+        color_list.append((0.1, 0.1, 0.1))
       else:
-        color_list.append((0.5, 0.5, 0, 0.5))
+        color_list.append((0.5, 0.5, 0.5))
 
     color_list = []
     for each in self.occupied():
@@ -203,15 +204,19 @@ class Flake:
     _all = list(self.occupied()) + surface
     points = list(zip(*(self.grid.coord(site) for site in _all)))
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(*points, s=1000, c=color_list)
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-    _rng = [0, 2 * self.size]
-    ax.auto_scale_xyz(_rng, _rng, _rng)
-    plt.show()
+    #MLAB
+    m.points3d(*points)
+    m.show()
+
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.scatter(*points, s=1000, c=color_list)
+    # ax.set_xlabel('x')
+    # ax.set_ylabel('y')
+    # ax.set_zlabel('z')
+    # _rng = [0, 2 * self.size]
+    # ax.auto_scale_xyz(_rng, _rng, _rng)
+    # plt.show()
 
 
 # ----------
@@ -221,35 +226,27 @@ def main():
   def avg(lst):
     added = sum(x for x in lst)
     return added/len(lst)
-  runs = range(20)
-  f = Flake(size=20, twins=(7, 9))
+  runs = range(1)
+  f = Flake(size=100, twins=(45, 50, 53, 66))
   print("Size :", f.size, "twins :", f.twins)
   dims = []
+  steps = 10000
   for i in runs:
     f.make_seed()
-    f.grow(1000)
+    f.grow(steps)
     x = f.dim()
     # print(x)
     dims.append(x)
-  return dims, f
-  # f.plot(surface=True)
+  ag = [sum(y)/len(runs) for y in zip(*dims)]
+  print(ag)
+  with open('../output/random_growth_01.dat', 'a') as fi:
+    msg = ("\n-----------------------\n{s}::series\t"
+    "@{st}::atoms\nAVERAGE (X Y Z):\t{av}").format(s=len(runs), st=steps, av=ag)
+    fi.write(msg)
+  f.plot(surface=True)
+  # return dims, f
 
 
 if __name__ == '__main__':
   main()
   Axes3D
-  """ Statistics: 10 runs, growth(5000), averaged dims: (X=18.85, Y= 16.6, Z=10.8)
-      Flake = Flake(20, (12,10))
-
-      Statistics: 10 runs, growth(5000), averaged dims: (X=18.7, Y= 16.45, Z=10.8)
-      Flake = Flake(20, ())
-
-      Statistics: 10 runs, growth(5000), averaged dims: (X=18.75, Y= 16.9, Z=10.9)
-      Flake = Flake(20, (10))
-
-      Statistics: 10 runs, growth(5000), averaged dims: [19.0, 18.75, 13.8]
-      f = Flake(size=20, twins=(3, 7, 8, 9, 12, 15, 19))
-
-      Statistics: 10 runs, growth(1000), averaged dims: [16.4, 14.55, 11.15]
-      f = Flake(size=20, twins=(7, 9))
-  """
