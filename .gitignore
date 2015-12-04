@@ -3,6 +3,7 @@
 tools/
 ipython_log*.py
 _OLD*
+venv/
 
 doc/
 

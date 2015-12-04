@@ -4,7 +4,7 @@ Utilities needed by the Flake Simulation.
 from math import sqrt
 
 
-class Vector:
+class Vector(list):
   """ Self defined Vector object.
 
   Supports:
@@ -99,7 +99,7 @@ class Grid(list):
     try:
       return self.data[i][j][k]
     except IndexError:
-      return None
+      pass
 
 
   def set(self, idx, **value):
@@ -145,11 +145,13 @@ class Grid(list):
     i, j, k = idx
     try:
       return self.data[i][j][k]['coord']
-    except Exception as e:
+    # except IndexError:
+      # return None
+    except (KeyError, TypeError) as e:
       _perms = self.layer_permutations[k]
       prototype = Vector(2*i + (j+k) % 2,
                         sqrt(3)*(j + _perms * 1/3),
                         k*2*sqrt(6)/3)
       if isinstance(e, KeyError):
         self.data[i][j][k]['coord'] = prototype
-      return prototype
+    return prototype

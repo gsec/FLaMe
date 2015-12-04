@@ -46,6 +46,12 @@ class Neighbours(unittest.TestCase):
                (2, 3, 3), (1, 2, 1), (2, 2, 1), (1, 3, 1), (1, 2, 2), (1, 3, 2),
                (2, 3, 1), (2, 2, 2)]
     self.assertEqual(list(res), desired)
+    g = Flake(2)
+    al = g.permutator()
+    for a in al:
+      g.grid.set(a)
+    sf = g.create_surface()
+
 
 
 class TestVector(unittest.TestCase):
