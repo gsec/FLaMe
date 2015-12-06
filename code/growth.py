@@ -65,7 +65,8 @@ class Flake:
     """
     self.clear()
     mid = self.size // 2
-    for x in self.permutator((mid-1, mid, mid+1)):
+    dia = 2
+    for x in self.permutator((range(mid-dia, mid+dia))):
       self.grid.set(x, type='atom', domain='seed')
     self.create_surface()
 
