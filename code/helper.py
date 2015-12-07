@@ -143,15 +143,18 @@ class Grid(list):
     configuration. Every twin plane inverts the permutation order.
     """
     i, j, k = idx
-    try:
-      return self.data[i][j][k]['coord']
+    # try:
+      # return self.data[i][j][k]['coord']
     # except IndexError:
       # return None
-    except (KeyError, TypeError) as e:
-      _perms = self.layer_permutations[k]
-      prototype = Vector(2*i + (j+k) % 2,
-                        sqrt(3)*(j + _perms * 1/3),
-                        k*2*sqrt(6)/3)
-      if isinstance(e, KeyError):
-        self.data[i][j][k]['coord'] = prototype
+    # except (KeyError, TypeError) as e:
+    _perms = float(self.layer_permutations[k])
+    # print("Perms: ", _perms, "z-coord:", k)
+    # print("J:", j, "J+perms", j + _perms)
+    prototype = Vector(2*i + (j+k) % 3,
+                      # sqrt(3)*(j),
+                      sqrt(3)*(j + _perms * 1/3),
+                      k*2*sqrt(6)/3)
+    # if isinstance(e, KeyError):
+      # self.data[i][j][k]['coord'] = prototype
     return prototype
