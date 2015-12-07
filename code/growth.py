@@ -7,6 +7,7 @@
                           University of Würzburg
                           <guilherme.stein@physik.uni-wuerzburg.de>
 """
+from __future__ import print_function, division, generators
 import itertools as it
 from mpl_toolkits.mplot3d import Axes3D
 from random import randrange, choice
@@ -250,8 +251,8 @@ def main():
     msg = ("\n-----------------------\n{s}::series\t"
     "@{st}::atoms\nAVERAGE (X Y Z):\t{av}").format(s=len(runs), st=steps, av=ag)
     fi.write(msg)
-  f.plot(surface=True)
-  # return dims, f
+  # f.plot(surface=True)
+  return dims, f
 
 #
 if __name__ == '__main__':
