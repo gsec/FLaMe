@@ -7,8 +7,8 @@
                           University of Würzburg
                           <guilherme.stein@physik.uni-wuerzburg.de>
 """
+from __future__ import print_function, division, generators
 import itertools as it
-# import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from random import randrange, choice
 import pickle
@@ -24,6 +24,7 @@ class Flake:
     self.twins = twins
     self.surface = []
     self.grid = Grid(size, twins)
+    self.make_seed(radius=2)
 
   def get(self, idx):
     return self.grid.get(idx)
@@ -58,16 +59,15 @@ class Flake:
     return perms
 
 
-  def make_seed(self):
+  def make_seed(self, radius=1):
     """ Populates the lattice points around the middle of the grid.
 
     This is used as initial flake seed.
     """
     self.clear()
     mid = self.size // 2
-    dia = 2
-    for x in self.permutator((range(mid-dia, mid+dia))):
-      self.grid.set(x, type='atom', domain='seed')
+    for x in self.permutator(range(mid-radius, mid+radius+1)):
+      self.grid.set(x, type='atom')
     self.create_surface()
 
 
@@ -127,7 +127,7 @@ class Flake:
     """ Extends the surface by the real neighbours of atom `idx`.
     """
     self.surface.extend([nb for nb, diffs in self.real_neighbours(idx) if not
-                          self.grid.get(nb) and diffs < 2.3])
+                         self.grid.get(nb) and diffs < 2.3])
 
 
 # # #################
@@ -161,11 +161,16 @@ class Flake:
     # TODO: Check for correct nn in different twin plane constellations.
 
     choice_vec = self.grid.coord(idx)
-    all_indexed = self.abs_neighbours(idx)
-    all_coordinated = (self.grid.coord(site) for site in all_indexed if self.chk(site))
-    all_diffs = (choice_vec.dist(site) for site in all_coordinated)
+    # print(choice_vec)
+    all_indexed = list(self.abs_neighbours(idx))
+    # print(all_indexed)
+    all_coordinated = [self.grid.coord(site) for site in all_indexed]
+    # print("AC:", all_coordinated)
+    all_diffs = [choice_vec.dist(site) for site in all_coordinated]
+    # print("AD:", all_diffs)
     all_associated = zip(all_indexed, all_diffs)
-    return list(all_associated)
+    aa = list(all_associated)
+    return aa
 
 
   def export(self, fname='grid.dat'):
@@ -174,7 +179,7 @@ class Flake:
 # # ########
 #   PLOT  #
 # #########
-  def plot(self, surface=[]):
+  def plot(self, mayavi=True, surface=[]):
     """ Plot method of the flake.
 
     `scatter` expects three lists of xs, ys, zs, therefore the whole zip and
@@ -205,19 +210,21 @@ class Flake:
     _all = list(self.occupied()) + surface
     points = list(zip(*(self.grid.coord(site) for site in _all)))
 
-    #MLAB
-    m.points3d(*points)
-    m.show()
-
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111, projection='3d')
-    # ax.scatter(*points, s=1000, c=color_list)
-    # ax.set_xlabel('x')
-    # ax.set_ylabel('y')
-    # ax.set_zlabel('z')
-    # _rng = [0, 2 * self.size]
-    # ax.auto_scale_xyz(_rng, _rng, _rng)
-    # plt.show()
+    if mayavi:
+      m.points3d(*points)
+      m.show()
+    else:
+      import matplotlib.pyplot as plt
+      fig = plt.figure()
+      ax = fig.add_subplot(111, projection='3d')
+      ax.scatter(*points, s=1000, c=color_list)
+      # ax.set_xlabel('x')
+      # ax.set_ylabel('y')
+      # ax.set_zlabel('z')
+      ax.set_label('xyz')
+      _rng = [0, 2 * self.size]
+      ax.auto_scale_xyz(_rng, _rng, _rng)
+      plt.show()
 
 
 # ----------
@@ -244,8 +251,8 @@ def main():
     msg = ("\n-----------------------\n{s}::series\t"
     "@{st}::atoms\nAVERAGE (X Y Z):\t{av}").format(s=len(runs), st=steps, av=ag)
     fi.write(msg)
-  f.plot(surface=True)
-  # return dims, f
+  # f.plot(surface=True)
+  return dims, f
 
 
 if __name__ == '__main__':
