@@ -26,11 +26,6 @@ class TestGrid(unittest.TestCase):
     g.grid.set(idx, testkey=45)
     self.assertEqual(bool(g.grid.get(idx)), True)
 
-    # self.assertEqual(g.grid(idx, 'set'),
-    # self.assertEqual(g.
-    # self.assertEqual(g.
-
-
 class TestGrow(unittest.TestCase):
   def test_choice(self):
     choice = F.grow()

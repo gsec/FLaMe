@@ -9,9 +9,7 @@
 """
 from __future__ import print_function, division, generators
 import itertools as it
-from mpl_toolkits.mplot3d import Axes3D
-from random import randrange, choice
-import pickle
+from random import choice
 from helper import Grid
 from mayavi import mlab as m
 
@@ -93,22 +91,14 @@ class Flake:
     for i in r:
       delta = abs(max(i) - min(i))
       D.append(delta)
-    # print("Dimension:\tX ~", D[0], " Y ~", D[1], " Z ~", D[2])
     return D
 
 
   def grow(self, rounds=1):
     for r in range(rounds):
-      try:
-        chosen = choice(self.surface)
-        self.grid.set(chosen)
-        self.change_surface(chosen)
-      except ValueError:
-        # if surface is empty, set random point
-        self.set((randrange(self.size),
-                  randrange(self.size),
-                  randrange(self.size)))
-        self.create_surface()
+      chosen = choice(self.surface)
+      self.grid.set(chosen)
+      self.change_surface(chosen)
 
 
   def create_surface(self):
@@ -173,13 +163,10 @@ class Flake:
     return aa
 
 
-  def export(self, fname='grid.dat'):
-    pickle.dump(self.grid.data, open(fname, 'wb'), 2)
-
 # # ########
 #   PLOT  #
 # #########
-  def plot(self, mayavi=True, surface=[]):
+  def plot(self, mayavi=True):
     """ Plot method of the flake.
 
     `scatter` expects three lists of xs, ys, zs, therefore the whole zip and
@@ -189,25 +176,7 @@ class Flake:
     If any argument is passed that evaluates `True` the surface will also be
     plotted.
     """
-
-    if surface:
-      surface = self.surface
-
-    def color(idx, type=None):
-      if type == 'atom':
-        color_list.append((1, 0, 0))
-      elif type == 'surface':
-        color_list.append((0.1, 0.1, 0.1))
-      else:
-        color_list.append((0.5, 0.5, 0.5))
-
-    color_list = []
-    for each in self.occupied():
-      color(each, 'atom')
-    for each in surface:
-      color(each, 'surface')
-
-    _all = list(self.occupied()) + surface
+    _all = list(self.occupied()) + (not mayavi) * self.surface
     points = list(zip(*(self.grid.coord(site) for site in _all)))
 
     if mayavi:
@@ -215,13 +184,31 @@ class Flake:
       m.show()
     else:
       import matplotlib.pyplot as plt
+      from mpl_toolkits.mplot3d import Axes3D
+      if False:
+        Axes3D
+      surface = self.surface
+
+      def color(idx, t=None):
+        if t == 'atom':
+          color_list.append((1, 0, 0))
+        elif t == 'surface':
+          color_list.append((0.1, 0.1, 0.1))
+        else:
+          color_list.append((0.5, 0.5, 0.5))
+
+      color_list = []
+      for each in self.occupied():
+        color(each, 'atom')
+      for each in surface:
+        color(each, 'surface')
+
       fig = plt.figure()
       ax = fig.add_subplot(111, projection='3d')
       ax.scatter(*points, s=1000, c=color_list)
-      # ax.set_xlabel('x')
-      # ax.set_ylabel('y')
-      # ax.set_zlabel('z')
-      ax.set_label('xyz')
+      ax.set_xlabel('x')
+      ax.set_ylabel('y')
+      ax.set_zlabel('z')
       _rng = [0, 2 * self.size]
       ax.auto_scale_xyz(_rng, _rng, _rng)
       plt.show()
@@ -257,4 +244,3 @@ def main():
 
 if __name__ == '__main__':
   main()
-  Axes3D
