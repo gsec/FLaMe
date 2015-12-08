@@ -5,7 +5,7 @@ from __future__ import print_function, division, generators
 from math import sqrt
 
 
-class Vector(list):
+class Vector(tuple):
   """ Self defined Vector object.
 
   Supports:
@@ -13,21 +13,19 @@ class Vector(list):
     * addition/ subtraction with floats and integers (for each component)
     * length through the `abs()` method.
   """
-  def __init__(self, x, y, z):
-    self.x = x
-    self.y = y
-    self.z = z
-
+  def __init__(self, comp):
+    self.comp = comp
+    self.x, self.y, self.z = self.comp
 
   def __repr__(self):
-    x, y, z = (round(r, 2) for r in (self.x, self.y, self.z))
+    x, y, z = (round(r, 2) for r in self.comp)
     return 'Vector:({}, {}, {})'.format(x, y, z)
 
 
   def __iter__(self):
     """ Iteration over a Vector yields it's components.
     """
-    for comp in (self.x, self.y, self.z):
+    for comp in self.comp:
       yield comp
 
 
@@ -48,7 +46,7 @@ class Vector(list):
       new_x = self.x + other
       new_y = self.y + other
       new_z = self.z + other
-    return Vector(new_x, new_y, new_z)
+    return Vector((new_x, new_y, new_z))
 
 
   def __sub__(self, other):
@@ -60,7 +58,7 @@ class Vector(list):
       new_x = self.x - other
       new_y = self.y - other
       new_z = self.z - other
-    return Vector(new_x, new_y, new_z)
+    return Vector((new_x, new_y, new_z))
 
 
   def dist(self, other):
@@ -144,18 +142,8 @@ class Grid(list):
     configuration. Every twin plane inverts the permutation order.
     """
     i, j, k = idx
-    # try:
-      # return self.data[i][j][k]['coord']
-    # except IndexError:
-      # return None
-    # except (KeyError, TypeError) as e:
     _perms = float(self.layer_permutations[k])
-    # print("Perms: ", _perms, "z-coord:", k)
-    # print("J:", j, "J+perms", j + _perms)
-    prototype = Vector(2*i + (j+k) % 3,
-                      # sqrt(3)*(j),
+    prototype = Vector((2*i + (j+k) % 3,
                       sqrt(3)*(j + _perms * 1/3),
-                      k*2*sqrt(6)/3)
-    # if isinstance(e, KeyError):
-      # self.data[i][j][k]['coord'] = prototype
+                      k*2*sqrt(6)/3))
     return prototype

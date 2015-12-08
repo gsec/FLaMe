@@ -9,9 +9,7 @@
 """
 from __future__ import print_function, division, generators
 import itertools as it
-from mpl_toolkits.mplot3d import Axes3D
-from random import randrange, choice
-import pickle
+from random import choice
 from helper import Grid
 from mayavi import mlab as m
 
@@ -22,7 +20,8 @@ class Flake:
   def __init__(self, size=20, twins=(9, 11)):
     self.size = size
     self.twins = twins
-    self.surface = []
+    # self.surface = []
+    # self.surface = [[] for x in range(12)]
     self.grid = Grid(size, twins)
     self.make_seed(radius=2)
 
@@ -93,41 +92,52 @@ class Flake:
     for i in r:
       delta = abs(max(i) - min(i))
       D.append(delta)
-    # print("Dimension:\tX ~", D[0], " Y ~", D[1], " Z ~", D[2])
     return D
 
 
   def grow(self, rounds=1):
     for r in range(rounds):
-      try:
-        chosen = choice(self.surface)
-        self.grid.set(chosen)
-        self.change_surface(chosen)
-      except ValueError:
-        # if surface is empty, set random point
-        self.set((randrange(self.size),
-                  randrange(self.size),
-                  randrange(self.size)))
-        self.create_surface()
+      for bindings in range(11, 0, -1):
+        if self.surface[bindings]:
+          chosen = choice(self.surface[bindings])
+          # break
+      # chosen = choice(self.surface)
+          print("Bindliste:", bindings, 'liste', self.surface[bindings], "chosen",
+                chosen)
+          self.surface[bindings].remove(chosen)
+          self.grid.set(chosen)
+          choice_NB = self.real_neighbours(chosen)
+          for site in choice_NB:
+            bindings = len(self.real_neighbours(site))
+            if bindings > 11:
+              print("bindings", bindings)
+              print("site", site)
+              print("NNS", self.real_neighbours(site))
+              break
+            # print("bindigs:", bindings)
+            self.surface[bindings].append(site)
+      # NB_binds = len(real_NB)
+      # self.surface[bindings].append(site)
+      # self.surface_extender(chosen, bindings)
 
 
   def create_surface(self):
     valid = (s for s in self.occupied() if self.get(s)['type'] == 'atom')
-    self.surface = []
+    # self.surface = []
+    self.surface = [[] for x in range(12)]
     for site in valid:
-      self.surface_extender(site)
+      bindings = len(self.real_neighbours(site))
+      # print(site)
+      self.surface[bindings].append(site)
+      # self.surface_extender(site)
 
 
-  def change_surface(self, idx):
-    self.surface.remove(idx)
-    self.surface_extender(idx)
-
-
-  def surface_extender(self, idx):
+  def surface_extender(self, idx, bindings):
     """ Extends the surface by the real neighbours of atom `idx`.
     """
-    self.surface.extend([nb for nb, diffs in self.real_neighbours(idx) if not
-                         self.grid.get(nb) and diffs < 2.3])
+    pass
+    # self.surface.extend([nb for nb, diffs in self.real_neighbours(idx) if not
+                         # self.grid.get(nb) and diffs < 2.3])
 
 
 # # #################
@@ -161,25 +171,19 @@ class Flake:
     # TODO: Check for correct nn in different twin plane constellations.
 
     choice_vec = self.grid.coord(idx)
-    # print(choice_vec)
     all_indexed = list(self.abs_neighbours(idx))
-    # print(all_indexed)
     all_coordinated = [self.grid.coord(site) for site in all_indexed]
-    # print("AC:", all_coordinated)
     all_diffs = [choice_vec.dist(site) for site in all_coordinated]
-    # print("AD:", all_diffs)
     all_associated = zip(all_indexed, all_diffs)
     aa = list(all_associated)
-    return aa
+    all_valid = [nb for nb, diffs in aa if not self.grid.get(nb) and diffs < 2.3]
+    return all_valid
 
-
-  def export(self, fname='grid.dat'):
-    pickle.dump(self.grid.data, open(fname, 'wb'), 2)
 
 # # ########
 #   PLOT  #
 # #########
-  def plot(self, mayavi=True, surface=[]):
+  def plot(self, mayavi=True):
     """ Plot method of the flake.
 
     `scatter` expects three lists of xs, ys, zs, therefore the whole zip and
@@ -189,25 +193,7 @@ class Flake:
     If any argument is passed that evaluates `True` the surface will also be
     plotted.
     """
-
-    if surface:
-      surface = self.surface
-
-    def color(idx, type=None):
-      if type == 'atom':
-        color_list.append((1, 0, 0))
-      elif type == 'surface':
-        color_list.append((0.1, 0.1, 0.1))
-      else:
-        color_list.append((0.5, 0.5, 0.5))
-
-    color_list = []
-    for each in self.occupied():
-      color(each, 'atom')
-    for each in surface:
-      color(each, 'surface')
-
-    _all = list(self.occupied()) + surface
+    _all = list(self.occupied()) #+ (not mayavi) * self.surface
     points = list(zip(*(self.grid.coord(site) for site in _all)))
 
     if mayavi:
@@ -215,13 +201,31 @@ class Flake:
       m.show()
     else:
       import matplotlib.pyplot as plt
+      from mpl_toolkits.mplot3d import Axes3D
+      if False:
+        Axes3D
+      surface = self.surface
+
+      def color(idx, t=None):
+        if t == 'atom':
+          color_list.append((1, 0, 0))
+        elif t == 'surface':
+          color_list.append((0.1, 0.1, 0.1))
+        else:
+          color_list.append((0.5, 0.5, 0.5))
+
+      color_list = []
+      for each in self.occupied():
+        color(each, 'atom')
+      for each in surface:
+        color(each, 'surface')
+
       fig = plt.figure()
       ax = fig.add_subplot(111, projection='3d')
       ax.scatter(*points, s=1000, c=color_list)
-      # ax.set_xlabel('x')
-      # ax.set_ylabel('y')
-      # ax.set_zlabel('z')
-      ax.set_label('xyz')
+      ax.set_xlabel('x')
+      ax.set_ylabel('y')
+      ax.set_zlabel('z')
       _rng = [0, 2 * self.size]
       ax.auto_scale_xyz(_rng, _rng, _rng)
       plt.show()
@@ -251,10 +255,9 @@ def main():
     msg = ("\n-----------------------\n{s}::series\t"
     "@{st}::atoms\nAVERAGE (X Y Z):\t{av}").format(s=len(runs), st=steps, av=ag)
     fi.write(msg)
-  # f.plot(surface=True)
+  # f.plot()
   return dims, f
 
 
 if __name__ == '__main__':
   main()
-  Axes3D
