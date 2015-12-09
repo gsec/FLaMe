@@ -5,6 +5,7 @@ ipython_log*.py
 _OLD*
 venv/
 fig/
+*.orig
 
 doc/
 

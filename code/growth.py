@@ -20,7 +20,8 @@ class Flake:
   def __init__(self, size=20, twins=(9, 11)):
     self.size = size
     self.twins = twins
-    self.surface = []
+    # self.surface = []
+    # self.surface = [[] for x in range(12)]
     self.grid = Grid(size, twins)
     self.make_seed(radius=2)
 
@@ -96,28 +97,47 @@ class Flake:
 
   def grow(self, rounds=1):
     for r in range(rounds):
-      chosen = choice(self.surface)
-      self.grid.set(chosen)
-      self.change_surface(chosen)
+      for bindings in range(11, 0, -1):
+        if self.surface[bindings]:
+          chosen = choice(self.surface[bindings])
+          # break
+      # chosen = choice(self.surface)
+          print("Bindliste:", bindings, 'liste', self.surface[bindings], "chosen",
+                chosen)
+          self.surface[bindings].remove(chosen)
+          self.grid.set(chosen)
+          choice_NB = self.real_neighbours(chosen)
+          for site in choice_NB:
+            bindings = len(self.real_neighbours(site))
+            if bindings > 11:
+              print("bindings", bindings)
+              print("site", site)
+              print("NNS", self.real_neighbours(site))
+              break
+            # print("bindigs:", bindings)
+            self.surface[bindings].append(site)
+      # NB_binds = len(real_NB)
+      # self.surface[bindings].append(site)
+      # self.surface_extender(chosen, bindings)
 
 
   def create_surface(self):
     valid = (s for s in self.occupied() if self.get(s)['type'] == 'atom')
-    self.surface = []
+    # self.surface = []
+    self.surface = [[] for x in range(12)]
     for site in valid:
-      self.surface_extender(site)
+      bindings = len(self.real_neighbours(site))
+      # print(site)
+      self.surface[bindings].append(site)
+      # self.surface_extender(site)
 
 
-  def change_surface(self, idx):
-    self.surface.remove(idx)
-    self.surface_extender(idx)
-
-
-  def surface_extender(self, idx):
+  def surface_extender(self, idx, bindings):
     """ Extends the surface by the real neighbours of atom `idx`.
     """
-    self.surface.extend([nb for nb, diffs in self.real_neighbours(idx) if not
-                         self.grid.get(nb) and diffs < 2.3])
+    pass
+    # self.surface.extend([nb for nb, diffs in self.real_neighbours(idx) if not
+                         # self.grid.get(nb) and diffs < 2.3])
 
 
 # # #################
@@ -151,16 +171,13 @@ class Flake:
     # TODO: Check for correct nn in different twin plane constellations.
 
     choice_vec = self.grid.coord(idx)
-    # print(choice_vec)
     all_indexed = list(self.abs_neighbours(idx))
-    # print(all_indexed)
     all_coordinated = [self.grid.coord(site) for site in all_indexed]
-    # print("AC:", all_coordinated)
     all_diffs = [choice_vec.dist(site) for site in all_coordinated]
-    # print("AD:", all_diffs)
     all_associated = zip(all_indexed, all_diffs)
     aa = list(all_associated)
-    return aa
+    all_valid = [nb for nb, diffs in aa if not self.grid.get(nb) and diffs < 2.3]
+    return all_valid
 
 
 # # ########
@@ -176,7 +193,7 @@ class Flake:
     If any argument is passed that evaluates `True` the surface will also be
     plotted.
     """
-    _all = list(self.occupied()) + (not mayavi) * self.surface
+    _all = list(self.occupied()) #+ (not mayavi) * self.surface
     points = list(zip(*(self.grid.coord(site) for site in _all)))
 
     if mayavi:
@@ -238,7 +255,7 @@ def main():
     msg = ("\n-----------------------\n{s}::series\t"
     "@{st}::atoms\nAVERAGE (X Y Z):\t{av}").format(s=len(runs), st=steps, av=ag)
     fi.write(msg)
-  # f.plot(surface=True)
+  # f.plot()
   return dims, f
 
 
