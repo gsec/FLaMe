@@ -97,28 +97,32 @@ class Flake:
 
   def grow(self, rounds=1):
     for r in range(rounds):
-      for bindings in range(11, 0, -1):
-        if self.surface[bindings]:
-          chosen = choice(self.surface[bindings])
-          # break
-      # chosen = choice(self.surface)
-          print("Bindliste:", bindings, 'liste', self.surface[bindings], "chosen",
-                chosen)
-          self.surface[bindings].remove(chosen)
-          self.grid.set(chosen)
-          choice_NB = self.real_neighbours(chosen)
-          for site in choice_NB:
-            bindings = len(self.real_neighbours(site))
+      for slot in range(11, 0, -1):
+        if self.surface[slot]:
+          break
+          chosen = choice(self.surface[slot])
+          print("Accessed Slot #: ", slot, "\tSlot content: ",
+                self.surface[slot], "\tAtomic choice: ", chosen)
+          self.surface[slot].remove(chosen)
+          self.set(chosen)
+          his_neighbours = self.real_neighbours(chosen)
+          for site in his_neighbours:
+            realz = self.real_neighbours(site)
+            print("is he neighbour of his neighbours?:\t", chosen in realz)
+            bindings = len(realz)
             if bindings > 11:
-              print("bindings", bindings)
+              print("ALERT\n")
               print("site", site)
-              print("NNS", self.real_neighbours(site))
-              break
-            # print("bindigs:", bindings)
+              print("bind-num", bindings)
+              print("real neighbours of site:", realz)
+              print("\n\n")
+              # break
+            print('B1')
             self.surface[bindings].append(site)
-      # NB_binds = len(real_NB)
-      # self.surface[bindings].append(site)
-      # self.surface_extender(chosen, bindings)
+          break
+          print('B2')
+      else:
+        print("Really NOTHING?! found.")
 
 
   def create_surface(self):
@@ -130,14 +134,6 @@ class Flake:
       # print(site)
       self.surface[bindings].append(site)
       # self.surface_extender(site)
-
-
-  def surface_extender(self, idx, bindings):
-    """ Extends the surface by the real neighbours of atom `idx`.
-    """
-    pass
-    # self.surface.extend([nb for nb, diffs in self.real_neighbours(idx) if not
-                         # self.grid.get(nb) and diffs < 2.3])
 
 
 # # #################
@@ -193,7 +189,7 @@ class Flake:
     If any argument is passed that evaluates `True` the surface will also be
     plotted.
     """
-    _all = list(self.occupied()) #+ (not mayavi) * self.surface
+    _all = list(self.occupied())  # + (not mayavi) * self.surface
     points = list(zip(*(self.grid.coord(site) for site in _all)))
 
     if mayavi:
