@@ -5,7 +5,17 @@ from __future__ import print_function, division, generators
 from math import sqrt
 
 
-class Vector(tuple):
+QUIET = True
+def qprint(*args, **kwargs):
+  """ Override print function to suppress output.
+  """
+  if QUIET:
+    pass
+  else:
+      print(*args, **kwargs)
+
+
+class Vector:
   """ Self defined Vector object.
 
   Supports:
@@ -64,7 +74,7 @@ class Vector(tuple):
   def dist(self, other):
     """ Require: Vector object. Return: distance between the vectors.
     """
-    if not isinstance(other, self.__class__):
+    if type(self) != type(other):
       raise TypeError("Argument for `dist` must be another Vector.")
     delta = self - other
     return abs(delta)
