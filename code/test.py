@@ -3,7 +3,7 @@
 #                     The test module for the flake simulation
 from __future__ import print_function, division, generators
 import unittest
-from helper import Vector
+from helper import Vector, qprint
 from growth import Flake
 
 global F
@@ -27,11 +27,6 @@ class TestGrid(unittest.TestCase):
     g.grid.set(idx, testkey=45)
     self.assertEqual(bool(g.grid.get(idx)), True)
 
-# class TestGrow(unittest.TestCase):
-  # def test_choice(self):
-    # choice = F.grow()
-    # self.assertTrue(isinstance(choice, list))
-
 
 class Neighbours(unittest.TestCase):
   def test_abs_neighbours(self):
@@ -52,8 +47,6 @@ class Neighbours(unittest.TestCase):
     result = g.real_neighbours(at)
     for x in result:
       qprint(x)
-
-
 
 
 class TestVector(unittest.TestCase):
@@ -98,24 +91,6 @@ class TestVector(unittest.TestCase):
   def test_abs(self):
     vec1 = Vector((2, 5, 0))
     self.assertEqual(abs(vec1), vec1.dist(Vector((0, 0, 0))))
-
-
-# class SimpleFlakeTest(unittest.TestCase):
-  # def setUp(self):
-    # self.G = Grid(size=20, twins=(3,))
-
-
-# class TestGrid(SimpleFlakeTest):
-  # def test_init(self):
-    # conditions = ((len(self.G.core[0]), 20), (self.G.core.ndim, 4),
-    # (self.G.size, 20), (len(self.G.core[2, 3, 4]), 4))
-    # for res, exp in conditions:
-      # self.assertEqual(res, exp)
-
-  # def test_seed(self):
-    # seeds = self.G.permutator((9, 10, 11))
-    # for i, j, k in seeds:
-      # self.assertEqual(self.G.core[i, j, k, 0], 0)
 
 
 if __name__ == '__main__':

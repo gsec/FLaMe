@@ -5,14 +5,14 @@ from __future__ import print_function, division, generators
 from math import sqrt
 
 
-QUIET = True
 def qprint(*args, **kwargs):
   """ Override print function to suppress output.
   """
-  if QUIET:
-    pass
-  else:
+  try:
+    if not kwargs.pop('quiet'):
       print(*args, **kwargs)
+  except KeyError:
+    pass
 
 
 class Vector:
@@ -152,11 +152,6 @@ class Grid(list):
     configuration. Every twin plane inverts the permutation order.
     """
     i, j, k = idx
-    # try:
-      # return self.data[i][j][k]['coord']
-    # except IndexError:
-      # return None
-    # except (KeyError, TypeError) as e:
     _perms = float(self.layer_permutations[k])
     prototype = Vector((2*i + (j+k) % 2,
                       sqrt(3)*(j + _perms * 1/3),

@@ -13,6 +13,8 @@ from random import choice, randrange
 from helper import Grid, qprint
 from mayavi import mlab as m
 
+Q = False
+
 
 class Flake:
   """ Contains higher level methods for manipulating the flake.
@@ -33,6 +35,7 @@ class Flake:
   def clear(self):
     for site in self.permutator():
       self.grid.delete(site)
+    self.create_surface()
 
 
 # # ###########
@@ -62,13 +65,14 @@ class Flake:
     """
     mid = self.size // 2
     for x in self.permutator(range(mid-radius, mid+radius+1)):
-      self.grid.set(x, type='atom')
+      self.set(x, type='atom')
     self.create_surface()
 
 
   def occupied(self):
     """ Returns all sites in the grid that aren't empty.
     """
+    # TODO: substitute self.occupied() with self.atoms list
     return (site for site in self.permutator() if self.get(site))
 
 
@@ -103,9 +107,8 @@ class Flake:
     * build all (1, -1, 0) permutations
     * get coordinates of all surrounding sites
     * get vector differences between the atom and its neighbours
-    * filter those, which are larger than two (two diameters equivalent to next
-    neighbor)
-      * zip them together and return zipped list as (indices, distance) pairs.
+    * filter those, which are larger than DIFF_CAP
+    * return `void` or `occupied` neighbours
     """
     DIFF_CAP = 2.3
     choice_vec = self.grid.coord(atom)
@@ -114,7 +117,7 @@ class Flake:
     all_diffs = [choice_vec.dist(site) for site in all_coordinated]
     all_associated = zip(all_indexed, all_diffs)
     aa = list(all_associated)
-    only_next = [nb for nb, diffs in aa if  diffs < DIFF_CAP]
+    only_next = [nb for nb, diffs in aa if diffs < DIFF_CAP]
     if only_void:
       return [nb for nb in only_next if not self.grid.get(nb)]
     else:
@@ -131,34 +134,20 @@ class Flake:
       for slot in range(11, 0, -1):
         if self.surface[slot]:
           chosen = choice(self.surface[slot])
-          qprint("Accessed Slot #: ", slot, "\tSlot content: ",
-                self.surface[slot], "\tAtomic choice: ", chosen)
-          # tmp_list = self.surface[slot][:]
-          # print(tmp_list)
-          # tmp_list.remove(chosen)
-          # print(tmp_list)
-          # self.surface[slot] = tmp_list
-          # print(self.surface[slot])
-          while chosen in self.surface[slot]:
+          i = 0
+          while chosen in self.surface[slot]:     # kinda hacked.... !!
+            qprint(i, quiet=True)
+            i += 1
             self.surface[slot].remove(chosen)
-            # raise Exception("NOT REMOVING CHOICE FROM SURFACE")
           self.set(chosen)
           his_neighbours = self.real_neighbours(chosen, only_void=True)
           for site in his_neighbours:
             realz = self.real_neighbours(site)
             bindings = len(realz)
-            if bindings > 11:
-              qprint("ALERT\n")
-              qprint("site", site)
-              qprint("bind-num", bindings)
-              qprint("real neighbours of site:", realz)
-              qprint("\n\n")
-              self.surface[11].append(site)
-              break
             self.surface[bindings].append(site)
           break
       else:
-        qprint("Really NOTHING?! found.")
+        qprint("Really NOTHING?! found.", quiet=Q)
 
 
   def create_surface(self):
@@ -173,27 +162,24 @@ class Flake:
           try:
             self.surface[binds].append(nb)
           except IndexError as e:
-            # self.surface[11].append(nb)
-            qprint(e)
-            qprint("Site: ", nb, "Has too many possible neighbours: ", binds)
-            qprint("This must be an empty site")
+            qprint(e, quiet=Q)
+            qprint("Site: ", nb, "Has too many possible neighbours: ", binds,
+                   quiet=Q)
+            qprint("This must be an empty site", quiet=Q)
 
 
 # # ########
 #   PLOT  #
 # #########
-  def plot(self, mayavi=True):
-    """ Plot method of the flake.
+  def plot(self):
+    """ The `color()` function appends values for colors to the `color_list`.
+    This list must have the same length as `whole` to plot correctly.
 
-    `scatter` expects three lists of xs, ys, zs, therefore the whole zip and
-    unpack action. We only plot points that 'are' something.
-    This is checked at creation of `valid` and then translated into vectors in
-    `points`.
-    If any argument is passed that evaluates `True` the surface will also be
-    plotted.
     """
     sfc = list(it.chain.from_iterable(self.surface))
     occ = list(self.occupied())
+    whole = occ + sfc
+    x, y, z = list(zip(*(self.grid.coord(site) for site in whole)))
 
     def color(idx, t=None):
       if t == 'atom':
@@ -204,44 +190,22 @@ class Flake:
         color_list.append(0.)
 
     color_list = []
-    for each in self.occupied():
+    for each in occ:
       color(each, 'atom')
     for each in sfc:
       color(each, 'surface')
 
-    whole = occ + sfc
-    qprint("CLIST", color_list)
-
-    x, y, z = list(zip(*(self.grid.coord(site) for site in whole)))
-    qprint("Xyz:", x)
-    qprint('xlen', len(x), '\nclistlen', len(color_list))
-
-    if mayavi:
-      m.points3d(x, y, z, color_list, colormap="spectral", scale_factor=.8,
-                 vmin=0, vmax=1.1)
-      m.show()
-      return occ, sfc
-    else:
-      import matplotlib.pyplot as plt
-      from mpl_toolkits.mplot3d import Axes3D
-      if False:
-        Axes3D
-      fig = plt.figure()
-      ax = fig.add_subplot(111, projection='3d')
-      ax.scatter(x, y, z, s=1000, c=color_list)
-      ax.set_xlabel('x')
-      ax.set_ylabel('y')
-      ax.set_zlabel('z')
-      _rng = [0, 2 * self.size]
-      ax.auto_scale_xyz(_rng, _rng, _rng)
-      plt.show()
+    m.points3d(x, y, z, color_list, colormap="spectral", scale_factor=.8,
+                vmin=0, vmax=1.1)
+    m.show()
 
 
 # ----------
 # -  main  -
 # ----------
 def main():
-  f = Flake(size=11, twins=())
+  f = Flake(size=21, twins=(3, 8))
+  f.grow(500)
   f.plot()
 
 
