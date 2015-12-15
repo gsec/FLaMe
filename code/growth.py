@@ -17,11 +17,11 @@ from mayavi import mlab as m
 class Flake:
   """ Contains higher level methods for manipulating the flake.
   """
-  def __init__(self, size=20, twins=(9, 11)):
+  def __init__(self, size=20, twins=()):
     self.size = size
     self.twins = twins
     self.grid = Grid(size, twins)
-    self.make_seed(radius=2)
+    self.make_seed(radius=1)
     self.create_surface()
 
   def get(self, idx):
@@ -96,7 +96,7 @@ class Flake:
     return valids
 
 
-  def real_neighbours(self, atom):
+  def real_neighbours(self, atom, only_void=False):
     """ Creates next neighbours based on the distances.
 
     * choose a site (ensure later that every possibility is covered...)
@@ -114,24 +114,36 @@ class Flake:
     all_diffs = [choice_vec.dist(site) for site in all_coordinated]
     all_associated = zip(all_indexed, all_diffs)
     aa = list(all_associated)
-    all_valid = [nb for nb, diffs in aa if not self.grid.get(nb) and diffs <
-                 DIFF_CAP]
-    return all_valid
+    only_next = [nb for nb, diffs in aa if  diffs < DIFF_CAP]
+    if only_void:
+      return [nb for nb in only_next if not self.grid.get(nb)]
+    else:
+      return [nb for nb in only_next if self.grid.get(nb)]
 
 
 # # ########
 #   grow  #
 # #########
   def grow(self, rounds=1):
+    """ Manipulates the flake, adding atoms to its surface.
+    """
     for r in range(rounds):
       for slot in range(11, 0, -1):
         if self.surface[slot]:
           chosen = choice(self.surface[slot])
           qprint("Accessed Slot #: ", slot, "\tSlot content: ",
                 self.surface[slot], "\tAtomic choice: ", chosen)
-          self.surface[slot].remove(chosen)
+          # tmp_list = self.surface[slot][:]
+          # print(tmp_list)
+          # tmp_list.remove(chosen)
+          # print(tmp_list)
+          # self.surface[slot] = tmp_list
+          # print(self.surface[slot])
+          while chosen in self.surface[slot]:
+            self.surface[slot].remove(chosen)
+            # raise Exception("NOT REMOVING CHOICE FROM SURFACE")
           self.set(chosen)
-          his_neighbours = self.real_neighbours(chosen)
+          his_neighbours = self.real_neighbours(chosen, only_void=True)
           for site in his_neighbours:
             realz = self.real_neighbours(site)
             bindings = len(realz)
@@ -153,16 +165,18 @@ class Flake:
     atoms = (s for s in self.occupied() if self.get(s)['type'] == 'atom')
     self.surface = [[] for _ in range(12)]
     for atom in atoms:
-      realz = self.real_neighbours(atom)
+      realz = self.real_neighbours(atom, only_void=True)
       for nb in realz:
         nb2nb = self.real_neighbours(nb)
         binds = len(nb2nb)
-        try:
-          self.surface[binds].append(nb)
-        except IndexError as e:
-          self.surface[11].append(nb)
-          qprint(e)
-          qprint("Site: ", nb, "Has too many possible neighbours: ", binds)
+        if nb not in self.surface[binds]:
+          try:
+            self.surface[binds].append(nb)
+          except IndexError as e:
+            # self.surface[11].append(nb)
+            qprint(e)
+            qprint("Site: ", nb, "Has too many possible neighbours: ", binds)
+            qprint("This must be an empty site")
 
 
 # # ########

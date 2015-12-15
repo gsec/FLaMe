@@ -158,7 +158,7 @@ class Grid(list):
       # return None
     # except (KeyError, TypeError) as e:
     _perms = float(self.layer_permutations[k])
-    prototype = Vector((2*i + (j+k) % 3,
+    prototype = Vector((2*i + (j+k) % 2,
                       sqrt(3)*(j + _perms * 1/3),
                       k*2*sqrt(6)/3))
     return prototype
