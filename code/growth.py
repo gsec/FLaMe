@@ -19,12 +19,11 @@ Q = False
 class Flake:
   """ Contains higher level methods for manipulating the flake.
   """
-  def __init__(self, size=20, twins=()):
+  def __init__(self, size=20, twins=(), seed_size=1):
     self.size = size
     self.twins = twins
     self.grid = Grid(size, twins)
-    self.make_seed(radius=1)
-    self.create_surface()
+    self.make_seed(radius=seed_size)
 
   def get(self, idx):
     return self.grid.get(idx)
@@ -204,8 +203,8 @@ class Flake:
 # -  main  -
 # ----------
 def main():
-  f = Flake(size=21, twins=(3, 8))
-  f.grow(500)
+  f = Flake(size=31, twins=(15, 17), seed_size=0)
+  f.grow(2000)
   f.plot()
 
 
