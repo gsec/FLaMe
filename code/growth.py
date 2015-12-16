@@ -9,7 +9,7 @@
 """
 from __future__ import print_function, division, generators
 import itertools as it
-from random import choice, randrange
+from random import choice
 from helper import Grid, qprint
 from mayavi import mlab as m
 
@@ -19,42 +19,62 @@ Q = False
 class Flake:
   """ Contains higher level methods for manipulating the flake.
   """
-  def __init__(self, size=20, twins=(), seed_size=1):
+  def __init__(self, size=20, twins=(), seed_size=1, height=10):
     self.size = size
     self.twins = twins
-    self.grid = Grid(size, twins)
+    self.height = height
+    self.atoms = []
+    self.surface = [[] for _ in range(12)]
+    self.grid = Grid(size, twins, height)
     self.make_seed(radius=seed_size)
 
   def get(self, idx):
     return self.grid.get(idx)
 
-  def set(self, idx, **values):
-    return self.grid.set(idx, **values)
+  def set(self, idx, value='atom'):
+    if value == 'atom' or 1:
+      self.grid.set(idx, 1)
+      self.atoms.append(idx)
+    elif value == 'surface' or 2:
+      self.grid.set(idx, 2)
+    else:
+      self.grid.set(idx, value)
 
   def clear(self):
     for site in self.permutator():
       self.grid.delete(site)
-    self.create_surface()
+    self.create_entire_surface()
 
 
 # # ###########
 #   GLOBALS  #
 # ############
   def permutator(self, seed=None):
-    """ Creates all possible permutations of length three of all given objects
-    in `seed`.
+    """ Returns the 3D cartesian product of `seed`.
 
     Without arguments it will return all sites in flake.
     """
     if not seed:
-      seed = range(self.size)
-    types = it.combinations_with_replacement(seed, 3)
-    perms = []
-    for i in types:
-      t = set(it.permutations(i))
-      while t:
-        perms.append(t.pop())
-    return perms
+      return (i for i in it.product(range(self.size), repeat=3) if i[2] <
+              self.height)
+    else:
+      return it.product(seed, repeat=3)
+
+  # def permutator(self, seed=None):
+    # """ Creates all possible permutations of length three of all given objects
+    # in `seed`.
+
+    # Without arguments it will return all sites in flake.
+    # """
+    # if not seed:
+      # seed = range(self.size)
+    # types = it.combinations_with_replacement(seed, 3)
+    # perms = []
+    # for i in types:
+      # t = set(it.permutations(i))
+      # while t:
+        # perms.append(t.pop())
+    # return perms
 
 
   def make_seed(self, radius=1):
@@ -62,10 +82,10 @@ class Flake:
 
     This is used as initial flake seed.
     """
-    mid = self.size // 2
+    mid = self.height // 2
     for x in self.permutator(range(mid-radius, mid+radius+1)):
-      self.set(x, type='atom')
-    self.create_surface()
+      self.set(x)
+    self.create_entire_surface()
 
 
   def occupied(self):
@@ -91,7 +111,7 @@ class Flake:
     Here we should introduces a `idx_combinations` var and move (1, -1, 0)
     there.
     """
-    relative_neighbours = self.permutator((1, -1, 0))
+    relative_neighbours = list(self.permutator((1, -1, 0)))
     relative_neighbours.remove((0, 0, 0))
     pairs = (zip(idx, nn) for nn in relative_neighbours)
     absolutes = (tuple(sum(y) for y in x) for x in pairs)
@@ -99,7 +119,7 @@ class Flake:
     return valids
 
 
-  def real_neighbours(self, atom, only_void=False):
+  def real_neighbours(self, atom, void=False):
     """ Creates next neighbours based on the distances.
 
     * choose a site (ensure later that every possibility is covered...)
@@ -117,7 +137,7 @@ class Flake:
     all_associated = zip(all_indexed, all_diffs)
     aa = list(all_associated)
     only_next = [nb for nb, diffs in aa if diffs < DIFF_CAP]
-    if only_void:
+    if void:
       return [nb for nb in only_next if not self.grid.get(nb)]
     else:
       return [nb for nb in only_next if self.grid.get(nb)]
@@ -139,7 +159,7 @@ class Flake:
             i += 1
             self.surface[slot].remove(chosen)
           self.set(chosen)
-          his_neighbours = self.real_neighbours(chosen, only_void=True)
+          his_neighbours = self.real_neighbours(chosen, void=True)
           for site in his_neighbours:
             realz = self.real_neighbours(site)
             bindings = len(realz)
@@ -148,23 +168,23 @@ class Flake:
       else:
         qprint("Really NOTHING?! found.", quiet=Q)
 
+  def set_surface(self, site):
+    occupied_neighbours = self.real_neighbours(site, void=False)
+    slot = len(occupied_neighbours)
+    try:
+      self.surface[slot].append(site)
+    except IndexError as e:
+      qprint(e, "\nSite: ", site, "Too many empty neighbours: ", slot, quiet=Q)
 
-  def create_surface(self):
-    atoms = (s for s in self.occupied() if self.get(s)['type'] == 'atom')
+
+
+  def create_entire_surface(self):
+    atoms = (s for s in self.occupied() if self.get(s) == 1)
     self.surface = [[] for _ in range(12)]
     for atom in atoms:
-      realz = self.real_neighbours(atom, only_void=True)
+      realz = self.real_neighbours(atom, void=True)
       for nb in realz:
-        nb2nb = self.real_neighbours(nb)
-        binds = len(nb2nb)
-        if nb not in self.surface[binds]:
-          try:
-            self.surface[binds].append(nb)
-          except IndexError as e:
-            qprint(e, quiet=Q)
-            qprint("Site: ", nb, "Has too many possible neighbours: ", binds,
-                   quiet=Q)
-            qprint("This must be an empty site", quiet=Q)
+        self.set_surface(nb)
 
 
 # # ########
@@ -182,9 +202,9 @@ class Flake:
 
     def color(idx, t=None):
       if t == 'atom':
-        color_list.append(randrange(98, 100) / 100)
+        color_list.append(0.8)
       elif t == 'surface':
-        color_list.append(randrange(25, 30) / 100)
+        color_list.append(0.25)
       else:
         color_list.append(0.)
 
@@ -194,7 +214,7 @@ class Flake:
     for each in sfc:
       color(each, 'surface')
 
-    m.points3d(x, y, z, color_list, colormap="spectral", scale_factor=.8,
+    m.points3d(x, y, z, color_list, colormap="spectral", scale_factor=1.0,
                 vmin=0, vmax=1.1)
     m.show()
 
@@ -203,8 +223,8 @@ class Flake:
 # -  main  -
 # ----------
 def main():
-  f = Flake(size=31, twins=(15, 17), seed_size=0)
-  f.grow(2000)
+  f = Flake(size=31, twins=(), seed_size=0)
+  f.grow(1000)
   f.plot()
 
 

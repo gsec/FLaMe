@@ -3,6 +3,7 @@ Utilities needed by the Flake Simulation.
 """
 from __future__ import print_function, division, generators
 from math import sqrt
+import numpy as np
 
 
 def qprint(*args, **kwargs):
@@ -89,17 +90,20 @@ class Vector:
 # ################
 
 class Grid(list):
-  def __init__(self, size, twins):
+  def __init__(self, size, twins, height):
     """ Grid object containing the atom, accessed by the indices `i`, `j`, `k`.
 
     `size`: edge-length of the size**3 cube of lattice indices.
     `twins`: Iterable which yields numbers of twin plane layers.
     """
     self.size = size
-    self.data = [[[None
-      for _ in range(size)]
-      for _ in range(size)]
-      for _ in range(size)]
+    self.height = height
+    self.data = np.zeros(size**2 * height,
+                         dtype=np.uint8).reshape(size, size, height)
+    # self.data = [[[None
+      # for _ in range(size)]
+      # for _ in range(size)]
+      # for _ in range(size)]
     self.layer_permutations = self.layer_gen(twins)
 
 
@@ -111,19 +115,14 @@ class Grid(list):
       pass
 
 
-  def set(self, idx, **value):
+  def set(self, idx, value=1):
     i, j, k = idx
-    if not self.data[i][j][k]:
-      if not value:
-        value = {'type': 'atom'}
-      self.data[i][j][k] = value
-    else:
-      self.data[i][j][k].update(value)
+    self.data[i][j][k] = value
 
 
   def delete(self, idx):
     i, j, k = idx
-    self.data[i][j][k] = None
+    self.data[i][j][k] = 0
 
 
   def layer_gen(self, twins):

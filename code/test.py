@@ -22,9 +22,9 @@ class TestGrid(unittest.TestCase):
     """
     g = Flake(size=8)
     idx = (1, 3, 2)
-    self.assertEqual(g.grid.data[0][3][4], None)
+    self.assertEqual(g.grid.data[0][3][4], 0)
     self.assertEqual(bool(g.grid.get(idx)), False)
-    g.grid.set(idx, testkey=45)
+    g.grid.set(idx, value=45)
     self.assertEqual(bool(g.grid.get(idx)), True)
 
 
