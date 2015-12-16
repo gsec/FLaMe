@@ -37,6 +37,7 @@ class Flake:
       self.atoms.append(idx)
     elif value == 'surface' or 2:
       self.grid.set(idx, 2)
+      self.set_surface(idx)
     else:
       self.grid.set(idx, value)
 
@@ -49,32 +50,16 @@ class Flake:
 # # ###########
 #   GLOBALS  #
 # ############
-  def permutator(self, seed=None):
-    """ Returns the 3D cartesian product of `seed`.
+  def permutator(self, rng=None):
+    """ Returns the 3D Cartesian product of `seed`.
 
     Without arguments it will return all sites in flake.
     """
-    if not seed:
+    if not rng:
       return (i for i in it.product(range(self.size), repeat=3) if i[2] <
               self.height)
     else:
-      return it.product(seed, repeat=3)
-
-  # def permutator(self, seed=None):
-    # """ Creates all possible permutations of length three of all given objects
-    # in `seed`.
-
-    # Without arguments it will return all sites in flake.
-    # """
-    # if not seed:
-      # seed = range(self.size)
-    # types = it.combinations_with_replacement(seed, 3)
-    # perms = []
-    # for i in types:
-      # t = set(it.permutations(i))
-      # while t:
-        # perms.append(t.pop())
-    # return perms
+      return it.product(rng, repeat=3)
 
 
   def make_seed(self, radius=1):
@@ -82,28 +67,26 @@ class Flake:
 
     This is used as initial flake seed.
     """
-    mid = self.height // 2
-    for x in self.permutator(range(mid-radius, mid+radius+1)):
-      self.set(x)
+    mid = (self.size//2, self.size//2, self.height // 2)
+    env = list(self.permutator(range(-radius, radius+1)))
+    pairs = (zip(mid, others) for others in env)
+    total = (tuple(sum(y) for y in x) for x in pairs)
+    for each in total:
+      self.set(each)
     self.create_entire_surface()
 
 
-  def occupied(self):
-    """ Returns all sites in the grid that aren't empty.
-    """
-    # TODO: substitute self.occupied() with self.atoms list
-    return (site for site in self.permutator() if self.get(site))
-
-
   def chk(self, idx):
-    for n in idx:
+    if idx[-1] not in range(self.height):
+      return False
+    for n in idx[:-1]:
       if n not in range(self.size):
         return False
     return True
 
 
 # # #################
-#   NEIGHBOURHOOD  #
+#   NEIGHBORHOOD  #
 # ##################
   def abs_neighbours(self, idx):
     """ Return a list of next neighbours of `i, j, k`
@@ -166,7 +149,7 @@ class Flake:
             self.surface[bindings].append(site)
           break
       else:
-        qprint("Really NOTHING?! found.", quiet=Q)
+        qprint("Really NOTHING?! Found.", quiet=Q)
 
   def set_surface(self, site):
     occupied_neighbours = self.real_neighbours(site, void=False)
@@ -177,11 +160,9 @@ class Flake:
       qprint(e, "\nSite: ", site, "Too many empty neighbours: ", slot, quiet=Q)
 
 
-
   def create_entire_surface(self):
-    atoms = (s for s in self.occupied() if self.get(s) == 1)
     self.surface = [[] for _ in range(12)]
-    for atom in atoms:
+    for atom in self.atoms:
       realz = self.real_neighbours(atom, void=True)
       for nb in realz:
         self.set_surface(nb)
@@ -195,9 +176,9 @@ class Flake:
     This list must have the same length as `whole` to plot correctly.
 
     """
-    sfc = list(it.chain.from_iterable(self.surface))
-    occ = list(self.occupied())
-    whole = occ + sfc
+    surface_chain = list(it.chain.from_iterable(self.surface))
+
+    whole = self.atoms + surface_chain
     x, y, z = list(zip(*(self.grid.coord(site) for site in whole)))
 
     def color(idx, t=None):
@@ -209,9 +190,9 @@ class Flake:
         color_list.append(0.)
 
     color_list = []
-    for each in occ:
+    for each in self.atoms:
       color(each, 'atom')
-    for each in sfc:
+    for each in surface_chain:
       color(each, 'surface')
 
     m.points3d(x, y, z, color_list, colormap="spectral", scale_factor=1.0,

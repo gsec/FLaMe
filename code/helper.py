@@ -88,7 +88,6 @@ class Vector:
 # # ###############
 #   grid object  #
 # ################
-
 class Grid(list):
   def __init__(self, size, twins, height):
     """ Grid object containing the atom, accessed by the indices `i`, `j`, `k`.
@@ -100,10 +99,6 @@ class Grid(list):
     self.height = height
     self.data = np.zeros(size**2 * height,
                          dtype=np.uint8).reshape(size, size, height)
-    # self.data = [[[None
-      # for _ in range(size)]
-      # for _ in range(size)]
-      # for _ in range(size)]
     self.layer_permutations = self.layer_gen(twins)
 
 
