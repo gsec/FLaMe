@@ -3,9 +3,20 @@ Utilities needed by the Flake Simulation.
 """
 from __future__ import print_function, division, generators
 from math import sqrt
+import numpy as np
 
 
-class Vector(list):
+def qprint(*args, **kwargs):
+  """ Override print function to suppress output.
+  """
+  try:
+    if not kwargs.pop('quiet'):
+      print(*args, **kwargs)
+  except KeyError:
+    pass
+
+
+class Vector:
   """ Self defined Vector object.
 
   Supports:
@@ -13,21 +24,19 @@ class Vector(list):
     * addition/ subtraction with floats and integers (for each component)
     * length through the `abs()` method.
   """
-  def __init__(self, x, y, z):
-    self.x = x
-    self.y = y
-    self.z = z
-
+  def __init__(self, comp):
+    self.comp = comp
+    self.x, self.y, self.z = self.comp
 
   def __repr__(self):
-    x, y, z = (round(r, 2) for r in (self.x, self.y, self.z))
+    x, y, z = (round(r, 2) for r in self.comp)
     return 'Vector:({}, {}, {})'.format(x, y, z)
 
 
   def __iter__(self):
     """ Iteration over a Vector yields it's components.
     """
-    for comp in (self.x, self.y, self.z):
+    for comp in self.comp:
       yield comp
 
 
@@ -48,7 +57,7 @@ class Vector(list):
       new_x = self.x + other
       new_y = self.y + other
       new_z = self.z + other
-    return Vector(new_x, new_y, new_z)
+    return Vector((new_x, new_y, new_z))
 
 
   def __sub__(self, other):
@@ -60,13 +69,13 @@ class Vector(list):
       new_x = self.x - other
       new_y = self.y - other
       new_z = self.z - other
-    return Vector(new_x, new_y, new_z)
+    return Vector((new_x, new_y, new_z))
 
 
   def dist(self, other):
     """ Require: Vector object. Return: distance between the vectors.
     """
-    if not isinstance(other, self.__class__):
+    if type(self) != type(other):
       raise TypeError("Argument for `dist` must be another Vector.")
     delta = self - other
     return abs(delta)
@@ -79,19 +88,17 @@ class Vector(list):
 # # ###############
 #   grid object  #
 # ################
-
 class Grid(list):
-  def __init__(self, size, twins):
+  def __init__(self, size, twins, height):
     """ Grid object containing the atom, accessed by the indices `i`, `j`, `k`.
 
     `size`: edge-length of the size**3 cube of lattice indices.
     `twins`: Iterable which yields numbers of twin plane layers.
     """
     self.size = size
-    self.data = [[[None
-      for _ in range(size)]
-      for _ in range(size)]
-      for _ in range(size)]
+    self.height = height
+    self.data = np.zeros(size**2 * height,
+                         dtype=np.uint8).reshape(size, size, height)
     self.layer_permutations = self.layer_gen(twins)
 
 
@@ -103,19 +110,14 @@ class Grid(list):
       pass
 
 
-  def set(self, idx, **value):
+  def set(self, idx, value=1):
     i, j, k = idx
-    if not self.data[i][j][k]:
-      if not value:
-        value = {'type': 'atom'}
-      self.data[i][j][k] = value
-    else:
-      self.data[i][j][k].update(value)
+    self.data[i][j][k] = value
 
 
   def delete(self, idx):
     i, j, k = idx
-    self.data[i][j][k] = None
+    self.data[i][j][k] = 0
 
 
   def layer_gen(self, twins):
@@ -144,18 +146,8 @@ class Grid(list):
     configuration. Every twin plane inverts the permutation order.
     """
     i, j, k = idx
-    # try:
-      # return self.data[i][j][k]['coord']
-    # except IndexError:
-      # return None
-    # except (KeyError, TypeError) as e:
     _perms = float(self.layer_permutations[k])
-    # print("Perms: ", _perms, "z-coord:", k)
-    # print("J:", j, "J+perms", j + _perms)
-    prototype = Vector(2*i + (j+k) % 3,
-                      # sqrt(3)*(j),
+    prototype = Vector((2*i + (j+k) % 2,
                       sqrt(3)*(j + _perms * 1/3),
-                      k*2*sqrt(6)/3)
-    # if isinstance(e, KeyError):
-      # self.data[i][j][k]['coord'] = prototype
+                      k*2*sqrt(6)/3))
     return prototype

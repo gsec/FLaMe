@@ -9,54 +9,60 @@
 """
 from __future__ import print_function, division, generators
 import itertools as it
-from mpl_toolkits.mplot3d import Axes3D
-from random import randrange, choice
-import pickle
-from helper import Grid
+from random import choice
+from helper import Grid, qprint
 from mayavi import mlab as m
+import arrow
+from os import path, makedirs
+
+Q = False
 
 
 class Flake:
   """ Contains higher level methods for manipulating the flake.
   """
-  def __init__(self, size=20, twins=(9, 11)):
+  def __init__(self, size=20, twins=(), seed_size=1, height=10):
     self.size = size
     self.twins = twins
-    self.surface = []
-    self.grid = Grid(size, twins)
-    self.make_seed(radius=2)
+    self.height = height
+    self.tag = ''
+    self.atoms = []
+    self.surface = [[] for _ in range(12)]
+    self.grid = Grid(size, twins, height)
+    self.make_seed(radius=seed_size)
 
   def get(self, idx):
     return self.grid.get(idx)
 
-  def set(self, idx, **values):
-    return self.grid.set(idx, **values)
+  def set(self, idx, value='atom'):
+    if value == 'atom' or 1:
+      self.grid.set(idx, 1)
+      self.atoms.append(idx)
+    elif value == 'surface' or 2:
+      self.grid.set(idx, 2)
+      self.set_surface(idx)
+    else:
+      self.grid.set(idx, value)
 
   def clear(self):
-    """ Erase all sites in the flake.
-    """
     for site in self.permutator():
       self.grid.delete(site)
+    self.create_entire_surface()
 
 
 # # ###########
 #   GLOBALS  #
 # ############
-  def permutator(self, seed=None):
-    """ Creates all possible permutations of length three of all given objects
-    in `seed`.
+  def permutator(self, rng=None):
+    """ Returns the 3D Cartesian product of `seed`.
 
     Without arguments it will return all sites in flake.
     """
-    if not seed:
-      seed = range(self.size)
-    types = it.combinations_with_replacement(seed, 3)
-    perms = []
-    for i in types:
-      t = set(it.permutations(i))
-      while t:
-        perms.append(t.pop())
-    return perms
+    if not rng:
+      return (i for i in it.product(range(self.size), repeat=3) if i[2] <
+              self.height)
+    else:
+      return it.product(rng, repeat=3)
 
 
   def make_seed(self, radius=1):
@@ -64,74 +70,26 @@ class Flake:
 
     This is used as initial flake seed.
     """
-    self.clear()
-    mid = self.size // 2
-    for x in self.permutator(range(mid-radius, mid+radius+1)):
-      self.grid.set(x, type='atom')
-    self.create_surface()
-
-
-  def occupied(self):
-    """ Returns all sites in the grid that aren't empty.
-    """
-    return (site for site in self.permutator() if self.get(site))
+    mid = (self.size//2, self.size//2, self.height // 2)
+    env = list(self.permutator(range(-radius, radius+1)))
+    pairs = (zip(mid, others) for others in env)
+    total = (tuple(sum(y) for y in x) for x in pairs)
+    for each in total:
+      self.set(each)
+    self.create_entire_surface()
 
 
   def chk(self, idx):
-    for n in idx:
+    if idx[-1] not in range(self.height):
+      return False
+    for n in idx[:-1]:
       if n not in range(self.size):
         return False
     return True
 
 
-# # ########
-#   grow  #
-# #########
-  def dim(self):
-    D = []
-    r = zip(*self.occupied())
-    for i in r:
-      delta = abs(max(i) - min(i))
-      D.append(delta)
-    # print("Dimension:\tX ~", D[0], " Y ~", D[1], " Z ~", D[2])
-    return D
-
-
-  def grow(self, rounds=1):
-    for r in range(rounds):
-      try:
-        chosen = choice(self.surface)
-        self.grid.set(chosen)
-        self.change_surface(chosen)
-      except ValueError:
-        # if surface is empty, set random point
-        self.set((randrange(self.size),
-                  randrange(self.size),
-                  randrange(self.size)))
-        self.create_surface()
-
-
-  def create_surface(self):
-    valid = (s for s in self.occupied() if self.get(s)['type'] == 'atom')
-    self.surface = []
-    for site in valid:
-      self.surface_extender(site)
-
-
-  def change_surface(self, idx):
-    self.surface.remove(idx)
-    self.surface_extender(idx)
-
-
-  def surface_extender(self, idx):
-    """ Extends the surface by the real neighbours of atom `idx`.
-    """
-    self.surface.extend([nb for nb, diffs in self.real_neighbours(idx) if not
-                         self.grid.get(nb) and diffs < 2.3])
-
-
 # # #################
-#   NEIGHBOURHOOD  #
+#   NEIGHBORHOOD  #
 # ##################
   def abs_neighbours(self, idx):
     """ Return a list of next neighbours of `i, j, k`
@@ -139,7 +97,7 @@ class Flake:
     Here we should introduces a `idx_combinations` var and move (1, -1, 0)
     there.
     """
-    relative_neighbours = self.permutator((1, -1, 0))
+    relative_neighbours = list(self.permutator((1, -1, 0)))
     relative_neighbours.remove((0, 0, 0))
     pairs = (zip(idx, nn) for nn in relative_neighbours)
     absolutes = (tuple(sum(y) for y in x) for x in pairs)
@@ -147,114 +105,138 @@ class Flake:
     return valids
 
 
-  def real_neighbours(self, idx):
+  def real_neighbours(self, atom, void=False):
     """ Creates next neighbours based on the distances.
 
     * choose a site (ensure later that every possibility is covered...)
     * build all (1, -1, 0) permutations
     * get coordinates of all surrounding sites
     * get vector differences between the atom and its neighbours
-    * filter those, which are larger than two (two diameters equivalent to next
-    neighbor)
-      * zip them together and return zipped list as (indices, distance) pairs.
+    * filter those, which are larger than DIFF_CAP
+    * return `void` or `occupied` neighbours
     """
-    # TODO: Check for correct nn in different twin plane constellations.
-
-    choice_vec = self.grid.coord(idx)
-    # print(choice_vec)
-    all_indexed = list(self.abs_neighbours(idx))
-    # print(all_indexed)
+    DIFF_CAP = 2.3
+    choice_vec = self.grid.coord(atom)
+    all_indexed = list(self.abs_neighbours(atom))
     all_coordinated = [self.grid.coord(site) for site in all_indexed]
-    # print("AC:", all_coordinated)
     all_diffs = [choice_vec.dist(site) for site in all_coordinated]
-    # print("AD:", all_diffs)
     all_associated = zip(all_indexed, all_diffs)
     aa = list(all_associated)
-    return aa
+    only_next = [nb for nb, diffs in aa if diffs < DIFF_CAP]
+    if void:
+      return [nb for nb in only_next if not self.grid.get(nb)]
+    else:
+      return [nb for nb in only_next if self.grid.get(nb)]
 
 
-  def export(self, fname='grid.dat'):
-    pickle.dump(self.grid.data, open(fname, 'wb'), 2)
+# # ########
+#   grow  #
+# #########
+  def grow(self, rounds=1):
+    """ Manipulates the flake, adding atoms to its surface.
+    """
+    for r in range(rounds):
+      for slot in range(11, 0, -1):
+        if self.surface[slot]:
+          chosen = choice(self.surface[slot])
+          i = 0
+          while chosen in self.surface[slot]:     # kinda hacked.... !!
+            qprint(i, quiet=True)
+            i += 1
+            self.surface[slot].remove(chosen)
+          self.set(chosen)
+          his_neighbours = self.real_neighbours(chosen, void=True)
+          for site in his_neighbours:
+            realz = self.real_neighbours(site)
+            bindings = len(realz)
+            self.surface[bindings].append(site)
+          break
+      else:
+        qprint("Really NOTHING?! Found.", quiet=Q)
+
+  def set_surface(self, site):
+    occupied_neighbours = self.real_neighbours(site, void=False)
+    slot = len(occupied_neighbours)
+    try:
+      self.surface[slot].append(site)
+    except IndexError as e:
+      qprint(e, "\nSite: ", site, "Too many empty neighbours: ", slot, quiet=Q)
+
+
+  def create_entire_surface(self):
+    self.surface = [[] for _ in range(12)]
+    for atom in self.atoms:
+      realz = self.real_neighbours(atom, void=True)
+      for nb in realz:
+        self.set_surface(nb)
+
 
 # # ########
 #   PLOT  #
 # #########
-  def plot(self, mayavi=True, surface=[]):
-    """ Plot method of the flake.
+  def plot(self, save=False, tag=''):
+    """ The `color()` function appends values for colors to the `color_list`.
+    This list must have the same length as `whole` to plot correctly.
 
-    `scatter` expects three lists of xs, ys, zs, therefore the whole zip and
-    unpack action. We only plot points that 'are' something.
-    This is checked at creation of `valid` and then translated into vectors in
-    `points`.
-    If any argument is passed that evaluates `True` the surface will also be
-    plotted.
     """
+    surface_chain = list(it.chain.from_iterable(self.surface))
 
-    if surface:
-      surface = self.surface
+    whole = self.atoms + surface_chain
+    x, y, z = list(zip(*(self.grid.coord(site) for site in whole)))
 
-    def color(idx, type=None):
-      if type == 'atom':
-        color_list.append((1, 0, 0))
-      elif type == 'surface':
-        color_list.append((0.1, 0.1, 0.1))
+    def color(idx, t=None):
+      if t == 'atom':
+        color_list.append(0.8)
+      elif t == 'surface':
+        color_list.append(0.25)
       else:
-        color_list.append((0.5, 0.5, 0.5))
+        color_list.append(0.)
 
     color_list = []
-    for each in self.occupied():
+    for each in self.atoms:
       color(each, 'atom')
-    for each in surface:
+    for each in surface_chain:
       color(each, 'surface')
 
-    _all = list(self.occupied()) + surface
-    points = list(zip(*(self.grid.coord(site) for site in _all)))
-
-    if mayavi:
-      m.points3d(*points)
-      m.show()
+    m.points3d(x, y, z, color_list, colormap="spectral", scale_factor=1.0,
+                vmin=0, vmax=1.1)
+    if save:
+      m.options.offscreen = True
+      if tag:
+        tag = str(tag) + '_'
+      save_dir = self.daily_output()
+      _time = self.date[1].rsplit('.')[0].replace(':', '-')
+      fname = path.join(save_dir, 'Flake@' + _time + '_S' + str(self.size) +
+                        '_T' + str(self.twins) + tag + '.png')
+      m.savefig(fname, size=(1024, 768))
     else:
-      import matplotlib.pyplot as plt
-      fig = plt.figure()
-      ax = fig.add_subplot(111, projection='3d')
-      ax.scatter(*points, s=1000, c=color_list)
-      # ax.set_xlabel('x')
-      # ax.set_ylabel('y')
-      # ax.set_zlabel('z')
-      ax.set_label('xyz')
-      _rng = [0, 2 * self.size]
-      ax.auto_scale_xyz(_rng, _rng, _rng)
-      plt.show()
+      m.show()
+
+  def daily_output(self):
+    self.date = arrow.now().isoformat().rsplit('T')
+    today = self.date[0]
+    output_dir = path.join('../output/', today)
+    output_dir = path.join(output_dir, self.tag)
+    try:
+      makedirs(output_dir)
+    except OSError:
+      pass
+    return output_dir
 
 
 # ----------
 # -  main  -
 # ----------
 def main():
-  def avg(lst):
-    added = sum(x for x in lst)
-    return added/len(lst)
-  runs = range(1)
-  f = Flake(size=100, twins=(45, 50, 53, 66))
-  print("Size :", f.size, "twins :", f.twins)
-  dims = []
-  steps = 10000
-  for i in runs:
-    f.make_seed()
-    f.grow(steps)
-    x = f.dim()
-    # print(x)
-    dims.append(x)
-  ag = [sum(y)/len(runs) for y in zip(*dims)]
-  print(ag)
-  with open('../output/random_growth_01.dat', 'a') as fi:
-    msg = ("\n-----------------------\n{s}::series\t"
-    "@{st}::atoms\nAVERAGE (X Y Z):\t{av}").format(s=len(runs), st=steps, av=ag)
-    fi.write(msg)
-  # f.plot(surface=True)
-  return dims, f
+  f = Flake(size=31, twins=(), seed_size=0)
+  counter = 1
+  f.tag = 's3'
+  for round in range(100):
+    print("Flake now contains {} atoms.".format(counter))
+    f.plot(save=True, tag=counter)
+    counter += 50
+    f.grow(20)
 
 
 if __name__ == '__main__':
   main()
-  Axes3D
