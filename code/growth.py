@@ -12,6 +12,8 @@ import itertools as it
 from random import choice
 from helper import Grid, qprint
 from mayavi import mlab as m
+import arrow
+from os import path, makedirs
 
 Q = False
 
@@ -23,6 +25,7 @@ class Flake:
     self.size = size
     self.twins = twins
     self.height = height
+    self.tag = ''
     self.atoms = []
     self.surface = [[] for _ in range(12)]
     self.grid = Grid(size, twins, height)
@@ -171,7 +174,7 @@ class Flake:
 # # ########
 #   PLOT  #
 # #########
-  def plot(self):
+  def plot(self, save=False, tag=''):
     """ The `color()` function appends values for colors to the `color_list`.
     This list must have the same length as `whole` to plot correctly.
 
@@ -197,7 +200,28 @@ class Flake:
 
     m.points3d(x, y, z, color_list, colormap="spectral", scale_factor=1.0,
                 vmin=0, vmax=1.1)
-    m.show()
+    if save:
+      m.options.offscreen = True
+      if tag:
+        tag = str(tag) + '_'
+      save_dir = self.daily_output()
+      _time = self.date[1].rsplit('.')[0].replace(':', '-')
+      fname = path.join(save_dir, 'Flake@' + _time + '_S' + str(self.size) +
+                        '_T' + str(self.twins) + tag + '.png')
+      m.savefig(fname, size=(1024, 768))
+    else:
+      m.show()
+
+  def daily_output(self):
+    self.date = arrow.now().isoformat().rsplit('T')
+    today = self.date[0]
+    output_dir = path.join('../output/', today)
+    output_dir = path.join(output_dir, self.tag)
+    try:
+      makedirs(output_dir)
+    except OSError:
+      pass
+    return output_dir
 
 
 # ----------
@@ -205,8 +229,13 @@ class Flake:
 # ----------
 def main():
   f = Flake(size=31, twins=(), seed_size=0)
-  f.grow(1000)
-  f.plot()
+  counter = 1
+  f.tag = 's3'
+  for round in range(100):
+    print("Flake now contains {} atoms.".format(counter))
+    f.plot(save=True, tag=counter)
+    counter += 50
+    f.grow(20)
 
 
 if __name__ == '__main__':
