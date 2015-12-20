@@ -6,6 +6,7 @@ _OLD*
 venv/
 fig/
 *.orig
+output/*
 
 doc/
 

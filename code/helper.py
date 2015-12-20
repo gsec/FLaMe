@@ -16,7 +16,7 @@ def qprint(*args, **kwargs):
     pass
 
 
-class Vector:
+class Vector(object):
   """ Self defined Vector object.
 
   Supports:

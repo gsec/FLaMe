@@ -9,27 +9,36 @@
 """
 from __future__ import print_function, division, generators
 import itertools as it
+import arrow
 from random import choice
 from helper import Grid, qprint
 from mayavi import mlab as m
-import arrow
 from os import path, makedirs
 
 Q = False
 
 
-class Flake:
+class Flake(object):
   """ Contains higher level methods for manipulating the flake.
   """
-  def __init__(self, size=20, twins=(), seed_size=1, height=10):
-    self.size = size
+  def __init__(self, size=50, twins=None, seed_size=1, height=10):
+    if twins is None:
+      twins = (-1 + height//2, 1 + height//2)
     self.twins = twins
+    self.size = size
     self.height = height
+    self.seed_size = seed_size
     self.tag = ''
     self.atoms = []
     self.surface = [[] for _ in range(12)]
     self.grid = Grid(size, twins, height)
     self.make_seed(radius=seed_size)
+
+  def __repr__(self):
+    infos = ("Flake instance ::\t edge-length[{}]\t twin-planes[{}]"
+             "\t seed-radius[{}]").format(self.size, self.twins, self.seed_size)
+    return infos
+
 
   def get(self, idx):
     return self.grid.get(idx)
@@ -198,8 +207,9 @@ class Flake:
     for each in surface_chain:
       color(each, 'surface')
 
-    m.points3d(x, y, z, color_list, colormap="spectral", scale_factor=1.0,
-                vmin=0, vmax=1.1)
+    m.clf()
+    m.points3d(x, y, z, color_list, colormap="spectral",
+                         scale_factor=1.0, vmin=0, vmax=1.1)
     if save:
       m.options.offscreen = True
       if tag:
@@ -209,6 +219,7 @@ class Flake:
       fname = path.join(save_dir, 'Flake@' + _time + '_S' + str(self.size) +
                         '_T' + str(self.twins) + tag + '.png')
       m.savefig(fname, size=(1024, 768))
+      m.close()
     else:
       m.show()
 
@@ -227,16 +238,38 @@ class Flake:
 # ----------
 # -  main  -
 # ----------
-def main():
-  f = Flake(size=31, twins=(), seed_size=0)
-  counter = 1
-  f.tag = 's3'
-  for round in range(100):
-    print("Flake now contains {} atoms.".format(counter))
-    f.plot(save=True, tag=counter)
-    counter += 50
-    f.grow(20)
+def animate(tag, binning=20):
+  f = Flake(size=71)
+  atomic_num = (2*f.seed_size + 1)**3
+  f.tag = tag
 
+  all_timings = '\n'
+  # f.plot(save=True, tag='seed')
+  for round in range(10):
+    atomic_num += binning
+    g_start = arrow.now()
+    f.grow(binning)
+    g_end = arrow.now()
+    p_start = arrow.now()
+    f.plot(save=True, tag=atomic_num)
+    p_end  = arrow.now()
+    p_delta = (p_end - p_start).total_seconds()
+    g_delta = (g_end - g_start).total_seconds()
+    timing_string = ("Count: {} atoms. Added {} atoms in {} "
+                     "sec and rendered in {} sec\n"
+                     ).format(atomic_num, binning, g_delta, p_delta)
+    qprint(timing_string, quiet=Q)
+    all_timings += timing_string
+  fname = path.join(f.daily_output(), 'timings_' + f.tag + '.txt')
+  with open(fname, 'a+') as tfile:
+    tfile.write(f.__repr__() + all_timings + '\n')
+
+
+def main():
+  for x in range(10):
+    tag = 'pro001_' + str(x)
+    binn = (1 + x) * 50
+    animate(tag, binning=binn)
 
 if __name__ == '__main__':
   main()
