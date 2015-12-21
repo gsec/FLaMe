@@ -41,6 +41,8 @@ class Flake(object):
 
 
   def get(self, idx):
+    """ Returns the integer at the index provided as tuple.
+    """
     return self.grid.get(idx)
 
   def set(self, idx, value='atom'):
@@ -239,13 +241,13 @@ class Flake(object):
 # -  main  -
 # ----------
 def animate(tag, binning=20):
-  f = Flake(size=71)
+  f = Flake(size=71, seed_size=0)
   atomic_num = (2*f.seed_size + 1)**3
   f.tag = tag
 
   all_timings = '\n'
   # f.plot(save=True, tag='seed')
-  for round in range(10):
+  for round in range(500):
     atomic_num += binning
     g_start = arrow.now()
     f.grow(binning)
@@ -267,9 +269,9 @@ def animate(tag, binning=20):
 
 def main():
   for x in range(10):
-    tag = 'pro001_' + str(x)
-    binn = (1 + x) * 50
-    animate(tag, binning=binn)
+    tag = 'pro002_single_' + str(x)
+    # binn = (1 + x) * 50
+    animate(tag, binning=1)
 
 if __name__ == '__main__':
   main()
