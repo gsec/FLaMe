@@ -15,7 +15,7 @@ from helper import Grid, qprint
 from mayavi import mlab as m
 from os import path, makedirs
 
-Q = False
+Q = False          # Set verbosity, Q is quiet
 
 
 class Flake(object):
@@ -268,10 +268,11 @@ def animate(tag, binning=20):
 
 
 def main():
-  for x in range(10):
-    tag = 'pro002_single_' + str(x)
+  animate('lateNtrial', binning=20)
+  # for x in range(10):
+    # tag = 'pro002_single_' + str(x)
     # binn = (1 + x) * 50
-    animate(tag, binning=1)
+    # animate(tag, binning=1)
 
 if __name__ == '__main__':
   main()
