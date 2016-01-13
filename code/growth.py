@@ -14,6 +14,7 @@ from random import choice
 from helper import Grid, qprint
 from mayavi import mlab as m
 from os import path, makedirs
+from numpy import savetxt
 
 Q = False          # Set verbosity, Q is quiet
 
@@ -235,6 +236,17 @@ class Flake(object):
     except OSError:
       pass
     return output_dir
+
+  def export(self, tag=''):
+    if self.tag and not tag:
+      tag = self.tag
+    raw_atoms = [self.grid.coord(at).__repr__() for at in self.atoms]
+    save_dir = self.daily_output()
+    fname = "Flake_{width}x{height}_TP-{tp}_it-{it}_{tag}.dat".format(
+      width=self.size, height=self.height, tp=self.twins, it=len(self.atoms),
+      tag=tag)
+    fpath = path.join(save_dir, fname)
+    savetxt(fpath, raw_atoms, fmt='%s')
 
 
 # ----------
