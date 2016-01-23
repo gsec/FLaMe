@@ -14,9 +14,16 @@ from random import choice
 from helper import Grid, qprint
 from mayavi import mlab as m
 from os import path, makedirs
-from numpy import savetxt
 
 Q = False          # Set verbosity, Q is quiet
+
+
+class AtomsExport(object):
+    __slots__ = ('element', 'location')
+
+    def __init__(self, element, location):
+        self.element  = element
+        self.location = location
 
 
 class Flake(object):
@@ -238,15 +245,39 @@ class Flake(object):
     return output_dir
 
   def export(self, tag=''):
+    """ Simplified export function adopted from 'io_mesh_xyz'.
+    """
+    raw_atoms = (('Au', tuple(self.grid.coord(at)))
+                 for at in self.atoms if at)
+    list_atoms = []
+    counter = 0
+
+    for each in raw_atoms:
+      list_atoms.append(AtomsExport(*each))
+      counter += 1
+
     if self.tag and not tag:
       tag = self.tag
-    raw_atoms = [self.grid.coord(at).__repr__() for at in self.atoms]
     save_dir = self.daily_output()
-    fname = "Flake_{width}x{height}_TP-{tp}_it-{it}_{tag}.dat".format(
+    fname = "Flake_{width}x{height}_TP-{tp}_it-{it}_{tag}.xyz".format(
       width=self.size, height=self.height, tp=self.twins, it=len(self.atoms),
       tag=tag)
-    fpath = path.join(save_dir, fname)
-    savetxt(fpath, raw_atoms, fmt='%s')
+    filepath_xyz = path.join(save_dir, fname)
+    with open(filepath_xyz, "w") as xyz_file_p:
+      xyz_file_p.write("%d\n" % counter)
+      xyz_file_p.write("This XYZ file has been created with Blender "
+                      "and the addon Atomic Blender - XYZ. "
+                      "***WITH MODIFICATIONS! TAKE CARE AND READ THE CODE***"
+                      "For more details see: wiki.blender.org/index.php/"
+                      "Extensions:2.6/Py/Scripts/Import-Export/XYZ\n")
+
+      for i, atom in enumerate(list_atoms):
+          string = "%3s%15.5f%15.5f%15.5f\n" % (
+                                        atom.element,
+                                        atom.location[0],
+                                        atom.location[1],
+                                        atom.location[2])
+          xyz_file_p.write(string)
 
 
 # ----------

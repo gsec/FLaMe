@@ -7,6 +7,7 @@ venv/
 fig/
 *.orig
 output/*
+*[._]xyz
 
 doc/
 
