@@ -19,11 +19,13 @@ Q = False          # Set verbosity, Q is quiet
 
 
 class AtomsExport(object):
-    __slots__ = ('element', 'location')
+  """ Creates the atom object with two slots.
+  """
+  __slots__ = ('element', 'location')
 
-    def __init__(self, element, location):
-        self.element  = element
-        self.location = location
+  def __init__(self, element, location):
+      self.element  = element
+      self.location = location
 
 
 class Flake(object):
@@ -41,12 +43,11 @@ class Flake(object):
     self.surface = [[] for _ in range(12)]
     self.grid = Grid(size, twins, height)
     self.make_seed(radius=seed_size)
+    self.create_entire_surface()
 
   def __repr__(self):
-    infos = ("Flake instance ::\t edge-length[{}]\t twin-planes[{}]"
-             "\t seed-radius[{}]").format(self.size, self.twins, self.seed_size)
-    return infos
-
+    return "fLakE ::\t sidelength[{}]\t twinplanes[{}]\t seed[{}]".format(
+      self.size, self.twins, self.seed_size)
 
   def get(self, idx):
     """ Returns the integer at the index provided as tuple.
@@ -54,6 +55,8 @@ class Flake(object):
     return self.grid.get(idx)
 
   def set(self, idx, value='atom'):
+    """ Set value in `grid` and append to corresponding list attribute.
+    """
     if value == 'atom' or 1:
       self.grid.set(idx, 1)
       self.atoms.append(idx)
@@ -77,11 +80,11 @@ class Flake(object):
 
     Without arguments it will return all sites in flake.
     """
+    ret = lambda R: (i for i in it.product(R, repeat=3) if self.chk(i))
     if not rng:
-      return (i for i in it.product(range(self.size), repeat=3) if i[2] <
-              self.height)
+      return ret(range(self.size))
     else:
-      return it.product(rng, repeat=3)
+      return ret(rng)
 
 
   def make_seed(self, radius=1):
@@ -94,17 +97,35 @@ class Flake(object):
     pairs = (zip(mid, others) for others in env)
     total = (tuple(sum(y) for y in x) for x in pairs)
     for each in total:
-      self.set(each)
-    self.create_entire_surface()
+      if self.chk(each):
+        self.set(each)
+
+  def set_surface(self, site):
+    occupied_neighbours = self.real_neighbours(site, void=False)
+    slot = len(occupied_neighbours)
+    try:
+      self.surface[slot].append(site)
+    except IndexError as e:
+      qprint(e, "\nSite: ", site, "Too many empty neighbours: ", slot, quiet=Q)
+
+
+  def create_entire_surface(self):
+    self.surface = [[] for _ in range(12)]
+    for atom in self.atoms:
+      realz = self.real_neighbours(atom, void=True)
+      for nb in realz:
+        self.set_surface(nb)
 
 
   def chk(self, idx):
-    if idx[-1] not in range(self.height):
+    """ Returns whether the index is in valid range.
+    """
+    if max(idx[0], idx[1]) >= self.size:
       return False
-    for n in idx[:-1]:
-      if n not in range(self.size):
-        return False
-    return True
+    elif idx[2] >= self.height:
+      return False
+    else:
+      return True
 
 
 # # #################
@@ -135,10 +156,13 @@ class Flake(object):
     * return `void` or `occupied` neighbours
     """
     DIFF_CAP = 2.3
+    if not self.chk(atom):
+      return []
     choice_vec = self.grid.coord(atom)
-    all_indexed = list(self.abs_neighbours(atom))
-    all_coordinated = [self.grid.coord(site) for site in all_indexed]
-    all_diffs = [choice_vec.dist(site) for site in all_coordinated]
+    ai_i = [abn for abn in self.abs_neighbours(atom)]
+    all_indexed = [abn for abn in ai_i if self.chk(abn)]
+    all_coordinated = (self.grid.coord(ai_site) for ai_site in all_indexed)
+    all_diffs = (choice_vec.dist(ac_site) for ac_site in all_coordinated)
     all_associated = zip(all_indexed, all_diffs)
     aa = list(all_associated)
     only_next = [nb for nb, diffs in aa if diffs < DIFF_CAP]
@@ -172,22 +196,6 @@ class Flake(object):
           break
       else:
         qprint("Really NOTHING?! Found.", quiet=Q)
-
-  def set_surface(self, site):
-    occupied_neighbours = self.real_neighbours(site, void=False)
-    slot = len(occupied_neighbours)
-    try:
-      self.surface[slot].append(site)
-    except IndexError as e:
-      qprint(e, "\nSite: ", site, "Too many empty neighbours: ", slot, quiet=Q)
-
-
-  def create_entire_surface(self):
-    self.surface = [[] for _ in range(12)]
-    for atom in self.atoms:
-      realz = self.real_neighbours(atom, void=True)
-      for nb in realz:
-        self.set_surface(nb)
 
 
 # # ########
@@ -258,8 +266,10 @@ class Flake(object):
 
     if self.tag and not tag:
       tag = self.tag
+    elif not tag and not self.tag:
+      tag = 'flake'
     save_dir = self.daily_output()
-    fname = "Flake_{width}x{height}_TP-{tp}_it-{it}_{tag}.xyz".format(
+    fname = "{tag}.{width}x{height}_TP-{tp}_it-{it}_{tag}.xyz".format(
       width=self.size, height=self.height, tp=self.twins, it=len(self.atoms),
       tag=tag)
     filepath_xyz = path.join(save_dir, fname)
