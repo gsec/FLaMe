@@ -9,12 +9,10 @@ Welcome to flake's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
-   main
-   ..README
-   ..growth
-   ..test
+   goals
+   growth
 
 
 Indices and tables

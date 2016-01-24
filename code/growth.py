@@ -9,32 +9,54 @@
 """
 from __future__ import print_function, division, generators
 import itertools as it
+import arrow
 from random import choice
 from helper import Grid, qprint
 from mayavi import mlab as m
-import arrow
 from os import path, makedirs
 
-Q = False
+Q = False          # Set verbosity, Q is quiet
 
 
-class Flake:
+class AtomsExport(object):
+  """ Creates the atom object with two slots.
+  """
+  __slots__ = ('element', 'location')
+
+  def __init__(self, element, location):
+      self.element  = element
+      self.location = location
+
+
+class Flake(object):
   """ Contains higher level methods for manipulating the flake.
   """
-  def __init__(self, size=20, twins=(), seed_size=1, height=10):
-    self.size = size
+  def __init__(self, size=50, twins=None, seed_size=1, height=10):
+    if twins is None:
+      twins = (-1 + height//2, 1 + height//2)
     self.twins = twins
+    self.size = size
     self.height = height
+    self.seed_size = seed_size
     self.tag = ''
     self.atoms = []
     self.surface = [[] for _ in range(12)]
     self.grid = Grid(size, twins, height)
     self.make_seed(radius=seed_size)
+    self.create_entire_surface()
+
+  def __repr__(self):
+    return "fLakE ::\t sidelength[{}]\t twinplanes[{}]\t seed[{}]".format(
+      self.size, self.twins, self.seed_size)
 
   def get(self, idx):
+    """ Returns the integer at the index provided as tuple.
+    """
     return self.grid.get(idx)
 
   def set(self, idx, value='atom'):
+    """ Set value in `grid` and append to corresponding list attribute.
+    """
     if value == 'atom' or 1:
       self.grid.set(idx, 1)
       self.atoms.append(idx)
@@ -58,11 +80,11 @@ class Flake:
 
     Without arguments it will return all sites in flake.
     """
+    ret = lambda R: (i for i in it.product(R, repeat=3) if self.chk(i))
     if not rng:
-      return (i for i in it.product(range(self.size), repeat=3) if i[2] <
-              self.height)
+      return ret(range(self.size))
     else:
-      return it.product(rng, repeat=3)
+      return ret(rng)
 
 
   def make_seed(self, radius=1):
@@ -75,17 +97,35 @@ class Flake:
     pairs = (zip(mid, others) for others in env)
     total = (tuple(sum(y) for y in x) for x in pairs)
     for each in total:
-      self.set(each)
-    self.create_entire_surface()
+      if self.chk(each):
+        self.set(each)
+
+  def set_surface(self, site):
+    occupied_neighbours = self.real_neighbours(site, void=False)
+    slot = len(occupied_neighbours)
+    try:
+      self.surface[slot].append(site)
+    except IndexError as e:
+      qprint(e, "\nSite: ", site, "Too many empty neighbours: ", slot, quiet=Q)
+
+
+  def create_entire_surface(self):
+    self.surface = [[] for _ in range(12)]
+    for atom in self.atoms:
+      realz = self.real_neighbours(atom, void=True)
+      for nb in realz:
+        self.set_surface(nb)
 
 
   def chk(self, idx):
-    if idx[-1] not in range(self.height):
+    """ Returns whether the index is in valid range.
+    """
+    if max(idx[0], idx[1]) >= self.size:
       return False
-    for n in idx[:-1]:
-      if n not in range(self.size):
-        return False
-    return True
+    elif idx[2] >= self.height:
+      return False
+    else:
+      return True
 
 
 # # #################
@@ -116,10 +156,13 @@ class Flake:
     * return `void` or `occupied` neighbours
     """
     DIFF_CAP = 2.3
+    if not self.chk(atom):
+      return []
     choice_vec = self.grid.coord(atom)
-    all_indexed = list(self.abs_neighbours(atom))
-    all_coordinated = [self.grid.coord(site) for site in all_indexed]
-    all_diffs = [choice_vec.dist(site) for site in all_coordinated]
+    ai_i = [abn for abn in self.abs_neighbours(atom)]
+    all_indexed = [abn for abn in ai_i if self.chk(abn)]
+    all_coordinated = (self.grid.coord(ai_site) for ai_site in all_indexed)
+    all_diffs = (choice_vec.dist(ac_site) for ac_site in all_coordinated)
     all_associated = zip(all_indexed, all_diffs)
     aa = list(all_associated)
     only_next = [nb for nb, diffs in aa if diffs < DIFF_CAP]
@@ -154,22 +197,6 @@ class Flake:
       else:
         qprint("Really NOTHING?! Found.", quiet=Q)
 
-  def set_surface(self, site):
-    occupied_neighbours = self.real_neighbours(site, void=False)
-    slot = len(occupied_neighbours)
-    try:
-      self.surface[slot].append(site)
-    except IndexError as e:
-      qprint(e, "\nSite: ", site, "Too many empty neighbours: ", slot, quiet=Q)
-
-
-  def create_entire_surface(self):
-    self.surface = [[] for _ in range(12)]
-    for atom in self.atoms:
-      realz = self.real_neighbours(atom, void=True)
-      for nb in realz:
-        self.set_surface(nb)
-
 
 # # ########
 #   PLOT  #
@@ -198,8 +225,9 @@ class Flake:
     for each in surface_chain:
       color(each, 'surface')
 
-    m.points3d(x, y, z, color_list, colormap="spectral", scale_factor=1.0,
-                vmin=0, vmax=1.1)
+    m.clf()
+    m.points3d(x, y, z, color_list, colormap="spectral",
+                         scale_factor=1.0, vmin=0, vmax=1.1)
     if save:
       m.options.offscreen = True
       if tag:
@@ -209,6 +237,7 @@ class Flake:
       fname = path.join(save_dir, 'Flake@' + _time + '_S' + str(self.size) +
                         '_T' + str(self.twins) + tag + '.png')
       m.savefig(fname, size=(1024, 768))
+      m.close()
     else:
       m.show()
 
@@ -223,20 +252,80 @@ class Flake:
       pass
     return output_dir
 
+  def export(self, tag=''):
+    """ Simplified export function adopted from 'io_mesh_xyz'.
+    """
+    raw_atoms = (('Au', tuple(self.grid.coord(at)))
+                 for at in self.atoms if at)
+    list_atoms = []
+    counter = 0
+
+    for each in raw_atoms:
+      list_atoms.append(AtomsExport(*each))
+      counter += 1
+
+    if self.tag and not tag:
+      tag = self.tag
+    elif not tag and not self.tag:
+      tag = 'flake'
+    save_dir = self.daily_output()
+    fname = "{tag}.{width}x{height}_TP-{tp}_it-{it}_{tag}.xyz".format(
+      width=self.size, height=self.height, tp=self.twins, it=len(self.atoms),
+      tag=tag)
+    filepath_xyz = path.join(save_dir, fname)
+    with open(filepath_xyz, "w") as xyz_file_p:
+      xyz_file_p.write("%d\n" % counter)
+      xyz_file_p.write("This XYZ file has been created with Blender "
+                      "and the addon Atomic Blender - XYZ. "
+                      "***WITH MODIFICATIONS! TAKE CARE AND READ THE CODE***"
+                      "For more details see: wiki.blender.org/index.php/"
+                      "Extensions:2.6/Py/Scripts/Import-Export/XYZ\n")
+
+      for i, atom in enumerate(list_atoms):
+          string = "%3s%15.5f%15.5f%15.5f\n" % (
+                                        atom.element,
+                                        atom.location[0],
+                                        atom.location[1],
+                                        atom.location[2])
+          xyz_file_p.write(string)
+
 
 # ----------
 # -  main  -
 # ----------
-def main():
-  f = Flake(size=31, twins=(), seed_size=0)
-  counter = 1
-  f.tag = 's3'
-  for round in range(100):
-    print("Flake now contains {} atoms.".format(counter))
-    f.plot(save=True, tag=counter)
-    counter += 50
-    f.grow(20)
+def animate(tag, binning=20):
+  f = Flake(size=71, seed_size=0)
+  atomic_num = (2*f.seed_size + 1)**3
+  f.tag = tag
 
+  all_timings = '\n'
+  # f.plot(save=True, tag='seed')
+  for round in range(500):
+    atomic_num += binning
+    g_start = arrow.now()
+    f.grow(binning)
+    g_end = arrow.now()
+    p_start = arrow.now()
+    f.plot(save=True, tag=atomic_num)
+    p_end  = arrow.now()
+    p_delta = (p_end - p_start).total_seconds()
+    g_delta = (g_end - g_start).total_seconds()
+    timing_string = ("Count: {} atoms. Added {} atoms in {} "
+                     "sec and rendered in {} sec\n"
+                     ).format(atomic_num, binning, g_delta, p_delta)
+    qprint(timing_string, quiet=Q)
+    all_timings += timing_string
+  fname = path.join(f.daily_output(), 'timings_' + f.tag + '.txt')
+  with open(fname, 'a+') as tfile:
+    tfile.write(f.__repr__() + all_timings + '\n')
+
+
+def main():
+  animate('lateNtrial', binning=20)
+  # for x in range(10):
+    # tag = 'pro002_single_' + str(x)
+    # binn = (1 + x) * 50
+    # animate(tag, binning=1)
 
 if __name__ == '__main__':
   main()
