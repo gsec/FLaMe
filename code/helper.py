@@ -107,17 +107,23 @@ class Grid(list):
     try:
       return self.data[i][j][k]
     except IndexError:
-      pass
+      print("Border Warning! Skipping: {}".format(idx))
 
 
   def set(self, idx, value=1):
     i, j, k = idx
-    self.data[i][j][k] = value
+    try:
+      self.data[i][j][k] = value
+    except IndexError:
+      print("Border Warning! Skipping: {}".format(idx))
 
 
   def delete(self, idx):
     i, j, k = idx
-    self.data[i][j][k] = 0
+    try:
+      self.data[i][j][k] = 0
+    except IndexError:
+      print("Border Warning! Skipping: {}".format(idx))
 
 
   def layer_gen(self, twins):
@@ -146,8 +152,11 @@ class Grid(list):
     configuration. Every twin plane inverts the permutation order.
     """
     i, j, k = idx
-    _perms = float(self.layer_permutations[k])
-    prototype = Vector((2*i + (j+k) % 2,
-                      sqrt(3)*(j + _perms * 1/3),
-                      k*2*sqrt(6)/3))
-    return prototype
+    try:
+      _perms = float(self.layer_permutations[k])
+      prototype = Vector((2*i + (j+k) % 2,
+                        sqrt(3)*(j + _perms * 1/3),
+                        k*2*sqrt(6)/3))
+      return prototype
+    except IndexError:
+      print("No coordinates here! Skipping: {}".format(idx))

@@ -7,7 +7,7 @@ from helper import Vector, qprint
 from growth import Flake
 
 global F
-F = Flake(5, twins=(3, ))
+F = Flake(size=5, twins=(3, ))
 
 
 class TestGrid(unittest.TestCase):
