@@ -123,7 +123,7 @@ class Grid(list):
     try:
       self.data[i][j][k] = 0
     except IndexError:
-      print("Border Warning! Skipping: {}".format(idx))
+      print("Border Warning(DEL)! Skipping: {}".format(idx))
 
 
   def layer_gen(self, twins):
@@ -135,7 +135,7 @@ class Grid(list):
     L = []
     sign = 1
     counter = 0
-    for layer in range(self.size):
+    for layer in range(self.height):
       L.append(counter % 3)
       if layer in twins:
         sign = -1*sign
