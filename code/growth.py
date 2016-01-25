@@ -43,7 +43,6 @@ class Flake(object):
     self.surface = [[] for _ in range(12)]
     self.grid = Grid(size, twins, height)
     self.make_seed(radius=seed_size)
-    self.create_entire_surface()
 
   def __repr__(self):
     return "fLakE ::\t sidelength[{}]\t twinplanes[{}]\t seed[{}]".format(
@@ -67,9 +66,10 @@ class Flake(object):
       self.grid.set(idx, value)
 
   def clear(self):
+    self.atoms = []
+    self.surface = [[] for _ in range(12)]
     for site in self.permutator():
       self.grid.delete(site)
-    self.create_entire_surface()
 
 
 # # ###########
@@ -99,6 +99,7 @@ class Flake(object):
     for each in total:
       if self.chk(each):
         self.set(each)
+    self.create_entire_surface()
 
   def set_surface(self, site):
     occupied_neighbours = self.real_neighbours(site, void=False)
@@ -159,17 +160,15 @@ class Flake(object):
     if not self.chk(atom):
       return []
     choice_vec = self.grid.coord(atom)
-    ai_i = [abn for abn in self.abs_neighbours(atom)]
-    all_indexed = [abn for abn in ai_i if self.chk(abn)]
-    all_coordinated = (self.grid.coord(ai_site) for ai_site in all_indexed)
-    all_diffs = (choice_vec.dist(ac_site) for ac_site in all_coordinated)
-    all_associated = zip(all_indexed, all_diffs)
-    aa = list(all_associated)
-    only_next = [nb for nb, diffs in aa if diffs < DIFF_CAP]
+    indexed = list(self.abs_neighbours(atom))
+    coordinates = (self.grid.coord(ai_site) for ai_site in indexed)
+    diffs = (choice_vec.dist(ac_site) for ac_site in coordinates)
+    associated = list(zip(indexed, diffs))
+    nearest = [nb for nb, diff in associated if diff < DIFF_CAP]
     if void:
-      return [nb for nb in only_next if not self.grid.get(nb)]
+      return [nb for nb in nearest if not self.grid.get(nb)]
     else:
-      return [nb for nb in only_next if self.grid.get(nb)]
+      return [nb for nb in nearest if self.grid.get(nb)]
 
 
 # # ########
