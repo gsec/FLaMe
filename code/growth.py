@@ -39,6 +39,7 @@ class Flake(object):
     self.height = height
     self.seed_size = seed_size
     self.tag = ''
+    self.iter = 0
     self.atoms = []
     self.surface = [[] for _ in range(12)]
     self.grid = Grid(size, twins, height)
@@ -181,17 +182,15 @@ class Flake(object):
       for slot in range(11, 0, -1):
         if self.surface[slot]:
           chosen = choice(self.surface[slot])
-          i = 0
-          while chosen in self.surface[slot]:     # kinda hacked.... !!
-            qprint(i, quiet=True)
-            i += 1
-            self.surface[slot].remove(chosen)
+          self.surface[slot].remove(chosen)
           self.set(chosen)
           his_neighbours = self.real_neighbours(chosen, void=True)
           for site in his_neighbours:
             realz = self.real_neighbours(site)
             bindings = len(realz)
-            self.surface[bindings].append(site)
+            if site not in self.surface[bindings]:
+              self.surface[bindings].append(site)
+          self.iter += 1
           break
       else:
         qprint("Really NOTHING?! Found.", quiet=Q)
@@ -252,7 +251,7 @@ class Flake(object):
     return output_dir
 
   def export(self, tag=''):
-    """ Simplified export function adopted from 'io_mesh_xyz'.
+    """ Simplified export function adapted from 'io_mesh_xyz'.
     """
     raw_atoms = (('Au', tuple(self.grid.coord(at)))
                  for at in self.atoms if at)
@@ -274,9 +273,8 @@ class Flake(object):
     filepath_xyz = path.join(save_dir, fname)
     with open(filepath_xyz, "w") as xyz_file_p:
       xyz_file_p.write("%d\n" % counter)
-      xyz_file_p.write("This XYZ file has been created with Blender "
-                      "and the addon Atomic Blender - XYZ. "
-                      "***WITH MODIFICATIONS! TAKE CARE AND READ THE CODE***"
+      xyz_file_p.write("This is a XYZ file according to Atomic Blender - XYZ. "
+                      "***WITH MODIFICATIONS! TAKE CARE AND READ THE CODE*** "
                       "For more details see: wiki.blender.org/index.php/"
                       "Extensions:2.6/Py/Scripts/Import-Export/XYZ\n")
 
