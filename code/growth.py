@@ -11,21 +11,11 @@ from __future__ import print_function, division, generators
 import itertools as it
 import arrow
 from random import choice
-from helper import Grid, qprint
+from helper import *
 from mayavi import mlab as m
 from os import path, makedirs
 
 Q = False          # Set verbosity, Q is quiet
-
-
-class AtomsExport(object):
-  """ Creates the atom object with two slots.
-  """
-  __slots__ = ('element', 'location')
-
-  def __init__(self, element, location):
-      self.element  = element
-      self.location = location
 
 
 class Flake(object):
@@ -194,7 +184,8 @@ class Flake(object):
             self.surface[bindings].append(site)
           break
       else:
-        qprint("Really NOTHING?! Found.", quiet=Q)
+        raise StopGrowth(
+          "Could not find ANY suitable candidates for further growth.")
 
 
 # # ########

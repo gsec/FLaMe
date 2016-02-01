@@ -88,7 +88,7 @@ class Vector(object):
 # # ###############
 #   grid object  #
 # ################
-class Grid(list):
+class Grid(object):
   def __init__(self, size, twins, height):
     """ Grid object containing the atom, accessed by the indices `i`, `j`, `k`.
 
@@ -160,3 +160,17 @@ class Grid(list):
       return prototype
     except IndexError:
       print("No coordinates here! Skipping: {}".format(idx))
+
+
+class AtomsExport(object):
+  """ Creates the atom object with two slots.
+  """
+  __slots__ = ('element', 'location')
+
+  def __init__(self, element, location):
+      self.element  = element
+      self.location = location
+
+
+class StopGrowth(Exception):
+  pass
