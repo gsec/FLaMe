@@ -10,7 +10,7 @@
 from __future__ import print_function, division, generators
 import itertools as it
 import arrow
-from random import choice
+from random import choice, random
 from helper import *
 from mayavi import mlab as m
 from os import path, makedirs
@@ -89,7 +89,7 @@ class Flake(object):
     total = (tuple(sum(y) for y in x) for x in pairs)
     for each in total:
       if self.chk(each):
-        self.set(each)
+        self.atoms.append(each)
     self.create_entire_surface()
 
   def set_surface(self, site):
@@ -157,34 +157,111 @@ class Flake(object):
     associated = list(zip(indexed, diffs))
     nearest = [nb for nb, diff in associated if diff < DIFF_CAP]
     if void:
-      return [nb for nb in nearest if not self.grid.get(nb)]
+      return [nb for nb in nearest if nb not in self.atoms]
     else:
-      return [nb for nb in nearest if self.grid.get(nb)]
+      return [nb for nb in nearest if nb in self.atoms]
 
 
 # # ########
 #   grow  #
 # #########
-  def grow(self, rounds=1):
+  def grow(self, rounds=1, noise=0.005):
     """ Manipulates the flake, adding atoms to its surface.
     """
+    SPAN = range(12)
     for r in range(rounds):
-      for slot in range(11, 0, -1):
-        if self.surface[slot]:
-          chosen = choice(self.surface[slot])
-          self.surface[slot].remove(chosen)
-          self.set(chosen)
-          his_neighbours = self.real_neighbours(chosen, void=True)
-          for site in his_neighbours:
-            realz = self.real_neighbours(site)
-            bindings = len(realz)
-            if site not in self.surface[bindings]:
-              self.surface[bindings].append(site)
-          self.iter += 1
+      if random() < noise:
+        sublist = None
+        while not sublist:
+          slot = choice(SPAN)
+          sublist = self.surface[slot]
+        chosen = choice(sublist)
+        qprint("Random-Add: {at} in Slot: [{sl}]\nWe are @{it}".format(
+          at=chosen, sl=slot, it=self.iter), quiet=Q)
+      else:
+        for slot in range(11, 0, -1):
+          if self.surface[slot]:
+            # print("theslot: ", self.surface[slot])
+            chosen = choice(self.surface[slot])
+            # print("theslot: ", self.surface[slot])
+            # print("fristslot: ", slot, chosen)
+            break
+      # self.atoms.append(chosen)
+      sb = self.surface[slot]
+      # print("secondslot: ", sb)
+      # self.surface[slot].remove(chosen)
+      # sa = self.surface[slot]
+      # print("surfslot-diff: ", [x for x in sb if x not in sa])
+      qprint(chosen in sb, chosen)
+      self.put_atom(chosen, slot)
+      # for aslot in SPAN:
+        # try:
+          # self.surface[aslot].remove(chosen)
+        # except:
+          # pass
+      # his_neighbours = self.real_neighbours(chosen, void=True)
+      # for site in his_neighbours:
+        # realz = self.real_neighbours(site)
+        # bindings = len(realz)
+        # for i in SPAN:
+          # if site in self.surface[i]:
+            # print("ATOM:{}, SLOT:{}\n THISONE:{}".format(site, i, self.surface[i]))
+            # pass
+        # self.surface[bindings-1].remove(site)
+        # self.surface[bindings].append(site)
+        # for aslot in SPAN:
+          # try:
+            # self.surface[aslot].remove(site)
+          # except:
+            # pass
+        # if site not in self.surface[bindings]:
+        # if site in self.cache:
+          # print("ALERT set not setted")
+          # print("ATOM:{}, SLOT:{}, THISONE:{}, NEIGHBS:{}".format(chosen, slot,
+                                                                  # site, realz))
+        # else:
+          # self.surface[bindings].append(site)
+          # self.cache.append(site)
+      # self.iter += 1
+    return chosen
+
+  def put_atom(self, at, slot):
+    """ * remove atom from its slot
+        * append it to atoms list
+        * check which nb are free, with those:
+          * check every slot if it contains the nb
+          * remove it from there
+          * add it to next higher slot (cause now he's got one nb more)
+    """
+    self.surface[slot].remove(at)
+    self.atoms.append(at)
+    empty_neighbours = self.real_neighbours(at, void=True)
+    for each in empty_neighbours:
+      for e_slot, lst in enumerate(self.surface):
+        if each in lst:
+          # print(each, " THISIS \nthe e slot BBF: \n", self.surface[e_slot])
+          self.surface[e_slot].remove(each)
+          # print("the e slot AF: \n", self.surface[e_slot])
+          # print("the ep1 slot BBF:\n ", self.surface[e_slot + 1])
+          self.surface[e_slot + 1].append(each)
+          # print("the ep1 slot AF: \n", self.surface[e_slot + 1])
           break
       else:
-        raise StopGrowth(
-          "Could not find ANY suitable candidates for further growth.")
+        # print("newone", each)
+        self.surface[1].append(each)
+    self.iter += 1
+
+
+
+
+      # realz = self.real_neighbours(site)
+      # bindings = len(realz)
+      # for i in SPAN:
+        # if site in self.surface[i]:
+          # print("ATOM:{}, SLOT:{}\n THISONE:{}".format(site, i, self.surface[i]))
+          # pass
+      # self.surface[bindings-1].remove(site)
+      # self.surface[bindings].append(site)
 
 
 # # ########
@@ -218,8 +295,8 @@ class Flake(object):
     m.points3d(x, y, z, color_list, colormap="spectral",
                          scale_factor=1.0, vmin=0, vmax=1.1)
     if save:
-      m.options.offscreen = True
-      if tag:
+      m.options.offscreen = True    # this should suppress output on screen
+      if tag:                       # currently not working (bug in mayavi?)
         tag = str(tag) + '_'
       save_dir = self.daily_output()
       _time = self.date[1].rsplit('.')[0].replace(':', '-')
