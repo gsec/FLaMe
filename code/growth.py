@@ -16,12 +16,13 @@ from mayavi import mlab as m
 from os import path, makedirs
 
 Q = False          # Set verbosity, Q is quiet
+SPAN = range(12)
 
 
 class Flake(object):
   """ Contains higher level methods for manipulating the flake.
   """
-  def __init__(self, size=50, twins=None, seed_size=1, height=10):
+  def __init__(self, size=50, twins=None, seed_size=1, height=20):
     if twins is None:
       twins = (-1 + height//2, 1 + height//2)
     self.twins = twins
@@ -31,36 +32,14 @@ class Flake(object):
     self.tag = ''
     self.iter = 0
     self.atoms = []
-    self.surface = [[] for _ in range(12)]
+    self.surface = [[] for _ in SPAN]
     self.grid = Grid(size, twins, height)
     self.make_seed(radius=seed_size)
+
 
   def __repr__(self):
     return "fLakE ::\t sidelength[{}]\t twinplanes[{}]\t seed[{}]".format(
       self.size, self.twins, self.seed_size)
-
-  def get(self, idx):
-    """ Returns the integer at the index provided as tuple.
-    """
-    return self.grid.get(idx)
-
-  def set(self, idx, value='atom'):
-    """ Set value in `grid` and append to corresponding list attribute.
-    """
-    if value == 'atom' or 1:
-      self.grid.set(idx, 1)
-      self.atoms.append(idx)
-    elif value == 'surface' or 2:
-      self.grid.set(idx, 2)
-      self.set_surface(idx)
-    else:
-      self.grid.set(idx, value)
-
-  def clear(self):
-    self.atoms = []
-    self.surface = [[] for _ in range(12)]
-    for site in self.permutator():
-      self.grid.delete(site)
 
 
 # # ###########
@@ -102,7 +81,7 @@ class Flake(object):
 
 
   def create_entire_surface(self):
-    self.surface = [[] for _ in range(12)]
+    self.surface = [[] for _ in SPAN]
     for atom in self.atoms:
       realz = self.real_neighbours(atom, void=True)
       for nb in realz:
@@ -165,10 +144,9 @@ class Flake(object):
 # # ########
 #   grow  #
 # #########
-  def grow(self, rounds=1, noise=0.005):
+  def grow(self, rounds=1, noise=0.001):
     """ Manipulates the flake, adding atoms to its surface.
     """
-    SPAN = range(12)
     for r in range(rounds):
       if random() < noise:
         sublist = None
@@ -181,48 +159,9 @@ class Flake(object):
       else:
         for slot in range(11, 0, -1):
           if self.surface[slot]:
-            # print("theslot: ", self.surface[slot])
             chosen = choice(self.surface[slot])
-            # print("theslot: ", self.surface[slot])
-            # print("fristslot: ", slot, chosen)
             break
-      # self.atoms.append(chosen)
-      sb = self.surface[slot]
-      # print("secondslot: ", sb)
-      # self.surface[slot].remove(chosen)
-      # sa = self.surface[slot]
-      # print("surfslot-diff: ", [x for x in sb if x not in sa])
-      qprint(chosen in sb, chosen)
       self.put_atom(chosen, slot)
-      # for aslot in SPAN:
-        # try:
-          # self.surface[aslot].remove(chosen)
-        # except:
-          # pass
-      # his_neighbours = self.real_neighbours(chosen, void=True)
-      # for site in his_neighbours:
-        # realz = self.real_neighbours(site)
-        # bindings = len(realz)
-        # for i in SPAN:
-          # if site in self.surface[i]:
-            # print("ATOM:{}, SLOT:{}\n THISONE:{}".format(site, i, self.surface[i]))
-            # pass
-        # self.surface[bindings-1].remove(site)
-        # self.surface[bindings].append(site)
-        # for aslot in SPAN:
-          # try:
-            # self.surface[aslot].remove(site)
-          # except:
-            # pass
-        # if site not in self.surface[bindings]:
-        # if site in self.cache:
-          # print("ALERT set not setted")
-          # print("ATOM:{}, SLOT:{}, THISONE:{}, NEIGHBS:{}".format(chosen, slot,
-                                                                  # site, realz))
-        # else:
-          # self.surface[bindings].append(site)
-          # self.cache.append(site)
-      # self.iter += 1
     return chosen
 
   def put_atom(self, at, slot):
@@ -239,29 +178,12 @@ class Flake(object):
     for each in empty_neighbours:
       for e_slot, lst in enumerate(self.surface):
         if each in lst:
-          # print(each, " THISIS \nthe e slot BBF: \n", self.surface[e_slot])
           self.surface[e_slot].remove(each)
-          # print("the e slot AF: \n", self.surface[e_slot])
-          # print("the ep1 slot BBF:\n ", self.surface[e_slot + 1])
           self.surface[e_slot + 1].append(each)
-          # print("the ep1 slot AF: \n", self.surface[e_slot + 1])
           break
       else:
-        # print("newone", each)
-        self.surface[1].append(each)
+        self.surface[1].append(each)    # create new surface entry for new ones
     self.iter += 1
-
-
-
-
-      # realz = self.real_neighbours(site)
-      # bindings = len(realz)
-      # for i in SPAN:
-        # if site in self.surface[i]:
-          # print("ATOM:{}, SLOT:{}\n THISONE:{}".format(site, i, self.surface[i]))
-          # pass
-      # self.surface[bindings-1].remove(site)
-      # self.surface[bindings].append(site)
 
 
 # # ########

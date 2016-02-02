@@ -3,7 +3,6 @@ Utilities needed by the Flake Simulation.
 """
 from __future__ import print_function, division, generators
 from math import sqrt
-import numpy as np
 
 
 def qprint(*args, **kwargs):
@@ -97,33 +96,7 @@ class Grid(object):
     """
     self.size = size
     self.height = height
-    self.data = np.zeros(size**2 * height,
-                         dtype=np.uint8).reshape(size, size, height)
     self.layer_permutations = self.layer_gen(twins)
-
-
-  def get(self, idx):
-    i, j, k = idx
-    try:
-      return self.data[i][j][k]
-    except IndexError:
-      print("Border Warning! Skipping: {}".format(idx))
-
-
-  def set(self, idx, value=1):
-    i, j, k = idx
-    try:
-      self.data[i][j][k] = value
-    except IndexError:
-      print("Border Warning! Skipping: {}".format(idx))
-
-
-  def delete(self, idx):
-    i, j, k = idx
-    try:
-      self.data[i][j][k] = 0
-    except IndexError:
-      print("Border Warning(DEL)! Skipping: {}".format(idx))
 
 
   def layer_gen(self, twins):
@@ -140,7 +113,10 @@ class Grid(object):
       if layer in twins:
         sign = -1*sign
       counter += sign
+    #TODO: create layer extender for infinite z range (continue from L[-1] and
+    # permutate as function)
     return L
+
 
 
   def coord(self, idx):
@@ -170,7 +146,3 @@ class AtomsExport(object):
   def __init__(self, element, location):
       self.element  = element
       self.location = location
-
-
-class StopGrowth(Exception):
-  pass
