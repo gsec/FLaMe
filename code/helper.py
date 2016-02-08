@@ -75,6 +75,9 @@ class Vector(object):
     """ Require: Vector object. Return: distance between the vectors.
     """
     if type(self) != type(other):
+      print("Self:\t{s}\t{st}\nOther:\t{o}\t{ot}".format(s=self, st=type(self),
+                                                         o=other,
+                                                         ot=type(other)))
       raise TypeError("Argument for `dist` must be another Vector.")
     delta = self - other
     return abs(delta)

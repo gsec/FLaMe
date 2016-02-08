@@ -31,8 +31,8 @@ class Flake(object):
     self.seed_size = seed_size
     self.tag = ''
     self.iter = 0
-    self.atoms = []
-    self.surface = [[] for _ in SPAN]
+    self.atoms = set()
+    self.surface = [set() for _ in SPAN]
     self.grid = Grid(size, twins, height)
     self.make_seed(radius=seed_size)
 
@@ -43,14 +43,14 @@ class Flake(object):
 
 
 # # ###########
-#   GLOBALS  #
-# ############
+#     BASIC   #
+# #############
   def permutator(self, rng=None):
     """ Returns the 3D Cartesian product of `seed`.
 
     Without arguments it will return all sites in flake.
     """
-    ret = lambda R: (i for i in it.product(R, repeat=3) if self.chk(i))
+    ret = lambda R: (i for i in it.product(R, repeat=3))
     if not rng:
       return ret(range(self.size))
     else:
@@ -67,36 +67,36 @@ class Flake(object):
     pairs = (zip(mid, others) for others in env)
     total = (tuple(sum(y) for y in x) for x in pairs)
     for each in total:
-      if self.chk(each):
-        self.atoms.append(each)
+      # if self.chk(each):
+      self.atoms.add(each)
     self.create_entire_surface()
 
   def set_surface(self, site):
     occupied_neighbours = self.real_neighbours(site, void=False)
     slot = len(occupied_neighbours)
     try:
-      self.surface[slot].append(site)
+      self.surface[slot].add(site)
     except IndexError as e:
       qprint(e, "\nSite: ", site, "Too many empty neighbours: ", slot, quiet=Q)
 
 
   def create_entire_surface(self):
-    self.surface = [[] for _ in SPAN]
+    self.surface = [set() for _ in SPAN]
     for atom in self.atoms:
       realz = self.real_neighbours(atom, void=True)
       for nb in realz:
         self.set_surface(nb)
 
 
-  def chk(self, idx):
-    """ Returns whether the index is in valid range.
-    """
-    if max(idx[0], idx[1]) >= self.size:
-      return False
-    elif idx[2] >= self.height:
-      return False
-    else:
-      return True
+  # def chk(self, idx):
+    # """ Returns whether the index is in valid range.
+    # """
+    # if max(idx[0], idx[1]) >= self.size:
+      # return False
+    # elif idx[2] >= self.height:
+      # return False
+    # else:
+      # return True
 
 
 # # #################
@@ -112,7 +112,7 @@ class Flake(object):
     relative_neighbours.remove((0, 0, 0))
     pairs = (zip(idx, nn) for nn in relative_neighbours)
     absolutes = (tuple(sum(y) for y in x) for x in pairs)
-    valids = (each for each in absolutes if self.chk(each))
+    valids = (each for each in absolutes)
     return valids
 
 
@@ -127,8 +127,8 @@ class Flake(object):
     * return `void` or `occupied` neighbours
     """
     DIFF_CAP = 2.3
-    if not self.chk(atom):
-      return []
+    # if not self.chk(atom):
+      # return []
     choice_vec = self.grid.coord(atom)
     indexed = list(self.abs_neighbours(atom))
     coordinates = (self.grid.coord(ai_site) for ai_site in indexed)
@@ -153,13 +153,13 @@ class Flake(object):
         while not sublist:
           slot = choice(SPAN)
           sublist = self.surface[slot]
-        chosen = choice(sublist)
+        chosen = choice(tuple(sublist))
         qprint("Random-Add: {at} in Slot: [{sl}]\nWe are @{it}".format(
           at=chosen, sl=slot, it=self.iter), quiet=Q)
       else:
         for slot in range(11, 0, -1):
           if self.surface[slot]:
-            chosen = choice(self.surface[slot])
+            chosen = choice(tuple(self.surface[slot]))
             break
       self.put_atom(chosen, slot)
     return chosen
@@ -173,16 +173,16 @@ class Flake(object):
           * add it to next higher slot (cause now he's got one nb more)
     """
     self.surface[slot].remove(at)
-    self.atoms.append(at)
+    self.atoms.add(at)
     empty_neighbours = self.real_neighbours(at, void=True)
     for each in empty_neighbours:
       for e_slot, lst in enumerate(self.surface):
         if each in lst:
           self.surface[e_slot].remove(each)
-          self.surface[e_slot + 1].append(each)
+          self.surface[e_slot + 1].add(each)
           break
       else:
-        self.surface[1].append(each)    # create new surface entry for new ones
+        self.surface[1].add(each)    # create new surface entry for new ones
     self.iter += 1
 
 
@@ -196,7 +196,7 @@ class Flake(object):
     """
     surface_chain = list(it.chain.from_iterable(self.surface))
 
-    whole = self.atoms + surface_chain
+    whole = list(self.atoms) + surface_chain
     x, y, z = list(zip(*(self.grid.coord(site) for site in whole)))
 
     def color(idx, t=None):
