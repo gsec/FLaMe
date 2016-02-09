@@ -25,24 +25,32 @@ class Grid(object):
       return None, None, None
     twin_layers = []
     sign = 1
-    counter = 0
+    counter = min(self.twins) % 3
     span = range(min(self.twins), max(self.twins) + 1)
     for layer in span:
-      lastcount = counter # to keep last count for infinite upper half
       twin_layers.append(counter % 3)
       if layer in self.twins:
         sign *= -1
       counter += sign
-    return (twin_layers, lastcount, sign)
+    counter -= sign             # undo last addition for variable export
+    return (twin_layers, counter % 3, sign)
 
 
   def shift(self, idx):
+    """ Performs the twinplanes permutation shift.
+
+    LOW:  Index is smaller than lowest twinplane, or there isn't a TP at all,
+          just permutate happily mod 3
+    TPs:  Index is in TP range, get shift from twin_gen() generated list
+    HIGH: Index is bigger than highest twinplane, shift index by highest TP
+          and continue in correct direction through sign
+    """
     if not self.twins or idx < min(self.twins):
       return idx % 3
     elif min(self.twins) <= idx <= max(self.twins):
       return self.twin_layers[idx - min(self.twins)]  # shifted layer index
     elif idx > max(self.twins):
-      return self.upsign * (self.upcounter + idx) % 3
+      return (self.upcounter + self.upsign * (idx - max(self.twins))) % 3
 
 
   def coord(self, (i, j, k)):
@@ -75,7 +83,9 @@ class Vector(object):
   Supports:
     * addition/subtraction with other vectors
     * addition/ subtraction with floats and integers (for each component)
-    * length through the `abs()` method.
+    * equality if components are equal
+    * dist() method with other Vector as argument
+    * length through the `abs()` method
   """
   def __init__(self, comp):
     self.comp = comp
@@ -129,10 +139,9 @@ class Vector(object):
     """ Require: Vector object. Return: distance between the vectors.
     """
     if type(self) != type(other):
-      print("Self:\t{s}\t{st}\nOther:\t{o}\t{ot}".format(s=self, st=type(self),
-                                                         o=other,
-                                                         ot=type(other)))
-      raise TypeError("Argument for `dist` must be another Vector.")
+      msg = "Self:\t{s}\t{st}\nOther:\t{o}\t{ot}".format(
+        s=self, st=type(self), o=other, ot=type(other))
+      raise TypeError("Argument for `dist` must be another Vector." + msg)
     delta = self - other
     return abs(delta)
 
