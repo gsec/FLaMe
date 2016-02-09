@@ -88,15 +88,9 @@ class Flake(object):
         self.set_surface(nb)
 
 
-  # def chk(self, idx):
-    # """ Returns whether the index is in valid range.
-    # """
-    # if max(idx[0], idx[1]) >= self.size:
-      # return False
-    # elif idx[2] >= self.height:
-      # return False
-    # else:
-      # return True
+  def thickness(self):
+    z_collector = [z for (x, y, z) in self.atoms]
+    return abs(max(z_collector) - min(z_collector)) + 1
 
 
 # # #################
