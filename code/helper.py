@@ -5,6 +5,60 @@ from __future__ import print_function, division, generators
 from math import sqrt
 
 
+class Grid(object):
+  def __init__(self, twins):
+    """ Methods for getting the correct coordinates.
+
+    Takes twin planes and the fcc-structure of the crystal into account.
+    """
+    self.twins = twins
+    self.twin_layers, self.upcounter, self.upsign = self.twin_gen()
+
+
+  def twin_gen(self):
+    """ Create a z-list representing the permutation of the layer.
+
+    Mapping an ABC layer to: A -> 0, B -> 1, C -> 2
+    And flipping the order at each twin plane: ABCABCAB... -> AB'C'BACBA...
+    """
+    if not self.twins:
+      return None, None, None
+    twin_layers = []
+    sign = 1
+    counter = 0
+    span = range(min(self.twins), max(self.twins) + 1)
+    for layer in span:
+      lastcount = counter # to keep last count for infinite upper half
+      twin_layers.append(counter % 3)
+      if layer in self.twins:
+        sign *= -1
+      counter += sign
+    return (twin_layers, lastcount, sign)
+
+
+  def shift(self, idx):
+    if not self.twins or idx < min(self.twins):
+      return idx % 3
+    elif min(self.twins) <= idx <= max(self.twins):
+      return self.twin_layers[idx - min(self.twins)]  # shifted layer index
+    elif idx > max(self.twins):
+      return self.upsign * (self.upcounter + idx) % 3
+
+
+  def coord(self, (i, j, k)):
+    """ Return Cartesian coordinates vector of a given lattice point.
+
+    (i, j, k) are the indices and (a, b, c) are lattice base vectors. Crystal
+    sites then are i*a + j*b + k*c.  `_perms` is the permutation (0, 1 or 2) of
+    the layer displacement according to the fcc-stacking and the twin plane
+    configuration. Every twin plane inverts the permutation order.
+    """
+    prototype = Vector((2*i + (j+k) % 2,
+                      sqrt(3)*(j + self.shift(k) * 1/3),
+                      k*2*sqrt(6)/3))
+    return prototype
+
+
 def qprint(*args, **kwargs):
   """ Override print function to suppress output.
   """
@@ -85,60 +139,6 @@ class Vector(object):
 
   def __abs__(self):
     return sqrt(self.x**2 + self.y**2 + self.z**2)
-
-
-# # ###############
-#   grid object  #
-# ################
-class Grid(object):
-  def __init__(self, size, twins, height):
-    """ Grid object containing the atom, accessed by the indices `i`, `j`, `k`.
-
-    `size`: edge-length of the size**3 cube of lattice indices.
-    `twins`: Iterable which yields numbers of twin plane layers.
-    """
-    self.size = size
-    self.height = height
-    self.layer_permutations = self.layer_gen(twins)
-
-
-  def layer_gen(self, twins):
-    """ Create a z-list representing the permutation of the layer.
-
-    Mapping an ABC layer to: A -> 0, B -> 1, C -> 2
-    And flipping the order at each twin plane: ABCABCAB... -> AB'C'BACBA...
-    """
-    L = []
-    sign = 1
-    counter = 0
-    for layer in range(self.height):
-      L.append(counter % 3)
-      if layer in twins:
-        sign = -1*sign
-      counter += sign
-    #TODO: create layer extender for infinite z range (continue from L[-1] and
-    # permutate as function)
-    return L
-
-
-
-  def coord(self, idx):
-    """ Return Cartesian coordinates vector of a given lattice point.
-
-    (i, j, k) are the indices and (a, b, c) are lattice base vectors. Crystal
-    sites then are i*a + j*b + k*c.  `_perms` is the permutation (0, 1 or 2) of
-    the layer displacement according to the fcc-stacking and the twin plane
-    configuration. Every twin plane inverts the permutation order.
-    """
-    i, j, k = idx
-    try:
-      _perms = float(self.layer_permutations[k])
-      prototype = Vector((2*i + (j+k) % 2,
-                        sqrt(3)*(j + _perms * 1/3),
-                        k*2*sqrt(6)/3))
-      return prototype
-    except IndexError:
-      print("No coordinates here! Skipping: {}".format(idx))
 
 
 class AtomsExport(object):
