@@ -65,7 +65,8 @@ class Flake(object):
   def abs_neighbours(self, idx):
     """ Return a list of next neighbours of `i, j, k`
     """
-    absNB = self.atoms.difference(((0, 0, 0),))
+    absNB = set(it.product((-1, 0, 1), repeat=3))          # create seed
+    absNB.remove((0, 0, 0))
     pairs = (zip(idx, nn) for nn in absNB)
     absolutes = (tuple(sum(y) for y in x) for x in pairs)
     return absolutes
