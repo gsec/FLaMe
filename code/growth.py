@@ -11,6 +11,7 @@ from __future__ import print_function, division, generators
 import itertools as it
 import arrow
 from random import choice, random
+from math import pi
 from helper import *
 from mayavi import mlab as m
 from os import path, makedirs
@@ -54,9 +55,22 @@ class Flake(object):
         self.set_surface(nb)
 
 
-  def thickness(self):
-    z_collector = [z for (x, y, z) in self.atoms]
-    return abs(max(z_collector) - min(z_collector)) + 1
+  def geometry(self):
+    COORD = self.grid.coord
+    NULL = COORD((0, 0, 0))
+    POOL = self.atoms
+
+    mxz = max(POOL, key=lambda i: i[2])[2]
+    mnz = min(POOL, key=lambda i: i[2])[2]
+    height = COORD((0, 0, mxz)).dist(COORD((0, 0, mnz)))
+
+    mxr = max(POOL, key=lambda i: i[0]**2 + i[1]**2)
+    radius = COORD(mxr).dist(NULL)
+
+    area = pi*radius**2
+
+    return {'height': height, 'area': area, 'aspect_ratio': radius/height,
+            'radius': radius}
 
 
 # # #################
@@ -216,6 +230,7 @@ class Flake(object):
     filepath_xyz = path.join(save_dir, fname)
     with open(filepath_xyz, "w") as xyz_file_p:
       xyz_file_p.write("%d\n" % counter)
+      xyz_file_p.write(str(self.geometry()))
       xyz_file_p.write("This is a XYZ file according to Atomic Blender - XYZ. "
                       "***WITH MODIFICATIONS! TAKE CARE AND READ THE CODE*** "
                       "For more details see: wiki.blender.org/index.php/"
