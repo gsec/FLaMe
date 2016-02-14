@@ -19,9 +19,8 @@ from os import path, mkdir
 Q = False          # Set verbosity, Q is quiet
 
 
-
 class Flake(object):
-  """ Contains higher level methods for manipulating the flake.
+  """ FLAKE creation class.
   """
   def __init__(self, *twins):
     self.iter = 0
@@ -33,43 +32,57 @@ class Flake(object):
 
 
   def __repr__(self):
-    return "fLakE ::\t twinplanes[{}]\t size in atoms:[{}]".format(self.twins,
-                                                         self.iter)
+    return "fLakE :: twiNpLaNes:{}\tIterations:[{}]\tSeed:[3x3x3]".format(
+      self.twins, self.iter)
 
 
 # # ###########
 #     BASIC   #
 # #############
   def set_surface(self, site):
+    """ Adds an empty site to the corresponding surface slot.
+    """
     occupied_neighbours = self.real_neighbours(site, void=False)
     slot = len(occupied_neighbours)
     self.surface[slot].add(site)
 
 
   def create_entire_surface(self):
+    """ Create a list of 12 sets (NN possibilities) and populates them.
+
+    Iterates through every atom and populates each adjacent empty site to the
+    surface list.
+    """
     self.surface = [set() for _ in self.span]
     for atom in self.atoms:
-      realz = self.real_neighbours(atom, void=True)
-      for nb in realz:
+      adjacent_voids = self.real_neighbours(atom, void=True)
+      for nb in adjacent_voids:
         self.set_surface(nb)
 
 
   def geometry(self):
+    """ Calculate geometry information about the Flake.
+
+    Area is approximated as circle. Its radius is the distance from center to
+    the furthest atom.
+    """
     COORD = self.grid.coord
-    NULL = COORD((0, 0, 0))
     POOL = self.atoms
 
     mxz = max(POOL, key=lambda i: i[2])[2]
     mnz = min(POOL, key=lambda i: i[2])[2]
-    height = COORD((0, 0, mxz)).dist(COORD((0, 0, mnz)))
-
     mxr = max(POOL, key=lambda i: i[0]**2 + i[1]**2)
-    radius = COORD(mxr).dist(NULL)
 
-    area = pi*radius**2
+    items = {
+      'height': COORD((0, 0, mxz)).dist(COORD((0, 0, mnz))),
+      'radius': COORD(mxr).dist(COORD((0, 0, mxr[2])))}
+    items.update({
+      'area': pi*items['radius']**2,
+      'aspect_ratio': items['radius']/items['height']})
 
-    return {'height': round(height, 3), 'area': round(area, 3), 'aspect_ratio':
-            round(radius/height, 3), 'radius': round(radius, 3)}
+    for (k, i) in items.iteritems():
+      setattr(self, k, i)
+    return items
 
 
 # # #################
@@ -78,7 +91,7 @@ class Flake(object):
   def abs_neighbours(self, idx):
     """ Return a list of next neighbours of `i, j, k`
     """
-    absNB = set(it.product((-1, 0, 1), repeat=3))          # create seed
+    absNB = set(it.product((-1, 0, 1), repeat=3))     # create NN indices
     absNB.remove((0, 0, 0))
     pairs = (zip(idx, nn) for nn in absNB)
     absolutes = (tuple(sum(y) for y in x) for x in pairs)
@@ -111,16 +124,17 @@ class Flake(object):
 ############
 #  GROWTH  #
 ############
-  def grow(self, rounds=1, noise=0.001):
-    """ Manipulates the flake, adding atoms to its surface.
+  def grow(self, rounds=1, noise=10e-4):
+    """ Transform a surface site into an atom.
+
+    The site is chosen randomly from the highest populated surface slot. With a
+    probability of `noise` the atoms will be chosen randomly from all available
+    surface sites.
     """
     for r in range(rounds):
       if random() < noise:
-        sublist = None
-        while not sublist:
-          slot = choice(self.span)
-          sublist = self.surface[slot]
-        chosen = choice(tuple(sublist))
+        chosen = choice(list(it.chain.from_iterable(self.surface)))
+        slot = next(i for i, x in enumerate(self.surface) if chosen in x)
         qprint("Random-Add: {at} in Slot: [{sl}]\nWe are @{it}".format(
           at=chosen, sl=slot, it=self.iter), quiet=Q)
       else:
@@ -129,6 +143,7 @@ class Flake(object):
             chosen = choice(tuple(self.surface[slot]))
             break
       self.put_atom(chosen, slot)
+    self.geometry()
     return chosen
 
   def put_atom(self, at, slot):
@@ -146,8 +161,12 @@ class Flake(object):
       for e_slot, lst in enumerate(self.surface):
         if each in lst:
           self.surface[e_slot].remove(each)
-          self.surface[e_slot + 1].add(each)
+          try:
+            self.surface[e_slot + 1].add(each)
+          except IndexError:
+            qprint("Filled a bubble...oO", quiet=True)
           break
+      #TODO: proper else?
       else:
         self.surface[1].add(each)    # create new surface entry for new ones
     self.iter += 1
@@ -223,10 +242,7 @@ class Flake(object):
     with open(filepath_xyz, "w") as xyz_file_p:
       xyz_file_p.write("%d\n" % counter)
       xyz_file_p.write(str(self.geometry()))
-      xyz_file_p.write("This is a XYZ file according to Atomic Blender - XYZ. "
-                      "***WITH MODIFICATIONS! TAKE CARE AND READ THE CODE*** "
-                      "For more details see: wiki.blender.org/index.php/"
-                      "Extensions:2.6/Py/Scripts/Import-Export/XYZ\n")
+      xyz_file_p.write("This is a XYZ file for Atomic Blender\n")
 
       for i, atom in enumerate(list_atoms):
           string = "%3s%15.5f%15.5f%15.5f\n" % (
