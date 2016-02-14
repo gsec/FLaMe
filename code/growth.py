@@ -14,7 +14,7 @@ from random import choice, random
 from math import pi
 from helper import *
 from mayavi import mlab as m
-from os import path, makedirs
+from os import path, mkdir
 
 Q = False          # Set verbosity, Q is quiet
 
@@ -25,7 +25,6 @@ class Flake(object):
   """
   def __init__(self, *twins):
     self.iter = 0
-    self.tag = ''
     self.twins = twins
     self.span = range(12)                 # takes all 12 NN as possibilities
     self.atoms = set(it.product((-1, 0, 1), repeat=3))          # create seed
@@ -69,8 +68,8 @@ class Flake(object):
 
     area = pi*radius**2
 
-    return {'height': height, 'area': area, 'aspect_ratio': radius/height,
-            'radius': radius}
+    return {'height': round(height, 3), 'area': round(area, 3), 'aspect_ratio':
+            round(radius/height, 3), 'radius': round(radius, 3)}
 
 
 # # #################
@@ -200,15 +199,12 @@ class Flake(object):
     self.date = arrow.now().isoformat().rsplit('T')
     today = self.date[0]
     output_dir = path.join('../output/', today)
-    output_dir = path.join(output_dir, self.tag)
-    try:
-      makedirs(output_dir)
-    except OSError:
-      pass
+    if not path.exists(output_dir):
+      mkdir(output_dir)
     return output_dir
 
 
-  def export(self, tag=''):
+  def export(self, tag='flake'):
     """ Simplified export function adapted from 'io_mesh_xyz'.
     """
     raw_atoms = (('Au', tuple(self.grid.coord(at)))
@@ -220,10 +216,6 @@ class Flake(object):
       list_atoms.append(AtomsExport(*each))
       counter += 1
 
-    if self.tag and not tag:
-      tag = self.tag
-    elif not tag and not self.tag:
-      tag = 'flake'
     save_dir = self.daily_output()
     fname = "{tag}._TP-{tp}_it-{it}_{tag}.xyz".format(
       tp=self.twins, it=len(self.atoms), tag=tag)
