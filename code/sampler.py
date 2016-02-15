@@ -14,7 +14,7 @@ def sample(tp=tuple(), iter=2*10**5, noise=1e-5, runs=10, export=False):
   print("twiNs:{}_".format(tp) + fname[:-4] + 'id')
 
   for r in range(runs):
-    print("RUN:\t{}".format(r))
+    print("\nRUN:\t{}\n{}".format(r, 70*'.'))
     obj = Flake()
     obj.grow(iter, noise)
     content = '\n' + str(obj.geometry()) + '\n'

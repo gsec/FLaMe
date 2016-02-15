@@ -97,7 +97,7 @@ class Vector(object):
 
 
   def __iter__(self):
-    """ Iteration over a Vector yields it's components.
+    """ Iteration over a Vector yields its components.
     """
     for comp in self.comp:
       yield comp
@@ -112,6 +112,11 @@ class Vector(object):
 
 
   def __add__(self, other):
+    """ Addition of vectors by component.
+
+    Single numbers also can be added by applying it to each component
+    separately.
+    """
     try:
       new_x = self.x + other.x
       new_y = self.y + other.y
@@ -124,6 +129,11 @@ class Vector(object):
 
 
   def __sub__(self, other):
+    """ Subtraction of vectors by component.
+
+    Single numbers also can be subtracted by applying it to each component
+    separately.
+    """
     try:
       new_x = self.x - other.x
       new_y = self.y - other.y
@@ -136,7 +146,7 @@ class Vector(object):
 
 
   def dist(self, other):
-    """ Require: Vector object. Return: distance between the vectors.
+    """ Require other Vector() object, return distance between the vectors.
     """
     if type(self) != type(other):
       msg = "Self:\t{s}\t{st}\nOther:\t{o}\t{ot}".format(
@@ -147,6 +157,8 @@ class Vector(object):
 
 
   def __abs__(self):
+    """ Return distance from origin.
+    """
     return sqrt(self.x**2 + self.y**2 + self.z**2)
 
 

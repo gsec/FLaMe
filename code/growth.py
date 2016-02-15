@@ -172,9 +172,48 @@ class Flake(object):
     self.iter += 1
 
 
-###########
-#   PLOT  #
-###########
+#############
+#   OUTPUT  #
+#############
+  def daily_output(self):
+    self.date = arrow.now().isoformat().rsplit('T')
+    today = self.date[0]
+    output_dir = path.join('../output/', today)
+    if not path.exists(output_dir):
+      mkdir(output_dir)
+    return output_dir
+
+
+  def export(self, tag='flake'):
+    """ Simplified export function adapted from 'io_mesh_xyz'.
+    """
+    raw_atoms = (('Au', tuple(self.grid.coord(at)))
+                 for at in self.atoms if at)
+    list_atoms = []
+    counter = 0
+
+    for each in raw_atoms:
+      list_atoms.append(AtomsExport(*each))
+      counter += 1
+
+    save_dir = self.daily_output()
+    fname = "{tag}._TP-{tp}_it-{it}_{tag}.xyz".format(
+      tp=self.twins, it=len(self.atoms), tag=tag)
+    filepath_xyz = path.join(save_dir, fname)
+    with open(filepath_xyz, "w") as xyz_file_p:
+      xyz_file_p.write("%d\n" % counter)
+      xyz_file_p.write(str(self.geometry()))
+      xyz_file_p.write("This is a XYZ file for Atomic Blender\n")
+
+      for i, atom in enumerate(list_atoms):
+          string = "%3s%15.5f%15.5f%15.5f\n" % (
+                                        atom.element,
+                                        atom.location[0],
+                                        atom.location[1],
+                                        atom.location[2])
+          xyz_file_p.write(string)
+
+
   def plot(self, save=False, tag=''):
     """ The `color()` function appends values for colors to the `color_list`.
     This list must have the same length as `whole` to plot correctly.
@@ -213,41 +252,3 @@ class Flake(object):
       m.close()
     else:
       m.show()
-
-  def daily_output(self):
-    self.date = arrow.now().isoformat().rsplit('T')
-    today = self.date[0]
-    output_dir = path.join('../output/', today)
-    if not path.exists(output_dir):
-      mkdir(output_dir)
-    return output_dir
-
-
-  def export(self, tag='flake'):
-    """ Simplified export function adapted from 'io_mesh_xyz'.
-    """
-    raw_atoms = (('Au', tuple(self.grid.coord(at)))
-                 for at in self.atoms if at)
-    list_atoms = []
-    counter = 0
-
-    for each in raw_atoms:
-      list_atoms.append(AtomsExport(*each))
-      counter += 1
-
-    save_dir = self.daily_output()
-    fname = "{tag}._TP-{tp}_it-{it}_{tag}.xyz".format(
-      tp=self.twins, it=len(self.atoms), tag=tag)
-    filepath_xyz = path.join(save_dir, fname)
-    with open(filepath_xyz, "w") as xyz_file_p:
-      xyz_file_p.write("%d\n" % counter)
-      xyz_file_p.write(str(self.geometry()))
-      xyz_file_p.write("This is a XYZ file for Atomic Blender\n")
-
-      for i, atom in enumerate(list_atoms):
-          string = "%3s%15.5f%15.5f%15.5f\n" % (
-                                        atom.element,
-                                        atom.location[0],
-                                        atom.location[1],
-                                        atom.location[2])
-          xyz_file_p.write(string)
