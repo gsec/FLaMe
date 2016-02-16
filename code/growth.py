@@ -22,23 +22,46 @@ Q = False          # Set verbosity, Q is quiet
 class Flake(object):
   """ FLAKE creation class.
   """
-  def __init__(self, *twins):
+  def __init__(self, *twins, **kwargs):
     self.iter = 0
     self.twins = twins
     self.span = range(12)                 # takes all 12 NN as possibilities
-    self.atoms = set(it.product((-1, 0, 1), repeat=3))          # create seed
+    self.seed_shape = kwargs.get('seed', 'sphere')
+    self.atoms = self.seed(self.seed_shape)
     self.grid = Grid(twins)
     self.create_entire_surface()
 
 
   def __repr__(self):
-    return "fLakE :: twiNpLaNes:{}\tIterations:[{}]\tSeed:[3x3x3]".format(
-      self.twins, self.iter)
+    return "fLakE :: twiNpLaNes:{}\tIterations:[{}]\t Seed:[{}]".format(
+      self.twins, self.iter, self.seed_shape)
 
 
 # # ###########
 #     BASIC   #
 # #############
+  def seed(self, shape='point'):
+    if shape == 'point':
+      return set(((0, 0, 0),))
+    elif shape == 'sphere':
+      return set((
+        (0, -1, 1),
+        (0, 0, 1),
+        (-1, 0, 1),
+        (-1, 0, -1),
+        (0, -1, -1),
+        (0, 0, -1),
+        (-1, -1, 0),
+        (-1, 0, 0),
+        (-1, 1, 0),
+        (0, -1, 0),
+        (0, 1, 0),
+        (1, 0, 0),
+        (0, 0, 0)))
+    elif shape == 'cube':
+      return set(it.product((-1, 0, 1), repeat=3))
+
+
   def set_surface(self, site):
     """ Adds an empty site to the corresponding surface slot.
     """
@@ -76,9 +99,12 @@ class Flake(object):
     items = {
       'height': COORD((0, 0, mxz)).dist(COORD((0, 0, mnz))),
       'radius': COORD(mxr).dist(COORD((0, 0, mxr[2])))}
-    items.update({
-      'area': pi*items['radius']**2,
-      'aspect_ratio': items['radius']/items['height']})
+    try:
+      items.update({
+        'area': pi*items['radius']**2,
+        'aspect_ratio': 2*items['radius']/items['height']})
+    except ZeroDivisionError:
+      pass
 
     for (k, i) in items.iteritems():
       setattr(self, k, i)
@@ -91,7 +117,7 @@ class Flake(object):
   def abs_neighbours(self, idx):
     """ Return a list of next neighbours of `i, j, k`
     """
-    absNB = set(it.product((-1, 0, 1), repeat=3))     # create NN indices
+    absNB = set(it.product((-2, -1, 0, 1, 2), repeat=3))     # create NN indices
     absNB.remove((0, 0, 0))
     pairs = (zip(idx, nn) for nn in absNB)
     absolutes = (tuple(sum(y) for y in x) for x in pairs)
@@ -108,7 +134,7 @@ class Flake(object):
     * filter those, which are larger than DIFF_CAP
     * return `void` or `occupied` neighbours
     """
-    DIFF_CAP = 2.3
+    DIFF_CAP = 2.1
     choice_vec = self.grid.coord(atom)
     indexed = list(self.abs_neighbours(atom))
     coordinates = (self.grid.coord(ai_site) for ai_site in indexed)
@@ -124,27 +150,42 @@ class Flake(object):
 ############
 #  GROWTH  #
 ############
-  def grow(self, rounds=1, noise=10e-4):
+  def grow(self, rounds=1, noise=0, cap=4, force=False):
     """ Transform a surface site into an atom.
 
     The site is chosen randomly from the highest populated surface slot. With a
     probability of `noise` the atoms will be chosen randomly from all available
     surface sites.
     """
+    def rand_grow(text='Random'):
+      chosen = choice(list(it.chain.from_iterable(self.surface)))
+      slot = next(i for i, x in enumerate(self.surface) if chosen in x)
+      qprint("{}-Add: {at} in Slot: [{sl}]\nWe are @{it}".format(text,
+        at=chosen, sl=slot, it=self.iter), quiet=Q)
+      return chosen, slot
+
     for r in range(rounds):
       if random() < noise:
-        chosen = choice(list(it.chain.from_iterable(self.surface)))
-        slot = next(i for i, x in enumerate(self.surface) if chosen in x)
-        qprint("Random-Add: {at} in Slot: [{sl}]\nWe are @{it}".format(
-          at=chosen, sl=slot, it=self.iter), quiet=Q)
+        chosen, slot = rand_grow()
       else:
-        for slot in range(11, 0, -1):
-          if self.surface[slot]:
-            chosen = choice(tuple(self.surface[slot]))
-            break
+        try:
+          for slot in range(11, cap-1, -1):
+            if self.surface[slot]:
+              chosen = choice(tuple(self.surface[slot]))
+              break
+          else:
+            raise StopIteration(
+              "Flake has no sites with {} or more free bindings. Stopped at {}th "
+              "growth step.".format(cap, r))
+        except StopIteration:
+          chosen, slot = rand_grow(text='Cap-limit ')
+          if force:
+            self.put_atom(chosen, slot)
+          break
       self.put_atom(chosen, slot)
     self.geometry()
     return chosen
+
 
   def put_atom(self, at, slot):
     """ * remove atom from its slot
@@ -223,19 +264,21 @@ class Flake(object):
     whole = list(self.atoms) + surface_chain
     x, y, z = list(zip(*(self.grid.coord(site) for site in whole)))
 
-    def color(idx, t=None):
-      if t == 'atom':
-        color_list.append(0.8)
-      elif t == 'surface':
-        color_list.append(0.25)
-      else:
-        color_list.append(0.)
+    # def color(idx, t=None):
+      # if t == 'atom':
+        # color_list.append(1.8)
+      # elif t == 'surface':
+        # color_list.append(0.25)
+      # else:
+        # color_list.append(0.)
 
     color_list = []
     for each in self.atoms:
-      color(each, 'atom')
-    for each in surface_chain:
-      color(each, 'surface')
+      color_list.append(2.)
+    for (idx, surf) in enumerate(self.surface):
+      for each in surf:
+        color_list.append(0.1*idx)
+
 
     m.clf()
     m.points3d(x, y, z, color_list, colormap="spectral",
