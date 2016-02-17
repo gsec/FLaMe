@@ -61,8 +61,9 @@ class Grid(object):
     the layer displacement according to the fcc-stacking and the twin plane
     configuration. Every twin plane inverts the permutation order.
     """
-    prototype = Vector((2*i + (j+k) % 2 + self.shift(k) * 1/3,
-                      sqrt(3)*(j + self.shift(k) * 1/3),
+    shift = self.shift(k)
+    prototype = Vector((2*i + (j + shift) % 2 ,
+                      sqrt(3)*(j + shift/3),
                       k*2*sqrt(6)/3))
     return prototype
 

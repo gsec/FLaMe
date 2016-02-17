@@ -43,23 +43,20 @@ class Flake(object):
   def seed(self, shape='point'):
     if shape == 'point':
       return set(((0, 0, 0),))
+    elif shape == 'plane':
+      return set(((1, 0, 0), (1, 2, 0), (-2, 1, 0), (-2, 0, 0), (1, -1, 0),
+                  (0, 1, 0), (-2, 2, 0), (-1, 0, 0), (-2, -2, 0), (0, -1, 0),
+                  (1, 1, 0), (1, -2, 0), (0, -2, 0), (0, 2, 0), (2, 0, 0),
+                  (-1, -2, 0), (-1, 1, 0), (-1, 2, 0), (2, -1, 0), (-1, -1, 0),
+                  (2, 2, 0), (0, 0, 0), (2, 1, 0), (-2, -1, 0), (2, -2, 0)))
     elif shape == 'sphere':
-      return set((
-        (0, -1, 1),
-        (0, 0, 1),
-        (-1, 0, 1),
-        (-1, 0, -1),
-        (0, -1, -1),
-        (0, 0, -1),
-        (-1, -1, 0),
-        (-1, 0, 0),
-        (-1, 1, 0),
-        (0, -1, 0),
-        (0, 1, 0),
-        (1, 0, 0),
-        (0, 0, 0)))
+      return set(((0, -1, 1), (0, 0, 1), (-1, 0, 1), (-1, -1, -1), (0, -1, -1),
+                  (0, 0, -1), (-1, -1, 0), (-1, 0, 0), (-1, 1, 0), (0, -1, 0),
+                  (0, 1, 0), (1, 0, 0), (0, 0, 0)))
     elif shape == 'cube':
       return set(it.product((-1, 0, 1), repeat=3))
+    elif shape == 'bigcube':
+      return set(it.product((-2, -1, 0, 1, 2), repeat=3))
 
 
   def set_surface(self, site):
@@ -150,7 +147,7 @@ class Flake(object):
 ############
 #  GROWTH  #
 ############
-  def grow(self, rounds=1, noise=0, cap=4, force=False):
+  def grow(self, rounds=1, noise=0, cap=1):
     """ Transform a surface site into an atom.
 
     The site is chosen randomly from the highest populated surface slot. With a
@@ -165,23 +162,18 @@ class Flake(object):
       return chosen, slot
 
     for r in range(rounds):
-      if random() < noise:
-        chosen, slot = rand_grow()
+      if noise:
+        if random() < noise:
+          chosen, slot = rand_grow()
       else:
-        try:
-          for slot in range(11, cap-1, -1):
-            if self.surface[slot]:
-              chosen = choice(tuple(self.surface[slot]))
-              break
-          else:
-            raise StopIteration(
-              "Flake has no sites with {} or more free bindings. Stopped at {}th "
-              "growth step.".format(cap, r))
-        except StopIteration:
-          chosen, slot = rand_grow(text='Cap-limit ')
-          if force:
-            self.put_atom(chosen, slot)
-          break
+        for slot in range(11, cap-1, -1):
+          if self.surface[slot]:
+            chosen = choice(tuple(self.surface[slot]))
+            break
+        else:
+          raise StopIteration(
+            "Flake has no sites with {} or more free bindings. Stopped at {}th "
+            "growth step.".format(cap, r))
       self.put_atom(chosen, slot)
     self.geometry()
     return chosen
@@ -264,21 +256,12 @@ class Flake(object):
     whole = list(self.atoms) + surface_chain
     x, y, z = list(zip(*(self.grid.coord(site) for site in whole)))
 
-    # def color(idx, t=None):
-      # if t == 'atom':
-        # color_list.append(1.8)
-      # elif t == 'surface':
-        # color_list.append(0.25)
-      # else:
-        # color_list.append(0.)
-
     color_list = []
     for each in self.atoms:
-      color_list.append(2.)
+      color_list.append(1.5)
     for (idx, surf) in enumerate(self.surface):
       for each in surf:
         color_list.append(0.1*idx)
-
 
     m.clf()
     m.points3d(x, y, z, color_list, colormap="spectral",
