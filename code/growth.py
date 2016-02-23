@@ -16,7 +16,7 @@ from math import pi
 from helper import *
 from mayavi import mlab as m
 from numpy.random import choice as weighted_choice
-from random import choice
+from random import choice, random
 
 Q = False          # Set verbosity, Q is quiet
 
@@ -170,13 +170,48 @@ class Flake(object):
 ############
 #  GROWTH  #
 ############
-  def regrow(self, rounds=1):
+  def grow(self, rounds=1):
     for r in range(rounds):
       sp = self.prob()
       slot = weighted_choice(self.span, p=sp)
       chosen = choice(tuple(self.surface[slot]))
       self.put_atom(chosen, slot)
 
+
+  def det_grow(self, rounds=1, noise=0, cap=1):
+    """ Transform a surface site into an atom.
+
+    The site is chosen randomly from the highest populated surface slot. With a
+    probability of `noise` the atoms will be chosen randomly from all available
+    surface sites.
+    """
+    for r in range(rounds):
+      if noise:
+        if random() < noise:
+          chosen, slot = self.rand_grow('NoiZ')
+      else:
+        for slot in range(11, cap-1, -1):
+          if self.surface[slot]:
+            chosen = choice(tuple(self.surface[slot]))
+            break
+        else:
+          print("Flake has no sites with {} or more free bindings. STOPP at {}"
+                "th growth step.\n".format(cap, r))
+          ans = raw_input("Continue with single growth? [y/n]\t")
+          if ans in 'Yy':
+            self.det_grow()
+            continue
+          break
+      self.put_atom(chosen, slot)
+    return self.trail
+
+  def rand_grow(self, text):
+    chosen = choice(list(it.chain.from_iterable(self.surface)))
+    slot = next(i for i, x in enumerate(self.surface) if chosen in x)
+    msg = "[{}] add {} in Slot: [{}]\nWe are @ {} iterations.\n".format(text,
+      chosen, slot, self.iter)
+    qprint(msg, quiet=Q)
+    return chosen, slot
 
   def put_atom(self, at, slot):
     """ * remove atom from its slot
