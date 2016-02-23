@@ -166,7 +166,7 @@ class Flake(object):
 ############
 #  GROWTH  #
 ############
-  def regrow(self, rounds=1):
+  def grow(self, rounds=1):
     for r in range(rounds):
       sp = self.prob()
       slot = weighted_choice(self.span, p=sp)
@@ -174,7 +174,7 @@ class Flake(object):
       self.put_atom(chosen, slot)
 
 
-  def grow(self, rounds=1, noise=0, cap=1):
+  def det_grow(self, rounds=1, noise=0, cap=1):
     """ Transform a surface site into an atom.
 
     The site is chosen randomly from the highest populated surface slot. With a
@@ -193,16 +193,11 @@ class Flake(object):
         else:
           print("Flake has no sites with {} or more free bindings. STOPP at {}"
                 "th growth step.\n".format(cap, r))
-          ans = ''
-          while ans not in 'yYnNaA':
-            ans = raw_input("Continue with single random growth? [y]es/[n]o/[a]ll\t")
-            if ans in 'Nn':
-              pass
-            elif ans in 'Yy':
-              chosen, slot = self.rand_grow('Crossing Cap: [{}]'.format(cap))
-            elif ans in 'Aa':
-              chosen, slot = self.rand_grow('Removing Cap: [{}]'.format(cap))
-              cap = 1
+          ans = raw_input("Continue with single growth? [y/n]\t")
+          if ans in 'Yy':
+            self.det_grow()
+            continue
+          break
       self.put_atom(chosen, slot)
     return self.trail
 
