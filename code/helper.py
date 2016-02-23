@@ -53,7 +53,7 @@ class Grid(object):
       return (self.upcounter + self.upsign * (idx - max(self.twins))) % 3
 
 
-  def coord(self, (i, j, k)):
+  def coord(self, idx):
     """ Return Cartesian coordinates vector of a given lattice point.
 
     (i, j, k) are the indices and (a, b, c) are lattice base vectors. Crystal
@@ -61,8 +61,9 @@ class Grid(object):
     the layer displacement according to the fcc-stacking and the twin plane
     configuration. Every twin plane inverts the permutation order.
     """
+    i, j, k = idx
     shift = self.shift(k)
-    prototype = Vector((2*i + (j + shift) % 2 ,
+    prototype = Vector((2*i + (j + shift) % 2,
                       sqrt(3)*(j + shift/3),
                       k*2*sqrt(6)/3))
     return prototype
@@ -98,61 +99,56 @@ class Vector(object):
 
 
   def __iter__(self):
-    """ Iteration over a Vector yields its components.
-    """
+    """ Iteration over a Vector yields its components.  """
     for comp in self.comp:
       yield comp
 
 
   def __eq__(self, other):
-    """ Equality check is done by comparing each component.
-    """
+    """ Equality check is done by comparing each component.  """
     eq_list = [self.__dict__[comp] ==
                other.__dict__[comp] for comp in ('x', 'y', 'z')]
     return all(eq_list)
 
 
   def __add__(self, other):
-    """ Addition of vectors by component.
-
-    Single numbers also can be added by applying it to each component
-    separately.
-    """
-    try:
-      new_x = self.x + other.x
-      new_y = self.y + other.y
-      new_z = self.z + other.z
-    except:
-      new_x = self.x + other
-      new_y = self.y + other
-      new_z = self.z + other
+    """ Addition of vectors by component.  """
+    new_x = self.x + other.x
+    new_y = self.y + other.y
+    new_z = self.z + other.z
     return Vector((new_x, new_y, new_z))
 
 
   def __sub__(self, other):
-    """ Subtraction of vectors by component.
-
-    Single numbers also can be subtracted by applying it to each component
-    separately.
-    """
-    try:
-      new_x = self.x - other.x
-      new_y = self.y - other.y
-      new_z = self.z - other.z
-    except:
-      new_x = self.x - other
-      new_y = self.y - other
-      new_z = self.z - other
+    """ Subtraction of vectors by component.  """
+    new_x = self.x - other.x
+    new_y = self.y - other.y
+    new_z = self.z - other.z
     return Vector((new_x, new_y, new_z))
 
 
+  def __mul__(self, other):
+    """ Scaling of Vectors.  """
+    new_x = other*self.x
+    new_y = other*self.y
+    new_z = other*self.z
+    return Vector((new_x, new_y, new_z))
+
+
+  def __rmul__(self, other):
+    return self.__mul__(other)
+
+
+  def __div__(self, other):
+    new_x = self.x/other
+    new_y = self.y/other
+    new_z = self.z/other
+    return Vector((new_x, new_y, new_z))
+
+
+
   def dist(self, other):
-    """ Require other Vector() object, return distance between the vectors.
-    """
-    if type(self) != type(other):
-      msg = "Self:\t{s}\t{st}\nOther:\t{o}\t{ot}".format(
-        s=self, st=type(self), o=other, ot=type(other))
-      raise TypeError("Argument for `dist` must be another Vector." + msg)
+    """ Return distance between the vectors.  """
     delta = self - other
     return round(abs(delta), 4)
 

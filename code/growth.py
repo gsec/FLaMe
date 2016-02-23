@@ -11,12 +11,12 @@ from __future__ import print_function, division, generators
 import arrow
 import itertools as it
 from os import path, mkdir
-from collections import deque
+from collections import deque, OrderedDict
 from math import pi
 from helper import *
 from mayavi import mlab as m
 from numpy.random import choice as weighted_choice
-from random import choice, random
+from random import choice
 
 Q = False          # Set verbosity, Q is quiet
 
@@ -64,6 +64,10 @@ class Flake(object):
                   (-1, -2, 0), (-1, 1, 0), (-1, 2, 0), (2, -1, 0), (-1, -1, 0),
                   (2, 2, 0), (0, 0, 0), (2, 1, 0), (-2, -1, 0), (2, -2, 0)))
     return len(sites), sites
+
+  def sites(self):
+    return OrderedDict(('Slot [{}]'.format(i), len(x)) for (i, x) in
+                     enumerate(self.surface))
 
 
   def set_surface(self, site):
@@ -173,46 +177,6 @@ class Flake(object):
       chosen = choice(tuple(self.surface[slot]))
       self.put_atom(chosen, slot)
 
-
-  def grow(self, rounds=1, noise=0, cap=1):
-    """ Transform a surface site into an atom.
-
-    The site is chosen randomly from the highest populated surface slot. With a
-    probability of `noise` the atoms will be chosen randomly from all available
-    surface sites.
-    """
-    for r in range(rounds):
-      if noise:
-        if random() < noise:
-          chosen, slot = self.rand_grow('NoiZ')
-      else:
-        for slot in range(11, cap-1, -1):
-          if self.surface[slot]:
-            chosen = choice(tuple(self.surface[slot]))
-            break
-        else:
-          print("Flake has no sites with {} or more free bindings. STOPP at {}"
-                "th growth step.\n".format(cap, r))
-          ans = ''
-          while ans not in 'yYnNaA':
-            ans = raw_input("Continue with single random growth? [y]es/[n]o/[a]ll\t")
-            if ans in 'Nn':
-              pass
-            elif ans in 'Yy':
-              chosen, slot = self.rand_grow('Crossing Cap: [{}]'.format(cap))
-            elif ans in 'Aa':
-              chosen, slot = self.rand_grow('Removing Cap: [{}]'.format(cap))
-              cap = 1
-      self.put_atom(chosen, slot)
-    return self.trail
-
-  def rand_grow(self, text):
-    chosen = choice(list(it.chain.from_iterable(self.surface)))
-    slot = next(i for i, x in enumerate(self.surface) if chosen in x)
-    msg = "[{}] add {} in Slot: [{}]\nWe are @ {} iterations.\n".format(text,
-      chosen, slot, self.iter)
-    qprint(msg, quiet=Q)
-    return chosen, slot
 
   def put_atom(self, at, slot):
     """ * remove atom from its slot
