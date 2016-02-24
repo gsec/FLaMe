@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 ## encoding: utf-8
 """                       FLAKE GROWTH SIMULATION
                           ~~~~~~~~~~~~~~~~~~~~~~~
@@ -36,6 +36,7 @@ class Flake(object):
 
     self.grid = Grid(twins)
     self.create_entire_surface()
+    self.colors = self.color_init()
 
 
   def __repr__(self):
@@ -68,6 +69,11 @@ class Flake(object):
   def sites(self):
     return OrderedDict(('Slot [{}]'.format(i), len(x)) for (i, x) in
                      enumerate(self.surface))
+
+  def color_init(self):
+    d = dict((k, 15) for k in self.atoms)
+    d.update([(y, k) for k, x in enumerate(self.surface) for y in x])
+    return d
 
 
   def set_surface(self, site):
@@ -167,6 +173,16 @@ class Flake(object):
     return weights
 
 
+  def cave(self):
+    temp_atoms = self.atoms.copy()
+    ret = []
+    for atom in temp_atoms:
+      if not self.real_neighbours(atom, void=True):
+        self.atoms.remove(atom)
+        ret.append(atom)
+    return ret
+
+
 ############
 #  GROWTH  #
 ############
@@ -223,6 +239,10 @@ class Flake(object):
     """
     self.surface[slot].remove(at)
     self.atoms.add(at)
+    self.colors.update(((at, 11),))
+    if len(self.trail) == self.trail_length:
+      old = self.trail.pop()
+      self.colors.update(((old, 15),))
     self.trail.appendleft(at)        # create list of latest additions
 
     empty_neighbours = self.real_neighbours(at, void=True)
@@ -232,7 +252,10 @@ class Flake(object):
           self.surface[e_slot].remove(each)
           try:
             self.surface[e_slot + 1].add(each)
+            self.colors.update(((each, e_slot + 1),))
           except IndexError:
+            # self.colors.remove(((each, e_slot + 1),))
+            self.colors.pop(each)
             qprint("Filled a bubble...oO", quiet=Q)
           break
       else:
@@ -282,11 +305,17 @@ class Flake(object):
           xyz_file_p.write(string)
 
 
-  def plot(self, save=False, tag=''):
+  def plot(self, save=False, tag='', pipeline=False):
     """ The `color()` function appends values for colors to the `color_list`.
     This list must have the same length as `whole` to plot correctly.
 
     """
+    if pipeline:
+      co = self.grid.coord
+      clist = zip(*[(co(idx).x, co(idx).y, co(idx).z, c) for (idx, c) in self.colors.items()])
+      # clist = [(co(idx).x, co(idx).y, co(idx).z, c) for (idx, c) in self.colors.items()]
+      return clist
+
     surface_chain = list(it.chain.from_iterable(self.surface))
     whole = list(self.atoms) + surface_chain
     x, y, z = list(zip(*(self.grid.coord(site) for site in whole)))
@@ -294,19 +323,19 @@ class Flake(object):
     color_list = []
     for each in self.atoms:
       if each in self.trail:
-        val = 1
+        val = 10
       else:
-        val = 1.3
+        val = 15
       color_list.append(val)
 
     for (idx, surf) in enumerate(self.surface):
       for each in surf:
-        color_list.append(0.08*idx)
+        color_list.append(1.*idx)
 
-    m.clf()
-    m.points3d(x, y, z, color_list, colormap="spectral",
-                         scale_factor=1.0, vmin=0, vmax=1.1)
-    if save:
+    # m.clf()
+    m.points3d(x, y, z, color_list, colormap="gist_ncar",
+                         scale_factor=0.1, vmin=0, vmax=15)
+    if save == 1:
       m.options.offscreen = True    # this should suppress output on screen
       if tag:                       # currently not working (bug in mayavi?)
         tag = str(tag) + '_'
@@ -317,4 +346,5 @@ class Flake(object):
       m.savefig(fname, size=(1024, 768))
       m.close()
     else:
-      m.show()
+      return x, y, z, color_list
+      # m.show()
