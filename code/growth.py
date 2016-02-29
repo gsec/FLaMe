@@ -11,11 +11,10 @@ from __future__ import print_function, division, generators
 import arrow
 import itertools as it
 from os import path, mkdir
-from collections import deque, OrderedDict
+from collections import deque
 from math import pi
 from helper import *
 from mayavi import mlab as m
-from numpy.random import choice as weighted_choice
 from random import choice, random
 
 Q = False          # Set verbosity, Q is quiet
@@ -26,11 +25,11 @@ class Flake(object):
   """
   def __init__(self, *twins, **kwargs):
     self.twins = twins
-    self.span = range(12)                 # take all 12 NN as possibilities
+    self.maxNB = range(12)                 # take all 12 NN as possibilities
 
     self.seed_shape = kwargs.get('seed', 'sphere')
-    self.trail_length = kwargs.get('trail', 10)
-    self.temp = kwargs.get('temp', 10)
+    self.trail_length = kwargs.get('trail', 20)
+    self.temp = kwargs.get('temp', 150)
     self.iter, self.atoms = self.seed(self.seed_shape)
     self.trail = deque(maxlen=self.trail_length)   # specify length of trail
 
@@ -49,32 +48,36 @@ class Flake(object):
 # #############
   def seed(self, shape='point'):
     if shape == 'point':
-      sites = set(((0, 0, 0),))
+      seed = set(((0, 0, 0),))
     elif shape == 'cube':
-      sites = set(it.product((-1, 0, 1), repeat=3))
+      seed = set(it.product((-1, 0, 1), repeat=3))
     elif shape == 'bigcube':
-      sites = set(it.product((-2, -1, 0, 1, 2), repeat=3))
+      seed = set(it.product((-2, -1, 0, 1, 2), repeat=3))
     elif shape == 'sphere':
-      sites = set(((0, -1, 1), (0, 0, 1), (-1, 0, 1), (-1, -1, -1), (0, -1, -1),
+      seed = set(((0, -1, 1), (0, 0, 1), (-1, 0, 1), (-1, -1, -1), (0, -1, -1),
                   (0, 0, -1), (-1, -1, 0), (-1, 0, 0), (-1, 1, 0), (0, -1, 0),
                   (0, 1, 0), (1, 0, 0), (0, 0, 0)))
     elif shape == 'plane':
-      sites = set(((1, 0, 0), (1, 2, 0), (-2, 1, 0), (-2, 0, 0), (1, -1, 0),
+      seed = set(((1, 0, 0), (1, 2, 0), (-2, 1, 0), (-2, 0, 0), (1, -1, 0),
                   (0, 1, 0), (-2, 2, 0), (-1, 0, 0), (-2, -2, 0), (0, -1, 0),
                   (1, 1, 0), (1, -2, 0), (0, -2, 0), (0, 2, 0), (2, 0, 0),
                   (-1, -2, 0), (-1, 1, 0), (-1, 2, 0), (2, -1, 0), (-1, -1, 0),
                   (2, 2, 0), (0, 0, 0), (2, 1, 0), (-2, -1, 0), (2, -2, 0)))
-    return len(sites), sites
+    return len(seed), seed
 
   def sites(self):
-    return OrderedDict(('Slot [{}]'.format(i), len(x)) for (i, x) in
-                     enumerate(self.surface))
+    return {i: len(x) for (i, x) in enumerate(self.surface)}
 
   def color_init(self):
     d = dict((k, 15) for k in self.atoms)
     d.update([(y, k) for k, x in enumerate(self.surface) for y in x])
     return d
 
+  def integrated_surface(self):
+    integrated_surface = set()
+    for i in self.maxNB:
+      integrated_surface.update(self.surface[i])
+    return integrated_surface
 
   def set_surface(self, site):
     """ Adds an empty site to the corresponding surface slot.
@@ -90,7 +93,7 @@ class Flake(object):
     Iterates through every atom and populates each adjacent empty site to the
     surface list.
     """
-    self.surface = [set() for _ in self.span]
+    self.surface = [set() for _ in self.maxNB]
     for atom in self.atoms:
       adjacent_voids = self.real_neighbours(atom, void=True)
       for nb in adjacent_voids:
@@ -128,11 +131,10 @@ class Flake(object):
   def abs_neighbours(self, idx):
     """ Return a list of next neighbours of `i, j, k`
     """
-    absNB = set(it.product((-2, -1, 0, 1, 2), repeat=3))     # create NN indices
+    absNB = set(it.product(range(-1, 2), repeat=3))     # create NN indices
     absNB.remove((0, 0, 0))
     pairs = (zip(idx, nn) for nn in absNB)
-    absolutes = (tuple(sum(y) for y in x) for x in pairs)
-    return absolutes
+    return [tuple(sum(y) for y in x) for x in pairs]
 
 
   def real_neighbours(self, atom, void=False):
@@ -147,11 +149,11 @@ class Flake(object):
     """
     DIFF_CAP = 2.1
     choice_vec = self.grid.coord(atom)
-    indexed = list(self.abs_neighbours(atom))
+    indexed = self.abs_neighbours(atom)
     coordinates = (self.grid.coord(ai_site) for ai_site in indexed)
     diffs = (choice_vec.dist(ac_site) for ac_site in coordinates)
-    associated = list(zip(indexed, diffs))
-    nearest = [nb for nb, diff in associated if diff < DIFF_CAP]
+    associated = zip(indexed, diffs)
+    nearest = (nb for nb, diff in associated if diff < DIFF_CAP)
     if void:
       return [nb for nb in nearest if nb not in self.atoms]
     else:
@@ -163,71 +165,94 @@ class Flake(object):
 #################
   def prob(self):
     weights = []
-    factor = 5.
-    func = lambda x: x**((300 - self.temp)/factor) * len(self.surface[x])
-    norm = sum(func(idx) for idx, item in enumerate(self.surface))
-    for slot in self.span:
-      p = func(slot) / norm
+    func = lambda x: len(self.surface[x]) * x**(273 - self.temp)
+    for slot in self.maxNB:
+      p = func(slot)
       weights.append(p)
-    assert(1 - sum(weights) < 1e-12)  # Probability check
     return weights
 
 
-  def cave(self):
-    temp_atoms = self.atoms.copy()
-    ret = []
-    for atom in temp_atoms:
-      if not self.real_neighbours(atom, void=True):
-        self.atoms.remove(atom)
-        ret.append(atom)
-    return ret
+  def carve(self):
+    """ Makes the flake hollow by removing atoms without adjacent surface.
+
+    Affects self.atoms and self.colors
+    """
+    t_start = arrow.now()
+    skin = set()
+    srfc = self.integrated_surface()
+
+    for spot in srfc:
+      occupied_surface = self.real_neighbours(spot, void=False)
+      skin.update(occupied_surface)
+    diff = len(self.atoms) - len(skin)
+    self.atoms = skin
+
+    whole = srfc.union(skin)
+    new_dict = {x: self.colors[x] for x in whole}
+    self.colors = new_dict
+
+    t_end = arrow.now()
+    t_delta = (t_end - t_start).total_seconds()
+    qprint("Carved out {} atoms in {} sec.".format(diff, t_delta), quiet=Q)
 
 
 ############
 #  GROWTH  #
 ############
-  def grow(self, rounds=1):
-    for r in range(rounds):
-      sp = self.prob()
-      slot = weighted_choice(self.span, p=sp)
-      chosen = choice(tuple(self.surface[slot]))
-      self.put_atom(chosen, slot)
-
-
-  def det_grow(self, rounds=1, noise=0, cap=1):
+  def grow(self, rounds=1, mode='prob', cap=1):
     """ Transform a surface site into an atom.
 
     The site is chosen randomly from the highest populated surface slot. With a
     probability of `noise` the atoms will be chosen randomly from all available
     surface sites.
     """
-    for r in range(rounds):
-      if noise:
-        if random() < noise:
-          chosen, slot = self.rand_grow('NoiZ')
-      else:
-        for slot in range(11, cap-1, -1):
-          if self.surface[slot]:
-            chosen = choice(tuple(self.surface[slot]))
-            break
-        else:
-          print("Flake has no sites with {} or more free bindings. STOPP at {}"
-                "th growth step.\n".format(cap, r))
-          ans = raw_input("Continue with single growth? [y/n]\t")
-          if ans in 'Yy':
-            self.det_grow()
-            continue
-          break
-      self.put_atom(chosen, slot)
-    return self.trail
+    def go():
+      func_dict = {'prob': prob_grow, 'det': det_grow, 'rand': rand_grow}
+      print("GROWTH PROCEDURE -=-=-=-=-=-=-\n[{}]\t{} rounds\t CAP {}.".format(
+        mode.upper(), rounds, cap))
 
-  def rand_grow(self, text):
-    chosen = choice(list(it.chain.from_iterable(self.surface)))
-    slot = next(i for i, x in enumerate(self.surface) if chosen in x)
-    msg = "[{}] add {} in Slot: [{}]\nWe are @ {} iterations.\n".format(text,
-      chosen, slot, self.iter)
-    qprint(msg, quiet=Q)
-    return chosen, slot
+      for step in range(rounds):
+        func = func_dict[mode]
+        while not any(self.sites()[x] for x in range(cap, 12)):
+          if ask(step):
+            break
+          else:
+            return None
+        self.put_atom(*func())
+
+    def prob_grow():
+      weights = self.prob()
+      rnd = random()*sum(weights)
+      for slot, w in enumerate(weights):
+        rnd -= w
+        if rnd < 0:
+          break
+      chosen = choice(tuple(self.surface[slot]))
+      return chosen, slot
+
+    def det_grow():
+      for slot in range(11, 0, -1):
+        if self.surface[slot]:
+          chosen = choice(tuple(self.surface[slot]))
+          return chosen, slot
+
+    def rand_grow():
+      chosen = choice(list(it.chain.from_iterable(self.surface)))
+      slot = next(i for i, x in enumerate(self.surface) if chosen in x)
+      return chosen, slot
+
+    def ask(step):
+      while True:
+        print("Flake has no sites with {} or more free bindings. STOPP at {}"
+              "th growth step.\n".format(cap, step))
+        ans = raw_input("Continue with single growth? [y/n]\t")
+        if ans in 'Yy':
+          return True
+        elif ans in 'nN':
+          return False
+
+    go()
+
 
   def put_atom(self, at, slot):
     """ * remove atom from its slot
@@ -239,8 +264,8 @@ class Flake(object):
     """
     self.surface[slot].remove(at)
     self.atoms.add(at)
-    self.colors.update(((at, 11),))
-    if len(self.trail) == self.trail_length:
+    self.colors.update(((at, 13),))
+    if len(self.trail) >= self.trail.maxlen:
       old = self.trail.pop()
       self.colors.update(((old, 15),))
     self.trail.appendleft(at)        # create list of latest additions
@@ -254,12 +279,12 @@ class Flake(object):
             self.surface[e_slot + 1].add(each)
             self.colors.update(((each, e_slot + 1),))
           except IndexError:
-            # self.colors.remove(((each, e_slot + 1),))
             self.colors.pop(each)
             qprint("Filled a bubble...oO", quiet=Q)
           break
       else:
         self.surface[1].add(each)    # create new surface entry for new ones
+        self.colors.update(((each, 1),))
     self.iter += 1
 
 
@@ -310,31 +335,13 @@ class Flake(object):
     This list must have the same length as `whole` to plot correctly.
 
     """
+    co = self.grid.coord
+    clist = zip(*[(co(idx).x, co(idx).y, co(idx).z, c) for (idx, c) in
+                  self.colors.items()])
     if pipeline:
-      co = self.grid.coord
-      clist = zip(*[(co(idx).x, co(idx).y, co(idx).z, c) for (idx, c) in self.colors.items()])
-      # clist = [(co(idx).x, co(idx).y, co(idx).z, c) for (idx, c) in self.colors.items()]
       return clist
 
-    surface_chain = list(it.chain.from_iterable(self.surface))
-    whole = list(self.atoms) + surface_chain
-    x, y, z = list(zip(*(self.grid.coord(site) for site in whole)))
-
-    color_list = []
-    for each in self.atoms:
-      if each in self.trail:
-        val = 10
-      else:
-        val = 15
-      color_list.append(val)
-
-    for (idx, surf) in enumerate(self.surface):
-      for each in surf:
-        color_list.append(1.*idx)
-
-    # m.clf()
-    m.points3d(x, y, z, color_list, colormap="gist_ncar",
-                         scale_factor=0.1, vmin=0, vmax=15)
+    m.points3d(*clist, colormap="gist_ncar", scale_factor=0.1, vmin=0, vmax=15)
     if save == 1:
       m.options.offscreen = True    # this should suppress output on screen
       if tag:                       # currently not working (bug in mayavi?)
@@ -346,5 +353,4 @@ class Flake(object):
       m.savefig(fname, size=(1024, 768))
       m.close()
     else:
-      return x, y, z, color_list
-      # m.show()
+      m.show()
