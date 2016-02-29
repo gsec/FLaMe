@@ -28,8 +28,8 @@ class Flake(object):
     self.maxNB = range(12)                 # take all 12 NN as possibilities
 
     self.seed_shape = kwargs.get('seed', 'sphere')
-    self.trail_length = kwargs.get('trail', 10)
-    self.temp = kwargs.get('temp', 10)
+    self.trail_length = kwargs.get('trail', 20)
+    self.temp = kwargs.get('temp', 150)
     self.iter, self.atoms = self.seed(self.seed_shape)
     self.trail = deque(maxlen=self.trail_length)   # specify length of trail
 
@@ -73,6 +73,11 @@ class Flake(object):
     d.update([(y, k) for k, x in enumerate(self.surface) for y in x])
     return d
 
+  def integrated_surface(self):
+    integrated_surface = set()
+    for i in self.maxNB:
+      integrated_surface.update(self.surface[i])
+    return integrated_surface
 
   def set_surface(self, site):
     """ Adds an empty site to the corresponding surface slot.
@@ -126,11 +131,10 @@ class Flake(object):
   def abs_neighbours(self, idx):
     """ Return a list of next neighbours of `i, j, k`
     """
-    absNB = set(it.product((-2, -1, 0, 1, 2), repeat=3))     # create NN indices
+    absNB = set(it.product(range(-1, 2), repeat=3))     # create NN indices
     absNB.remove((0, 0, 0))
     pairs = (zip(idx, nn) for nn in absNB)
-    absolutes = (tuple(sum(y) for y in x) for x in pairs)
-    return absolutes
+    return [tuple(sum(y) for y in x) for x in pairs]
 
 
   def real_neighbours(self, atom, void=False):
@@ -145,11 +149,11 @@ class Flake(object):
     """
     DIFF_CAP = 2.1
     choice_vec = self.grid.coord(atom)
-    indexed = list(self.abs_neighbours(atom))
+    indexed = self.abs_neighbours(atom)
     coordinates = (self.grid.coord(ai_site) for ai_site in indexed)
     diffs = (choice_vec.dist(ac_site) for ac_site in coordinates)
-    associated = list(zip(indexed, diffs))
-    nearest = [nb for nb, diff in associated if diff < DIFF_CAP]
+    associated = zip(indexed, diffs)
+    nearest = (nb for nb, diff in associated if diff < DIFF_CAP)
     if void:
       return [nb for nb in nearest if nb not in self.atoms]
     else:
@@ -161,28 +165,35 @@ class Flake(object):
 #################
   def prob(self):
     weights = []
-    func = lambda x: x**(100 - self.temp) * len(self.surface[x])
+    func = lambda x: len(self.surface[x]) * x**(273 - self.temp)
     for slot in self.maxNB:
       p = func(slot)
       weights.append(p)
     return weights
 
 
-  def cave(self):
+  def carve(self):
     """ Makes the flake hollow by removing atoms without adjacent surface.
+
+    Affects self.atoms and self.colors
     """
-    srfc = set()
+    t_start = arrow.now()
     skin = set()
-    for x in self.maxNB:
-      srfc.update(self.surface[x])
+    srfc = self.integrated_surface()
+
     for spot in srfc:
       occupied_surface = self.real_neighbours(spot, void=False)
       skin.update(occupied_surface)
+    diff = len(self.atoms) - len(skin)
     self.atoms = skin
 
     whole = srfc.union(skin)
     new_dict = {x: self.colors[x] for x in whole}
     self.colors = new_dict
+
+    t_end = arrow.now()
+    t_delta = (t_end - t_start).total_seconds()
+    qprint("Carved out {} atoms in {} sec.".format(diff, t_delta), quiet=Q)
 
 
 ############
@@ -197,6 +208,9 @@ class Flake(object):
     """
     def go():
       func_dict = {'prob': prob_grow, 'det': det_grow, 'rand': rand_grow}
+      print("GROWTH PROCEDURE -=-=-=-=-=-=-\n[{}]\t{} rounds\t CAP {}.".format(
+        mode.upper(), rounds, cap))
+
       for step in range(rounds):
         func = func_dict[mode]
         while not any(self.sites()[x] for x in range(cap, 12)):
@@ -237,8 +251,6 @@ class Flake(object):
         elif ans in 'nN':
           return False
 
-    print("GROWTH PROCEDURE -=-=-=-=-=-=-\n[{}]\t{} rounds\t CAP {}.".format(
-      mode.upper(), rounds, cap))
     go()
 
 
@@ -253,7 +265,7 @@ class Flake(object):
     self.surface[slot].remove(at)
     self.atoms.add(at)
     self.colors.update(((at, 13),))
-    if len(self.trail) == self.trail_length:
+    if len(self.trail) >= self.trail.maxlen:
       old = self.trail.pop()
       self.colors.update(((old, 15),))
     self.trail.appendleft(at)        # create list of latest additions

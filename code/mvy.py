@@ -3,7 +3,7 @@
 from mayavi import mlab
 import growth
 
-TL = 100
+TL = 500
 f = growth.Flake(-2, 2, trail=TL, temp=0)
 coords  = f.plot(pipeline=True)
 
@@ -13,14 +13,15 @@ fig = mlab.gcf()
 
 
 @mlab.show
-@mlab.animate(ui=False)
+@mlab.animate(ui=True)
 def anim():
   """Animate."""
   while 1:
     f.grow(TL)
+    f.carve()
     x, y, z, c = f.plot(pipeline=True)
     ms.reset(x=x, y=y, z=z, scalars=c)
-    mlab.yaw(2)
+    mlab.yaw(10)
     fig.scene.reset_zoom()
     yield
 
