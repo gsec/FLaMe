@@ -6,20 +6,28 @@ from math import sqrt
 
 
 class Grid(object):
-  def __init__(self, twins):
-    """ Methods for getting the correct coordinates.
+  """ Methods for getting the correct coordinates.
 
-    Takes twin planes and the fcc-structure of the crystal into account.
-    """
+  Takes twin planes and the fcc-structure of the crystal into account.
+  """
+  def __init__(self, twins):
     self.twins = twins
     self.twin_layers, self.upcounter, self.upsign = self.twin_gen()
 
 
   def twin_gen(self):
-    """ Create a z-list representing the permutation of the layer.
+    """ Create a representation of the layer permutation .
 
+    Return `list`, `counter`, `sign`
     Mapping an ABC layer to: A -> 0, B -> 1, C -> 2
     And flipping the order at each twin plane: ABCABCAB... -> AB'C'BACBA...
+
+
+    In the range of the passed twin planes this is a `list` of the mapped
+    permutation.
+    Below to -iNf the order is as without twin planes.
+    Above we take the `counter` for offset and `sign` for correct order of the
+    remaining planes up to +iNf.
     """
     if not self.twins:
       return None, None, None
@@ -32,7 +40,7 @@ class Grid(object):
       if layer in self.twins:
         sign *= -1
       counter += sign
-    counter -= sign             # undo last addition for variable export
+    counter -= sign             # undo last addition for counter export
     return (twin_layers, counter % 3, sign)
 
 

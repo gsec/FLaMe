@@ -1,29 +1,42 @@
 #!/usr/bin/env python2
 ## encoding: utf-8
-"""                       FLAKE GROWTH SIMULATION
-                          ~~~~~~~~~~~~~~~~~~~~~~~
+"""                       FLaMe - a FLakeLAtticeMOdelEr
 
-                          Guilherme Stein © 2015
-                          University of Würzburg
                           <guilherme.stein@physik.uni-wuerzburg.de>
 """
 from __future__ import print_function, division, generators
 import arrow
 import itertools as it
-from os import path, mkdir
-from collections import deque
 from math import pi
 from helper import *
+from collections import deque
+from os import path, mkdir
 from mayavi import mlab as m
 from random import choice, random
 
-Q = False          # Set verbosity, Q is quiet
 
 
 class Flake(object):
-  """ FLAKE creation class.
+  """ Generates a whole Flake object with a FCC lattice and twin planes.
+
+  The Flake take an arbitrary number of integers as `*args`, the twin planes.
+  They are converted into a twin-plane tuple and proper layer stacking is
+  calculated accordingly.
+
+  Following keyword arguments are possible:
+    `seed`: str in {point, sphere, cube, bigcube, plane}
+    `trail`: int for length of the marked atoms trail
+    `temp`: float in {0 .. 273}, determines the probability through exponential.
   """
+  quietness = False          # Set qprint() verbosity
+
   def __init__(self, *twins, **kwargs):
+    """ Flake bootstrap.
+
+    * Create a seed
+    * Add those to atoms list
+    * Generate appropriate surface
+    """
     self.twins = twins
     self.maxNB = range(12)                 # take all 12 NN as possibilities
 
@@ -39,14 +52,22 @@ class Flake(object):
 
 
   def __repr__(self):
+    """ Representation of the Flake. [`twins`][`iterations`][`seed`][`temp`]
+    """
     return ("fLakE :: twiNpLaNes:{}\tIterations:[{}]\t Seed:[{}]\tTemperature:"
             "[{}K]".format(self.twins, self.iter, self.seed_shape, self.temp))
 
 
-# # ###########
-#     BASIC   #
-# #############
+#######################
+#    INITIALIZATION   #
+#######################
   def seed(self, shape='point'):
+    """ Create the first atoms to initialize the surface creation.
+
+    `seeds` are sets of tuples containing atom indices. The return value is a
+    tuple with the first element being the number of seed atoms and the second
+    the set of tuples.
+    """
     if shape == 'point':
       seed = set(((0, 0, 0),))
     elif shape == 'cube':
@@ -65,20 +86,21 @@ class Flake(object):
                   (2, 2, 0), (0, 0, 0), (2, 1, 0), (-2, -1, 0), (2, -2, 0)))
     return len(seed), seed
 
-  def sites(self):
-    return {i: len(x) for (i, x) in enumerate(self.surface)}
-
   def color_init(self):
-    d = dict((k, 15) for k in self.atoms)
-    d.update([(y, k) for k, x in enumerate(self.surface) for y in x])
-    return d
+    """ Initialize the `color` attribute.
 
-  def integrated_surface(self):
-    integrated_surface = set()
-    for i in self.maxNB:
-      integrated_surface.update(self.surface[i])
-    return integrated_surface
+    Assign each atom a fixed value and surface elements according to their slot
+    position. This is stored as dict in `self.colors`. The colors-attribute
+    keeps track of atoms and surface values for visual representation.
+    """
+    color_dict = dict((at, 15) for at in self.atoms)
+    color_dict.update([(entry, slot) for slot, shelf in enumerate(self.surface) for entry in shelf])
+    return color_dict
 
+
+##############
+#  SURFACES  #
+##############
   def set_surface(self, site):
     """ Adds an empty site to the corresponding surface slot.
     """
@@ -100,11 +122,29 @@ class Flake(object):
         self.set_surface(nb)
 
 
+  def integrated_surface(self):
+    """ Return a set with all surface sites.
+    """
+    integrated_surface = set()
+    for i in self.maxNB:
+      integrated_surface.update(self.surface[i])
+    return integrated_surface
+
+
+  def sites(self):
+    """ Return a dictionary mapping binding slots to their quantity in surface.
+    """
+    return {i: len(x) for (i, x) in enumerate(self.surface)}
+
+
   def geometry(self):
     """ Calculate geometry information about the Flake.
 
-    Area is approximated as circle. Its radius is the distance from center to
-    the furthest atom.
+    `height`: diff + 1 of furthest atoms in z-direction
+    `radius`: distance to center of farmost atom
+    `area`: pi*radius**2
+    `aspect ratio`: comparison between the vertikal and horizontal dimension
+                    (2*radius/height)
     """
     COORD = self.grid.coord
     POOL = self.atoms
@@ -113,7 +153,7 @@ class Flake(object):
     mnz = min(POOL, key=lambda i: i[2])[2]
     mxr = max(POOL, key=lambda i: i[0]**2 + i[1]**2)
 
-    items = {                                         # +1 correct for border
+    items = {                  # + 1 correct for border
       'height': COORD((0, 0, mxz + 1)).dist(COORD((0, 0, mnz))),
       'radius': COORD(mxr).dist(COORD((0, 0, mxr[2])))}
     items.update({
@@ -128,12 +168,12 @@ class Flake(object):
 # # #################
 #   NEIGHBORHOOD  #
 # ##################
-  def abs_neighbours(self, idx):
-    """ Return a list of next neighbours of `i, j, k`
+  def abs_neighbours(self, atom):
+    """ Return the list of next neighbours in index space of atom `idx`.
     """
     absNB = set(it.product(range(-1, 2), repeat=3))     # create NN indices
     absNB.remove((0, 0, 0))
-    pairs = (zip(idx, nn) for nn in absNB)
+    pairs = (zip(atom, nn) for nn in absNB)
     return [tuple(sum(y) for y in x) for x in pairs]
 
 
@@ -148,11 +188,13 @@ class Flake(object):
     * return `void` or `occupied` neighbours
     """
     DIFF_CAP = 2.1
-    choice_vec = self.grid.coord(atom)
+
     indexed = self.abs_neighbours(atom)
     coordinates = (self.grid.coord(ai_site) for ai_site in indexed)
+    choice_vec = self.grid.coord(atom)
     diffs = (choice_vec.dist(ac_site) for ac_site in coordinates)
     associated = zip(indexed, diffs)
+
     nearest = (nb for nb, diff in associated if diff < DIFF_CAP)
     if void:
       return [nb for nb in nearest if nb not in self.atoms]
@@ -193,7 +235,7 @@ class Flake(object):
 
     t_end = arrow.now()
     t_delta = (t_end - t_start).total_seconds()
-    qprint("Carved out {} atoms in {} sec.".format(diff, t_delta), quiet=Q)
+    qprint("Carved out {} atoms in {} sec.".format(diff, t_delta), quiet=quietness)
 
 
 ############
@@ -201,10 +243,6 @@ class Flake(object):
 ############
   def grow(self, rounds=1, mode='prob', cap=1):
     """ Transform a surface site into an atom.
-
-    The site is chosen randomly from the highest populated surface slot. With a
-    probability of `noise` the atoms will be chosen randomly from all available
-    surface sites.
     """
     def go():
       func_dict = {'prob': prob_grow, 'det': det_grow, 'rand': rand_grow}
@@ -268,7 +306,7 @@ class Flake(object):
     if len(self.trail) >= self.trail.maxlen:
       old = self.trail.pop()
       self.colors.update(((old, 15),))
-    self.trail.appendleft(at)        # create list of latest additions
+    self.trail.appendleft(at)     # prepend new atom to list of latest additions
 
     empty_neighbours = self.real_neighbours(at, void=True)
     for each in empty_neighbours:
@@ -280,7 +318,7 @@ class Flake(object):
             self.colors.update(((each, e_slot + 1),))
           except IndexError:
             self.colors.pop(each)
-            qprint("Filled a bubble...oO", quiet=Q)
+            qprint("Filled a bubble...oO", quiet=quietness)
           break
       else:
         self.surface[1].add(each)    # create new surface entry for new ones
@@ -301,7 +339,9 @@ class Flake(object):
 
 
   def export(self, tag='flake'):
-    """ Simplified export function adapted from 'io_mesh_xyz'.
+    """ Exports the **xyz**-coordinates of the Flake atoms.
+
+    Adapted from Atomic Blender, can be imported with xyz_io_mesh.
     """
     raw_atoms = (('Au', tuple(self.grid.coord(at)))
                  for at in self.atoms if at)
@@ -313,7 +353,7 @@ class Flake(object):
       counter += 1
 
     save_dir = self.daily_output()
-    fname = "{tag}._TP-{tp}_it-{it}_{tag}.xyz".format(
+    fname = "{tag}._TP-{tp}_it-{it}.xyz".format(
       tp=self.twins, it=len(self.atoms), tag=tag)
     filepath_xyz = path.join(save_dir, fname)
     with open(filepath_xyz, "w") as xyz_file_p:
@@ -331,9 +371,10 @@ class Flake(object):
 
 
   def plot(self, save=False, tag='', pipeline=False):
-    """ The `color()` function appends values for colors to the `color_list`.
-    This list must have the same length as `whole` to plot correctly.
+    """ Transforms the `colors` list to 4 lists of x, y, z, c.
 
+    This list, the `clist` is either returned or displayed in mayavi.
+    Optionally a picture is saved to disk.
     """
     co = self.grid.coord
     clist = zip(*[(co(idx).x, co(idx).y, co(idx).z, c) for (idx, c) in
