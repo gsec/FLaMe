@@ -158,7 +158,7 @@ class Vector(object):
   def dist(self, other):
     """ Return distance between the vectors.  """
     delta = self - other
-    return round(abs(delta), 4)
+    return abs(delta)
 
 
   def __abs__(self):
