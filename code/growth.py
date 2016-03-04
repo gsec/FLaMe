@@ -28,7 +28,6 @@ class Flake(object):
     `trail`: int for length of the marked atoms trail
     `temp`: float in {0 .. 273}, determines the probability through exponential.
   """
-  quietness = False          # Set qprint() verbosity
 
   def __init__(self, *twins, **kwargs):
     """ Flake bootstrap.
@@ -37,6 +36,7 @@ class Flake(object):
     * Add those to atoms list
     * Generate appropriate surface
     """
+    self.quiet = False          # Set qprint() verbosity
     self.twins = twins
     self.maxNB = range(12)                 # take all 12 NN as possibilities
 
@@ -94,7 +94,8 @@ class Flake(object):
     keeps track of atoms and surface values for visual representation.
     """
     color_dict = dict((at, 15) for at in self.atoms)
-    color_dict.update([(entry, slot) for slot, shelf in enumerate(self.surface) for entry in shelf])
+    color_dict.update([(entry, slot) for slot, shelf in enumerate(self.surface)
+                       for entry in shelf])
     return color_dict
 
 
@@ -141,7 +142,7 @@ class Flake(object):
     """ Calculate geometry information about the Flake.
 
     `height`: diff + 1 of furthest atoms in z-direction
-    `radius`: distance to center of farmost atom
+    `radius`: distance from center to farmost atom
     `area`: pi*radius**2
     `aspect ratio`: comparison between the vertikal and horizontal dimension
                     (2*radius/height)
@@ -206,6 +207,11 @@ class Flake(object):
 #  PROBABILITY  #
 #################
   def prob(self):
+    """ Return a list of probability weights for each slot in surface.
+
+    Each element of the surface is weighted with the number of bindings to the
+    power of a constant.
+    """
     weights = []
     func = lambda x: len(self.surface[x]) * x**(273 - self.temp)
     for slot in self.maxNB:
@@ -235,7 +241,8 @@ class Flake(object):
 
     t_end = arrow.now()
     t_delta = (t_end - t_start).total_seconds()
-    qprint("Carved out {} atoms in {} sec.".format(diff, t_delta), quiet=quietness)
+    qprint("Carved out {} atoms in {} sec.".format(diff, t_delta),
+           quiet=self.quiet)
 
 
 ############
@@ -243,6 +250,11 @@ class Flake(object):
 ############
   def grow(self, rounds=1, mode='prob', cap=1):
     """ Transform a surface site into an atom.
+
+    `rounds` is the number of growth iterations. We have three different modes:
+      'prob', 'det' and 'rand'.
+    If there are no more surface sites with equal or more than a `cap` number of
+    bindings, growth will stop; then ask the user to continue.
     """
     def go():
       func_dict = {'prob': prob_grow, 'det': det_grow, 'rand': rand_grow}
@@ -318,7 +330,7 @@ class Flake(object):
             self.colors.update(((each, e_slot + 1),))
           except IndexError:
             self.colors.pop(each)
-            qprint("Filled a bubble...oO", quiet=quietness)
+            qprint("Filled a bubble...oO", quiet=self.quiet)
           break
       else:
         self.surface[1].add(each)    # create new surface entry for new ones
@@ -330,6 +342,10 @@ class Flake(object):
 #   OUTPUT  #
 #############
   def daily_output(self):
+    """ Generator for the date output folder.
+
+    Creates the folder if not already existent.
+    """
     self.date = arrow.now().isoformat().rsplit('T')
     today = self.date[0]
     output_dir = path.join('../output/', today)
@@ -342,6 +358,8 @@ class Flake(object):
     """ Exports the **xyz**-coordinates of the Flake atoms.
 
     Adapted from Atomic Blender, can be imported with xyz_io_mesh.
+    File is in text format with a header and four columns:
+      [ELEMENT, X, Y, Z]
     """
     raw_atoms = (('Au', tuple(self.grid.coord(at)))
                  for at in self.atoms if at)
@@ -359,7 +377,7 @@ class Flake(object):
     with open(filepath_xyz, "w") as xyz_file_p:
       xyz_file_p.write("%d\n" % counter)
       xyz_file_p.write(str(self.geometry()))
-      xyz_file_p.write("This is a XYZ file for Atomic Blender\n")
+      xyz_file_p.write("\nThis is a XYZ file. Number of atoms in first line.\n")
 
       for i, atom in enumerate(list_atoms):
           string = "%3s%15.5f%15.5f%15.5f\n" % (

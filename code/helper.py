@@ -71,9 +71,9 @@ class Grid(object):
     """
     i, j, k = idx
     shift = self.shift(k)
-    prototype = Vector((2*i + (j + shift) % 2,
-                      sqrt(3)*(j + shift/3),
-                      k*2*sqrt(6)/3))
+    prototype = Vector(2*i + (j + shift) % 2,
+                       sqrt(3)*(j + shift/3),
+                       k*2*sqrt(6)/3)
     return prototype
 
 
@@ -97,18 +97,17 @@ class Vector(object):
     * dist() method with other Vector as argument
     * length through the `abs()` method
   """
-  def __init__(self, comp):
-    self.comp = comp
-    self.x, self.y, self.z = self.comp
+  def __init__(self, x, y, z):
+    self.x, self.y, self.z = float(x), float(y), float(z)
 
   def __repr__(self):
-    x, y, z = (round(r, 2) for r in self.comp)
+    x, y, z = (round(r, 2) for r in (self.x, self.y, self.z))
     return 'Vector:({}, {}, {})'.format(x, y, z)
 
 
   def __iter__(self):
     """ Iteration over a Vector yields its components.  """
-    for comp in self.comp:
+    for comp in (self.x, self.y, self.z):
       yield comp
 
 
@@ -124,7 +123,7 @@ class Vector(object):
     new_x = self.x + other.x
     new_y = self.y + other.y
     new_z = self.z + other.z
-    return Vector((new_x, new_y, new_z))
+    return Vector(new_x, new_y, new_z)
 
 
   def __sub__(self, other):
@@ -132,7 +131,7 @@ class Vector(object):
     new_x = self.x - other.x
     new_y = self.y - other.y
     new_z = self.z - other.z
-    return Vector((new_x, new_y, new_z))
+    return Vector(new_x, new_y, new_z)
 
 
   def __mul__(self, other):
@@ -140,7 +139,7 @@ class Vector(object):
     new_x = other*self.x
     new_y = other*self.y
     new_z = other*self.z
-    return Vector((new_x, new_y, new_z))
+    return Vector(new_x, new_y, new_z)
 
 
   def __rmul__(self, other):
@@ -151,7 +150,7 @@ class Vector(object):
     new_x = self.x/other
     new_y = self.y/other
     new_z = self.z/other
-    return Vector((new_x, new_y, new_z))
+    return Vector(new_x, new_y, new_z)
 
 
 
