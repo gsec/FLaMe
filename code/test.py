@@ -3,94 +3,92 @@
 #                     The test module for the flake simulation
 from __future__ import print_function, division, generators
 import unittest
-from helper import Vector, qprint
-from growth import Flake
-
-global F
-F = Flake(size=5, twins=(3, ), seed_size=1)
+import growth
+from helper import Vector
 
 
-class TestGrid(unittest.TestCase):
-  """ Flake with lattice, atoms and growth. """
+class TestFlake(unittest.TestCase):
+  """ Flake sanity checks.
+  """
+  def test_point_structure(self):
+    f = growth.Flake(seed='point')
+    surface_one = set([(-1, 0, 1), (0, 0, 1), (0, -1, 1), (0, -1, 0),
+                        (-1, 0, 0), (0, 1, 0), (-1, 1, 0), (1, 0, 0),
+                        (-1, -1, 0), (0, -1, -1), (0, 0, -1), (-1, -1, -1)])
+    self.assertEqual(f.atoms, set([(0, 0, 0)]))
+    self.assertEqual(f.surface[1], surface_one)
+    self.assertEquals(len(f.integrated_surface()), len(f.maxNB))
 
-  def test_grid(self):
-    """ Test the raw_grid list and its access method grid().
+    self.assertEqual(f.grid.twins, ())
+    self.assertEqual(f.grid.twin_layers, None)
 
-    Creates new instance to ensure no altering of attributes. Ensure raw_grid
-    and grid access method return False since no atom is present at
-    initialization.
+
+  def test_neighbours(self):
+    """ Test if our chosen atom has the proper neighbours in index space,
+    ensure this translates into correct atoms considering the real space
+    distance and make sure all neighbours return our seed as non-void
+    neighborhood.
     """
-    g = Flake(size=8)
-    idx = (1, 3, 2)
-    self.assertEqual(g.grid.data[0][3][4], 0)
-    self.assertEqual(bool(g.grid.get(idx)), False)
-    g.grid.set(idx, value=45)
-    self.assertEqual(bool(g.grid.get(idx)), True)
+    f = growth.Flake(seed='point')
+    atom = (2, 5, 8)
+    all_neighbours = [(2, 6, 9), (3, 4, 7), (3, 5, 9), (3, 4, 8), (1, 6, 7),
+                      (3, 6, 7), (2, 4, 7), (2, 5, 7), (1, 5, 9), (1, 5, 8),
+                      (3, 5, 8), (1, 5, 7), (2, 5, 9), (2, 4, 9), (2, 4, 8),
+                      (3, 6, 9), (1, 6, 8), (3, 6, 8), (1, 6, 9), (1, 4, 9),
+                      (3, 5, 7), (1, 4, 8), (3, 4, 9), (2, 6, 8), (2, 6, 7),
+                      (1, 4, 7)]
+    self.assertEqual(all_neighbours, f.abs_neighbours(atom))
+
+    point_seed = (0, 0, 0)
+    next_neighbours = [(0, -1, -1), (0, 0, -1),  (-1, 0, 1),  (-1, 0, 0),
+                       (1, 0, 0),   (0, 0, 1),   (0, -1, 1),  (0, -1, 0),
+                       (-1, 1, 0),  (-1, -1, 0), (0, 1, 0),   (-1, -1, -1)]
+    self.assertEqual(next_neighbours, f.real_neighbours(point_seed, void=True))
+    for each in next_neighbours:
+      self.assertEqual([point_seed], f.real_neighbours(each, void=False))
 
 
-class Neighbours(unittest.TestCase):
-  def test_abs_neighbours(self):
-    result = list(F.abs_neighbours((2, 3, 2)))
+  def test_twin_plane_creation(self):
+    twinplanes = (4, 5, 6)
+    f = growth.Flake(*twinplanes)
+    self.assertEqual(f.grid.twins, twinplanes)
 
-    expected = [(3, 4, 3), (3, 4, 1), (3, 2, 3), (1, 4, 3), (2, 4, 3), (3, 4, 2),
-               (3, 3, 3), (3, 2, 1), (1, 2, 3), (1, 4, 1), (1, 4, 2), (2, 2, 3),
-               (3, 3, 1), (1, 3, 3), (3, 2, 2), (2, 4, 1), (3, 3, 2), (2, 4, 2),
-               (2, 3, 3), (1, 2, 1), (2, 2, 1), (1, 3, 1), (1, 2, 2), (1, 3, 2),
-               (2, 2, 2), (2, 3, 1)]
-    self.assertEqual(result, expected)
-
-  def test_real_neighbours(self):
-    g = Flake(size=20, twins=())
-    g.clear()
-    at = (2, 2, 2)
-    g.set(at)
-    result = g.real_neighbours(at)
-    for x in result:
-      qprint(x)
+    layers = [1, 0, 1]
+    self.assertEqual(f.grid.twin_layers, layers)
 
 
 class TestVector(unittest.TestCase):
+  """ Sanity checks of the Vector class for basic operations.
+  """
   def test_equality(self):
-    vec = Vector((3, 4, 8))
-    qprint(vec)
-    self.assertEqual(vec, Vector((3, 4, 8)))
+    vec = Vector(3, 4, 8)
+    self.assertEqual(vec, Vector(3, 4, 8))
+    self.assertNotEqual(vec, Vector(1, 2, 3))
 
   def test_add(self):
-    vec1 = Vector((3, 4, 7))
-    vec2 = Vector((6, 3, 4))
+    vec1 = Vector(3, 4, 7)
+    vec2 = Vector(6, 3, 4)
     res = vec1 + vec2
-    testvec = Vector((9, 7, 11))
+    testvec = Vector(9, 7, 11)
     self.assertEqual(res, testvec)
-    num = 17
-    res = vec1 + num
-    for (rcomp, vcomp) in zip(res, vec1):
-      self.assertEqual(rcomp, vcomp + num)
 
   def test_sub(self):
-    vec1 = Vector((2, 5, 0))
-    vec2 = Vector((3, 2, -7))
-    testvec = Vector((-1, 3, 7))
+    vec1 = Vector(2, 5, 0)
+    vec2 = Vector(3, 2, -7)
+    testvec = Vector(-1, 3, 7)
     res = vec1 - vec2
     self.assertEqual(res, testvec)
-    num = 12
-    res = vec1 - num
-    for (rcomp, vcomp) in zip(res, vec1):
-      self.assertEqual(rcomp, vcomp - num)
 
   def test_dist(self):
-    vec1 = Vector((2, 5, 0))
-    vec2 = Vector((3, 3, -7))
+    vec1 = Vector(2, 5, 0)
+    vec2 = Vector(3, 3, -7)
     self.assertEqual(7.3484692283495345, vec1.dist(vec2))
     self.assertEqual(vec1.dist(vec2), vec2.dist(vec1))
     self.assertEqual(0, vec1.dist(vec1))
 
-  def test_dist_exception(self):
-    with self.assertRaises(TypeError):
-      Vector((1, 2, 3)).dist("Failboat")
-
   def test_abs(self):
-    vec1 = Vector((2, 5, 0))
-    self.assertEqual(abs(vec1), vec1.dist(Vector((0, 0, 0))))
+    vec1 = Vector(2, 5, 0)
+    self.assertEqual(abs(vec1), vec1.dist(Vector(0, 0, 0)))
 
 
 if __name__ == '__main__':
