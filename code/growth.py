@@ -301,7 +301,10 @@ class Flake(object):
         elif ans in 'nN':
           return False
 
+    t_start = arrow.now()
     go()
+    t_delta = (arrow.now() - t_start).total_seconds()
+    return t_delta
 
 
   def put_atom(self, at, slot):
@@ -400,6 +403,7 @@ class Flake(object):
     if pipeline:
       return clist
 
+    m.clf()
     m.points3d(*clist, colormap="gist_ncar", scale_factor=0.1, vmin=0, vmax=15)
     if save == 1:
       m.options.offscreen = True    # this should suppress output on screen

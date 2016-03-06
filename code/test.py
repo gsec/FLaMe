@@ -12,13 +12,15 @@ class TestFlake(unittest.TestCase):
   """
   def test_point_structure(self):
     f = growth.Flake(seed='point')
-    surface_one = set([(-1, 0, 1), (0, 0, 1), (0, -1, 1),
-              (0, -1, 0), (-1, 0, 0), (0, 1, 0),
-              (-1, 1, 0), (1, 0, 0), (-1, -1, 0),
-              (0, -1, -1), (0, 0, -1), (-1, -1, -1)])
+    surface_one = set([(-1, 0, 1), (0, 0, 1), (0, -1, 1), (0, -1, 0),
+                        (-1, 0, 0), (0, 1, 0), (-1, 1, 0), (1, 0, 0),
+                        (-1, -1, 0), (0, -1, -1), (0, 0, -1), (-1, -1, -1)])
     self.assertEqual(f.atoms, set([(0, 0, 0)]))
     self.assertEqual(f.surface[1], surface_one)
     self.assertEquals(len(f.integrated_surface()), len(f.maxNB))
+
+    self.assertEqual(f.grid.twins, ())
+    self.assertEqual(f.grid.twin_layers, None)
 
 
   def test_neighbours(self):
@@ -48,7 +50,11 @@ class TestFlake(unittest.TestCase):
 
   def test_twin_plane_creation(self):
     twinplanes = (4, 5, 6)
-    self.assertEqual(twinplanes, (000))
+    f = growth.Flake(*twinplanes)
+    self.assertEqual(f.grid.twins, twinplanes)
+
+    layers = [1, 0, 1]
+    self.assertEqual(f.grid.twin_layers, layers)
 
 
 class TestVector(unittest.TestCase):
@@ -57,6 +63,7 @@ class TestVector(unittest.TestCase):
   def test_equality(self):
     vec = Vector(3, 4, 8)
     self.assertEqual(vec, Vector(3, 4, 8))
+    self.assertNotEqual(vec, Vector(1, 2, 3))
 
   def test_add(self):
     vec1 = Vector(3, 4, 7)
