@@ -33,14 +33,13 @@ class Grid(object):
             return None, None, None
         twin_layers = []
         sign = 1
-        counter = min(self.twins) % 3
-        span = range(min(self.twins), max(self.twins) + 1)
-        for layer in span:
+        counter = (min(self.twins) - 1) % 3         # compensate for first addition
+        twin_range = range(min(self.twins), max(self.twins) + 1)
+        for layer in twin_range:
+            counter += sign
             twin_layers.append(counter % 3)
             if layer in self.twins:
                 sign *= -1
-            counter += sign
-        counter -= sign                         # undo last addition for counter export
         return (twin_layers, counter % 3, sign)
 
 
@@ -49,7 +48,7 @@ class Grid(object):
 
         LOW:    Index is smaller than lowest twinplane, or there isn't a TP at all,
                     just permutate happily mod 3
-        TPs:    Index is in TP range, get shift from twin_gen() generated list
+        TPs:    Index is in TP range, get shift from twin_gen()-generated list
         HIGH: Index is bigger than highest twinplane, shift index by highest TP
                     and continue in correct direction through sign
         """
@@ -64,27 +63,18 @@ class Grid(object):
     def coord(self, idx):
         """ Return Cartesian coordinates vector of a given lattice point.
 
-        (i, j, k) are the indices and (a, b, c) are lattice base vectors. Crystal
-        sites then are i*a + j*b + k*c.  `_perms` is the permutation (0, 1 or 2) of
-        the layer displacement according to the fcc-stacking and the twin plane
-        configuration. Every twin plane inverts the permutation order.
+        (i, j, k) are the indices and (a, b, c) are lattice base vectors. Crystal sites
+        then are i*a + j*b + k*c.  `_perms` is the permutation (0, 1 or 2) of the layer
+        displacement according to the fcc-stacking and the twin plane configuration. Every
+        twin plane inverts the permutation order. The handling of the permutation is
+        outsourced to `self.shift`.
         """
         i, j, k = idx
         shift = self.shift(k)
         prototype = Vector(2*i + (j + shift) % 2,
-                                             sqrt(3)*(j + shift/3),
-                                             k*2*sqrt(6)/3)
+                           sqrt(3)*(j + shift/3),
+                           k*2*sqrt(6)/3)
         return prototype
-
-
-def qprint(*args, **kwargs):
-    """ Override print function to suppress output.
-    """
-    try:
-        if not kwargs.pop('quiet'):
-            print(*args, **kwargs)
-    except KeyError:
-        pass
 
 
 class Vector(object):
@@ -151,7 +141,6 @@ class Vector(object):
         new_y = self.y/other
         new_z = self.z/other
         return Vector(new_x, new_y, new_z)
-
 
 
     def dist(self, other):
