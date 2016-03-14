@@ -20,15 +20,19 @@ def stats(iters=10**3, samples=20):
     TP_TRIALS = 10
     MODE = 'det'
     ID = randint(0, 0xFFFF)
-    tp_func = lambda x: (0, x)
+    tp_func = lambda x: (-x, x + 1)
+    logger.info(39*'.-' + '.')
+    logger.info('Flake Statistics -- Mode: [{}] => {} samples á {}K atoms\n'.format(
+       MODE.upper(), samples, iters/1000.))
 
     for r in range(TP_TRIALS):
         ar_acc, height_acc = 0.0, 0.0
         tp = tp_func(r)
         myF = Flake(*tp, seed='point', temp=0)
         time = '@' + arrow.now().format('YYYY\'MM\'DD HH:mm:ss')
-        logger.info(str(myF) + '\n' + 80*'=')
-        logger.info(time + " Sampling... Twinplanes: {} \tpUIdent:{}".format(tp, ID))
+        logger.info(time + ' Sampling... ')
+        logger.info('Twinplanes: {} \tpUIdent:{} \tSeed: {} \tTemp:[{}]'.format(
+          tp, ID, myF.seed_shape, myF.temp))
 
         for s in range(samples):
             myFlake = Flake(*tp, seed='point', temp=0)
@@ -45,4 +49,4 @@ def stats(iters=10**3, samples=20):
 
 
 if __name__ == '__main__':
-    stats(iters=10**5)
+    stats(iters=10**6, samples=100)
