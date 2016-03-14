@@ -44,7 +44,7 @@ class Flake(object):
 
         self.seed_shape = kwargs.get('seed', 'sphere')
         self.trail_length = kwargs.get('trail', 20)
-        self.temp = kwargs.get('temp', 150)
+        self.temp = kwargs.get('temp', 50)
         self.iter, self.atoms = self.seed(self.seed_shape)
         self.trail = deque(maxlen=self.trail_length)    # specify length of trail
 
@@ -189,7 +189,7 @@ class Flake(object):
 
         for (k, i) in items.iteritems():
             setattr(self, k, i)
-        return {k: round(v, 2) for k, v in items.iteritems()}
+        return items
 
 
   ########################
@@ -239,7 +239,7 @@ class Flake(object):
         power of a constant.
         """
         weights = []
-        func = lambda x: len(self.surface[x]) * x**(273 - self.temp)
+        func = lambda x: len(self.surface[x]) * x**(abs(self.temp))
         for slot in self.maxNB:
             p = func(slot)
             weights.append(p)
@@ -254,7 +254,7 @@ class Flake(object):
         than a `cap` number of bindings, growth will stop; then ask the user to continue.
         """
         def go():
-            self.logger.info("GROWTH PROCEDURE -=-=-=-=-=-=-\n[{}]\t{} rounds\t "
+            self.logger.info("GROWTH PROCEDURE -=-=-=- [{}]\t{} rounds\t "
                              "CAP {}".format(mode.upper(), rounds, cap))
             func_dict = {'prob': prob_grow, 'det': det_grow, 'rand': rand_grow}
             for step in range(rounds):
@@ -268,8 +268,10 @@ class Flake(object):
 
         def prob_grow():
             weights = self.prob()
+            self.logger.debug("WEIGHTS: {}\tSum:{:e}".format(weights, sum(weights)))
             rnd = random()*sum(weights)
             for slot, w in enumerate(weights):
+                self.logger.debug("RAND:{:e}\tSlot:{}\tWeight:{:e}".format(rnd, slot, w))
                 rnd -= w
                 if rnd < 0:
                     break
