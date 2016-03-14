@@ -161,5 +161,5 @@ class AtomsExport(object):
     __slots__ = ('element', 'location')
 
     def __init__(self, element, location):
-            self.element    = element
-            self.location = location
+        self.element = element
+        self.location = location

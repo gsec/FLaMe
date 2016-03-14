@@ -15,14 +15,14 @@ fig = mlab.gcf()
 @mlab.show
 @mlab.animate(ui=True)
 def anim():
-  """Animate."""
-  while 1:
-    f.grow(TL)
-    f.carve()
-    x, y, z, c = f.plot(pipeline=True)
-    ms.reset(x=x, y=y, z=z, scalars=c)
-    mlab.yaw(10)
-    fig.scene.reset_zoom()
-    yield
+    """Animate."""
+    while 1:
+        f.grow(TL)
+        f.carve()
+        x, y, z, c = f.plot(pipeline=True)
+        ms.reset(x=x, y=y, z=z, scalars=c)
+        mlab.yaw(10)
+        fig.scene.reset_zoom()
+        yield
 
 a = anim()
