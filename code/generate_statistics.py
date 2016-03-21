@@ -2,7 +2,6 @@
 ## encoding: utf-8
 # Statistics Collector
 from __future__ import division
-# from os import path
 from growth import Flake
 from random import randint
 import arrow
@@ -37,14 +36,16 @@ def stats(iters=10**3, samples=20):
         for s in range(samples):
             myFlake = Flake(*tp, seed='point', temp=0)
             myFlake.grow(iters, mode=MODE)
-            logger.info(myFlake.geometry())
+            logger.info('Aspect Ratio: {aspect_ratio:>5.2f}, Area:{area:>9.2f}, '
+                        'Radius: {radius:>5.2f}, Height: {height:>5.2f}'.format(
+                          **myFlake.geometry()))
             ar_acc += myFlake.aspect_ratio
             height_acc += myFlake.height
 
         mean_ar = ar_acc / samples
         mean_h = height_acc / samples
-        mean_msg = ':: MEAN of [{}] :: \tAspect Ratio: {} \tHeight: {}\n'.format(
-            samples, mean_ar, mean_h)
+        mean_msg = (':: MEAN of [{}] :: \tASPECT RATIO: {:>5.2f} \tHEIGHT: '
+                    '{:>5.2f}\n').format(samples, mean_ar, mean_h)
         logger.info(mean_msg)
 
 
