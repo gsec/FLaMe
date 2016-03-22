@@ -2,46 +2,52 @@
 ## encoding: utf-8
 # Statistics Collector
 from __future__ import division
-from os import path
 from growth import Flake
 from random import randint
+import arrow
+import logging
+
+## LOG CONFIG
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.FileHandler('statistics.log')
+handler.setLevel(logging.INFO)
+logger.addHandler(handler)
 
 
-def stats(iters=10**3, samples=10):
-  TP_TRIALS = 5
-  MODE = 'det'
-  ID = randint(0, 9999)
-  FNAME = 'stats_{}-[{}]_It:[{}K].txt'.format(ID, MODE, 0.001*iters)
-  tp_func = lambda x: (-x, x)
+def stats(iters=10**3, samples=20):
+    TP_TRIALS = 10
+    MODE = 'det'
+    ID = randint(0, 0xFFFF)
+    tp_func = lambda x: (-x, x + 1)
+    logger.info(39*'.-' + '.')
+    logger.info('Flake Statistics -- Mode: [{}] => {} samples á {}K atoms\n'.format(
+       MODE.upper(), samples, iters/1000.))
 
-  for r in range(TP_TRIALS):
-    def collector():
-      myFlake = Flake(*tp, seed='point', temp=0)
-      myFlake.grow(iters, mode=MODE)
-      myFlake.geometry()
-      # content = '\n' + str(myFlake.geometry()) + '\n'
-      # acc['string'].append(content)
-      acc['aspect_ratio'] += myFlake.aspect_ratio
-      acc['height'] += myFlake.height
+    for r in range(TP_TRIALS):
+        ar_acc, height_acc = 0.0, 0.0
+        tp = tp_func(r)
+        myF = Flake(*tp, seed='point', temp=0)
+        time = '@' + arrow.now().format('YYYY\'MM\'DD HH:mm:ss')
+        logger.info(time + ' Sampling... ')
+        logger.info('Twinplanes: {} \tpUIdent:{} \tSeed: {} \tTemp:[{}]'.format(
+          tp, ID, myF.seed_shape, myF.temp))
 
-    tp = tp_func(r)
-    myF = Flake(*tp, seed='point', temp=0)
-    acc = {'string': ['\n' + str(myF) + '\n' + 75*'='], 'aspect_ratio': 0,
-           'height': 0}
-    folder = myF.daily_output()
-    print("\nEvaluation with [{}] TPS!\t pUnique Ident -- {}\n".format(tp, ID))
+        for s in range(samples):
+            myFlake = Flake(*tp, seed='point', temp=0)
+            myFlake.grow(iters, mode=MODE)
+            logger.info('Aspect Ratio: {aspect_ratio:>5.2f}, Area:{area:>9.2f}, '
+                        'Radius: {radius:>5.2f}, Height: {height:>5.2f}'.format(
+                          **myFlake.geometry()))
+            ar_acc += myFlake.aspect_ratio
+            height_acc += myFlake.height
 
-    for s in range(samples):
-      collector()
-    mean_ar = acc['aspect_ratio'] / samples
-    mean_h = acc['height'] / samples
-    mean_msg = ('\n' + 50*'-' + "\nMEAN of [{}] -- \tAspect Ratio:"
-                "[{}]\tHeight:[{}]".format(samples, mean_ar, mean_h) +
-                "\n" + 50*'-' + "\n")
-    with open(path.join(folder, FNAME), 'ab') as fil:
-      fil.writelines(acc['string'])
-      fil.write(mean_msg)
+        mean_ar = ar_acc / samples
+        mean_h = height_acc / samples
+        mean_msg = (':: MEAN of [{}] :: \tASPECT RATIO: {:>5.2f} \tHEIGHT: '
+                    '{:>5.2f}\n').format(samples, mean_ar, mean_h)
+        logger.info(mean_msg)
 
 
 if __name__ == '__main__':
-  stats(iters=10**5)
+    stats(iters=10**6, samples=100)
