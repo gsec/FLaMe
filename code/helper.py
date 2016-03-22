@@ -2,7 +2,7 @@
 Utilities needed by the Flake Simulation.
 """
 from __future__ import print_function, division, generators
-from math import sqrt
+from math import sqrt, pi
 
 
 class Grid(object):
