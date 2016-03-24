@@ -6,16 +6,14 @@
 """
 from __future__ import print_function, division, generators
 import arrow
+import cPickle
 import itertools as it
 import logging
-from math import pi
 from helper import *
 from collections import deque
-from os import path, mkdir
+from os import path, mkdir, environ
 from mayavi import mlab as m
 from random import choice, random
-
-logging.basicConfig(level=logging.INFO)
 
 
 class Flake(object):
@@ -31,6 +29,37 @@ class Flake(object):
         `temp`: float in {0 .. 273}, determines the probability through exponential.
     """
 
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    OUTPUT_DIR = path.join(environ['THESIS_PATH'], 'output')
+    DATE = arrow.now().isoformat().rsplit('T')
+    DIFF_CAP = 2.1
+
+
+    @staticmethod
+    def daily_output(fpath=None):
+        """ Generator for the date output folder.
+
+        Creates the folder if not already existent.
+        """
+        if not fpath:
+            fpath = path.join(Flake.OUTPUT_DIR, 'TEMP')
+        elif len(fpath.split('/')) == 1:
+            fpath = path.join(Flake.OUTPUT_DIR, Flake.DATE[0], fpath)
+        else:
+            fpath = path.join(Flake.OUTPUT_DIR, fpath)
+        if not path.exists(path.dirname(fpath)):
+            mkdir(path.dirname(fpath))
+        return fpath
+
+
+    @staticmethod
+    def load(*args):
+        """ Return a flake instance from pickled file.
+        """
+        with open(Flake.daily_output(*args) + '.flm', 'rb') as file_handler:
+            return cPickle.load(file_handler)
+
     def __init__(self, *twins, **kwargs):
         """ Flake bootstrap.
 
@@ -40,7 +69,6 @@ class Flake(object):
         """
         self.twins = twins
         self.maxNB = range(12)                          # take all 12 NN as possibilities
-        self.logger = logging.getLogger(__name__)
 
         self.seed_shape = kwargs.get('seed', 'sphere')
         self.trail_length = kwargs.get('trail', 20)
@@ -56,7 +84,7 @@ class Flake(object):
     def __repr__(self):
         """ Representation of the Flake. [`twins`][`iterations`][`seed`][`temp`]
         """
-        return ("fLakE :: twiNpLaNes:{}\tIterations:[{}]\t Seed:[{}]\tTemperature:"
+        return ("fLakE :: twiNpLaNes:{}  Iterations:[{}]   Seed:[{}]  Temperature:"
                 "[{}K]".format(self.twins, self.iter, self.seed_shape, self.temp))
 
 
@@ -161,7 +189,7 @@ class Flake(object):
 
         t_end = arrow.now()
         t_delta = (t_end - t_start).total_seconds()
-        self.logger.info("Carved out {} atoms in {} sec.".format(diff, t_delta))
+        Flake.logger.info("Carved out {} atoms in {} sec.".format(diff, t_delta))
 
 
     def geometry(self):
@@ -185,7 +213,8 @@ class Flake(object):
             'radius': COORD(mxr).dist(COORD((0, 0, mxr[2])))}
         items.update({
             'area': pi*items['radius']**2,
-            'aspect_ratio': 2*items['radius']/items['height']})
+            'aspect_ratio': 2*items['radius']/items['height'],
+            'layers': mxz + 1 - mnz})
 
         for (k, i) in items.iteritems():
             setattr(self, k, i)
@@ -214,15 +243,13 @@ class Flake(object):
         * filter those, which are larger than DIFF_CAP
         * return `void` or `occupied` neighbours
         """
-        DIFF_CAP = 2.1
-
         indexed = self.abs_neighbours(atom)
         coordinates = (self.grid.coord(ai_site) for ai_site in indexed)
         choice_vec = self.grid.coord(atom)
         diffs = (choice_vec.dist(ac_site) for ac_site in coordinates)
         associated = zip(indexed, diffs)
 
-        nearest = (nb for nb, diff in associated if diff < DIFF_CAP)
+        nearest = (nb for nb, diff in associated if diff < Flake.DIFF_CAP)
         if void:
             return [nb for nb in nearest if nb not in self.atoms]
         else:
@@ -254,7 +281,7 @@ class Flake(object):
         than a `cap` number of bindings, growth will stop; then ask the user to continue.
         """
         def go():
-            self.logger.info("GROWTH PROCEDURE -=-=-=- [{}]\t{} rounds\t "
+            Flake.logger.info("GROWTH PROCEDURE -=-=-=- [{}]  {} rounds   "
                              "CAP {}".format(mode.upper(), rounds, cap))
             func_dict = {'prob': prob_grow, 'det': det_grow, 'rand': rand_grow}
             for step in range(int(rounds)):
@@ -268,10 +295,10 @@ class Flake(object):
 
         def prob_grow():
             weights = self.prob()
-            self.logger.debug("WEIGHTS: {}\tSum:{:e}".format(weights, sum(weights)))
+            Flake.logger.debug("WEIGHTS: {}  Sum:{:e}".format(weights, sum(weights)))
             rnd = random()*sum(weights)
             for slot, w in enumerate(weights):
-                self.logger.debug("RAND:{:e}\tSlot:{}\tWeight:{:e}".format(rnd, slot, w))
+                Flake.logger.debug("RAND:{:e}  Slot:{}  Weight:{:e}".format(rnd, slot, w))
                 rnd -= w
                 if rnd < 0:
                     break
@@ -291,9 +318,9 @@ class Flake(object):
 
         def ask(step):
             while True:
-                self.logger.warn("Flake has no sites with {} or more free bindings. "
+                Flake.logger.warn("Flake has no sites with {} or more free bindings. "
                                  "STOPP at {}th growth step.\n".format(cap, step))
-                ans = raw_input("Continue with single growth? [y/n]\t")
+                ans = raw_input("Continue with single growth? [y/n]  ")
                 if ans in 'Yy':
                     return True
                 elif ans in 'nN':
@@ -331,7 +358,7 @@ class Flake(object):
                         self.colors.update(((each, e_slot + 1),))
                     except IndexError:
                         self.colors.pop(each)
-                        self.logger.warn("Filled a bubble...oO")
+                        Flake.logger.warn("Filled a bubble...oO")
                     break
             else:
                 self.surface[1].add(each)        # create new surface entry for new ones
@@ -342,61 +369,33 @@ class Flake(object):
   ##################
   #     OUTPUT     #
   ##################
-    def daily_output(self, fname=None):
-        """ Generator for the date output folder.
-
-        Creates the folder if not already existent.
+    def save(self, *args):
+        """ Saves the flake as pickled instance.
         """
-        self.date = arrow.now().isoformat().rsplit('T')
-        today = self.date[0]
-        output_dir = path.join('../output/', today)
-        if not path.exists(output_dir):
-            mkdir(output_dir)
-        if fname:
-            return path.join(output_dir, fname)
-        else:
-            return output_dir
+        with open(Flake.daily_output(*args) + '.flm', 'wb') as file_handler:
+            cPickle.dump(self, file_handler)
 
-    def interface(self, fname=None, action='export'):
-        if not fname:
-            fname = 'flake_tp-{}_size-{}'.format(self.twins, len(self.atoms))
-        fpath = self.daily_output(fname)
+    def export(self, *args):
+        """ Exports the **xyz**-coordinates of the Flake atoms.
+        Adapted from Atomic Blender, can be imported with xyz_io_mesh.
+        Text format with a header and four columns: [ELEMENT, X, Y, Z]
+        """
+        raw_atoms = (AtomsIO('Au', tuple(self.grid.coord(at))) for at in
+                     self.atoms)
 
-        if action == 'export_xyz':
-            """ Exports the **xyz**-coordinates of the Flake atoms.
-            Adapted from Atomic Blender, can be imported with xyz_io_mesh.
-            File is in text format with a header and four columns: [ELEMENT, X, Y, Z]
-            """
-            raw_atoms = (AtomsIO('Au', tuple(self.grid.coord(at))) for at in self.atoms)
-
-            with open(fpath + '.xyz', 'w') as xyz_file:
-                xyz_file.write('{}\n{}\nThis is a XYZ file.\n'.format(len(self.atoms),
-                                                                str(self.geometry())))
-                for atom in raw_atoms:
-                    string = '{:3s}{:15.5f}{:15.5f}{:15.5f}\n'.format(atom.element,
-                                                                      atom.location[0],
-                                                                      atom.location[1],
-                                                                      atom.location[2])
-                    xyz_file.write(string)
-
-        if action == 'export':
-            raw_colors = {y: [x for (x, i) in self.colors.items() if i == y]
-                          for y in range(16)}
-            with open(fpath + '.flk', 'w') as flake_file:
-                flake_file.write('TWINS:\t{}\n\n'.format(self.twins))
-                for (k, v) in raw_colors.items():
-                    flake_file.write('{}:\n'.format(k))
-                    for at in v:
-                        flake_file.write('\t{}\n'.format(at))
-
-        elif action == 'import':
-            # TODO: proper import of TP and all color dict assignments
-            with open(fpath + '.flk', 'r') as xyz_file:       # ommit element and header
-                atoms_list = [line.split()[1:] for line in xyz_file][3:]
-            return set(tuple(map(float, coord)) for coord in atoms_list)
+        with open(Flake.daily_output(*args) + '.xyz', 'w') as xyz_file:
+            xyz_file.write('{}\n{}\nThis is a XYZ file.\n'.format(
+              len(self.atoms), str(self.geometry())))
+            for atom in raw_atoms:
+                string = '{:3s}{:15.5f}{:15.5f}{:15.5f}\n'.format(
+                  atom.element,
+                  atom.location[0],
+                  atom.location[1],
+                  atom.location[2])
+                xyz_file.write(string)
 
 
-    def plot(self, save=False, tag='', pipeline=False):
+    def plot(self, save=False, pipeline=False):
         """ Transforms the `colors` list to 4 lists of x, y, z, c.
 
         This list, the `clist` is either returned or displayed in mayavi.
@@ -411,14 +410,11 @@ class Flake(object):
         m.clf()
         m.points3d(*clist, colormap="gist_ncar", scale_factor=0.1, vmin=0, vmax=15)
         if save == 1:
-            m.options.offscreen = True      # this should suppress output on screen
-            if tag:                         # currently not working (bug in mayavi?)
-                tag = str(tag) + '_'
-            save_dir = self.daily_output()
-            _time = self.date[1].rsplit('.')[0].replace(':', '-')
-            fname = path.join(save_dir, 'Flake@' + _time + '_T' + str(self.twins) +
-                                                tag + '.png')
-            m.savefig(fname, size=(1024, 768))
+            m.options.offscreen = False      # currently not working (bug in mayavi?)
+            _time = Flake.DATE[1].rsplit('.')[0].replace(':', '-')
+            fname = 'Flake@' + _time + '_T' + str(self.twins) + '.png'
+            fpath = Flake.daily_output(fname)
+            m.savefig(fpath, size=(1024, 768))
             m.close()
         else:
             m.show()
