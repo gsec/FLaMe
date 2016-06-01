@@ -14,6 +14,7 @@ Contents:
    cookbook
    growth
    goals
+   structure
 
 
 Indices and tables

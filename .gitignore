@@ -1,5 +1,6 @@
 # own things to exclude
 .ropeproject/
+aux
 tools/
 ipython_log*.py
 _OLD*
@@ -9,6 +10,7 @@ fig/
 output
 output_bckp
 *[._]xyz
+*.box
 
 doc/
 
@@ -37,6 +39,7 @@ lib64/
 parts/
 sdist/
 var/
+.vagrant
 *.egg-info/
 .installed.cfg
 *.egg

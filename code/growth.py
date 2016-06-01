@@ -12,7 +12,7 @@ import logging
 from helper import *
 from collections import deque
 from os import path, mkdir, environ
-from mayavi import mlab as m
+from mayavi import mlab
 from random import choice, random
 
 
@@ -407,14 +407,15 @@ class Flake(object):
         if pipeline:
             return clist
 
-        m.clf()
-        m.points3d(*clist, colormap="gist_ncar", scale_factor=0.1, vmin=0, vmax=15)
-        if save == 1:
-            m.options.offscreen = False      # currently not working (bug in mayavi?)
-            _time = Flake.DATE[1].rsplit('.')[0].replace(':', '-')
+        mlab.clf()
+        mlab.points3d(*clist, colormap="gist_ncar", scale_factor=0.1, vmin=0, vmax=15)
+        if save:
+            mlab.options.offscreen = True      # currently not working (bug in mayavi?)
+            DATE_NOW = arrow.now().isoformat().rsplit('T')
+            _time = DATE_NOW[1].rsplit('.')[0].replace(':', '-')
             fname = 'Flake@' + _time + '_T' + str(self.twins) + '.png'
             fpath = Flake.daily_output(fname)
-            m.savefig(fpath, size=(1024, 768))
-            m.close()
+            mlab.savefig(fpath, size=(1024, 768))
+            mlab.close()
         else:
-            m.show()
+            mlab.show()
