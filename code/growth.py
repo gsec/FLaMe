@@ -10,9 +10,8 @@ import cPickle
 import itertools as it
 import logging
 from helper import *
-from collections import deque
+from collections import deque, OrderedDict
 from os import path, mkdir, environ
-from mayavi import mlab
 from random import choice, random
 
 
@@ -29,7 +28,7 @@ class Flake(object):
         `temp`: float in {0 .. 273}, determines the probability through exponential.
     """
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO)   # logging.INFO=20, logging.DEBUG=10
     logger = logging.getLogger(__name__)
     OUTPUT_DIR = path.join(environ['THESIS_PATH'], 'output')
     DATE = arrow.now().isoformat().rsplit('T')
@@ -208,17 +207,30 @@ class Flake(object):
         mnz = min(POOL, key=lambda i: i[2])[2]
         mxr = max(POOL, key=lambda i: i[0]**2 + i[1]**2)
 
-        items = {                                    # + 1 correct for border
-            'height': COORD((0, 0, mxz + 1)).dist(COORD((0, 0, mnz))),
-            'radius': COORD(mxr).dist(COORD((0, 0, mxr[2])))}
-        items.update({
-            'area': pi*items['radius']**2,
-            'aspect_ratio': 2*items['radius']/items['height'],
-            'layers': mxz + 1 - mnz})
+        attr = OrderedDict({
+            'radius': COORD(mxr).dist(COORD((0, 0, mxr[2])))
+        })
+        attr.update({                # + 1 correct for border
+            'height': COORD((0, 0, mxz + 1)).dist(COORD((0, 0, mnz)))
+        })
+        attr.update({
+            'aspect_ratio': 2*attr['radius']/attr['height']
+        })
+        attr.update({
+            'area': pi*attr['radius']**2
+        })
+        attr.update({
+            'layers': mxz + 1 - mnz
+        })
+        attr.update({
+            'iter': self.iter
+        })
 
-        for (k, i) in items.iteritems():
-            setattr(self, k, i)
-        return items
+
+        for (k, i) in attr.items():
+            if not hasattr(self, k):
+                setattr(self, k, i)
+        return attr
 
 
   ########################
@@ -281,8 +293,8 @@ class Flake(object):
         than a `cap` number of bindings, growth will stop; then ask the user to continue.
         """
         def go():
-            Flake.logger.info("GROWTH PROCEDURE -=-=-=- [{}]  {} rounds   "
-                             "CAP {}".format(mode.upper(), rounds, cap))
+            Flake.logger.info("[{}]  :{}:  +{} rounds   CAP {}".format(
+                mode.upper(), self.iter, rounds, cap))
             func_dict = {'prob': prob_grow, 'det': det_grow, 'rand': rand_grow}
             for step in range(int(rounds)):
                 func = func_dict[mode]
@@ -406,6 +418,7 @@ class Flake(object):
                                     self.colors.items()])
         if pipeline:
             return clist
+        from mayavi import mlab
 
         mlab.clf()
         mlab.points3d(*clist, colormap="gist_ncar", scale_factor=0.1, vmin=0, vmax=15)
