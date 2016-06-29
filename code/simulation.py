@@ -26,13 +26,6 @@ CFG = {
     'UNIT_SPAN': 3,
     'OUTPUT_DIR': path.join(environ['THESIS_PATH'], 'output/sim')
     }
-# Configuration variables:
-SAMPLE_SIZE = 5             # number of flakes grown the same to average
-SNAPSHOT_INTERVAL = 1000    # number of atoms to grow between flake snapshots
-TOTAL_SIZE = 10000          # total number of atoms at the end of growth
-UNIT_NAME = 'Ycaruz'        # name of the simulation
-UNIT_SPAN = 3               # span over which chosen parameter is varied
-OUTPUT_DIR = path.join(environ['THESIS_PATH'], 'output/sim')
 
 
 # Create a new Dataset
@@ -43,18 +36,18 @@ def create(name):
     logger.info('\nSIMULATION STARTED >>> {}'.format(identifier))
     for k, v in CFG.items():
         logger.info('{}: {}'.format(k, v))
-    fname = path.join(OUTPUT_DIR, identifier + '.hdf5')
+    fname = path.join(CFG['OUTPUT_DIR'], identifier + '.hdf5')
     f = h5py.File(fname, 'x')
 
     mapping = lambda x: (-x, x + 1)
 
-    for num in range(UNIT_SPAN):
+    for num in range(CFG['UNIT_SPAN']):
         tp_set = mapping(num)
 
         param_grp = f.create_group('param=' + str(num))
-        for smp in range(SAMPLE_SIZE):
+        for smp in range(CFG['SAMPLE_SIZE']):
             time = '@' + arrow.now().format('YYYY\'MM\'DD HH:mm:ss')
-            logger.info(time + ' Sampling... {}/{}'.format(smp+1, SAMPLE_SIZE))
+            logger.info(time + ' Sampling... {}/{}'.format(smp+1, CFG['SAMPLE_SIZE']))
             header, gdata = run(tp_set)
             sample_grp = param_grp.create_group('sample{:04}'.format(smp))
             sample_grp.create_dataset('flake', data=gdata)
@@ -64,7 +57,7 @@ def create(name):
     logger.info('SIMULATION ENDED >>> {}'.format(identifier))
 
 
-def run(tp, total_size=TOTAL_SIZE, samples=SAMPLE_SIZE, intervall=1000):
+def run(tp, total_size=CFG['TOTAL_SIZE'], samples=CFG['SAMPLE_SIZE'], intervall=1000):
     myFlake = Flake(*tp)
     div, remainder = total_size // intervall, total_size % intervall
 
