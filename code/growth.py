@@ -77,7 +77,7 @@ class Flake(object):
 
         self.grid = Grid(twins)
         self.create_entire_surface()
-        self.colors = self.color_init()
+        # self.colors = self.color_init()
 
 
     def __repr__(self):
@@ -114,18 +114,6 @@ class Flake(object):
                         (-1, -2, 0), (-1, 1, 0), (-1, 2, 0), (2, -1, 0), (-1, -1, 0),
                         (2, 2, 0), (0, 0, 0), (2, 1, 0), (-2, -1, 0), (2, -2, 0)))
         return len(seed), seed
-
-    def color_init(self):
-        """ Initialize the `color` attribute.
-
-        Assign each atom a fixed value and surface elements according to their slot
-        position. This is stored as dict in `self.colors`. The colors-attribute
-        keeps track of atoms and surface values for visual representation.
-        """
-        color_dict = dict((at, 15) for at in self.atoms)
-        color_dict.update([(entry, slot) for slot, shelf in enumerate(self.surface)
-                                             for entry in shelf])
-        return color_dict
 
 
   ####################
@@ -182,9 +170,9 @@ class Flake(object):
         diff = len(self.atoms) - len(skin)
         self.atoms = skin
 
-        whole = srfc.union(skin)
-        new_dict = {x: self.colors[x] for x in whole}
-        self.colors = new_dict
+        # whole = srfc.union(skin)
+        # new_dict = {x: self.colors[x] for x in whole}
+        # self.colors = new_dict
 
         t_end = arrow.now()
         t_delta = (t_end - t_start).total_seconds()
@@ -354,10 +342,11 @@ class Flake(object):
         """
         self.surface[slot].remove(at)
         self.atoms.add(at)
-        self.colors.update(((at, 13),))
+        # self.colors.update(((at, 13),))
         if len(self.trail) >= self.trail.maxlen:
-            old = self.trail.pop()
-            self.colors.update(((old, 15),))
+            self.trail.pop()
+            # old = self.trail.pop()
+            # self.colors.update(((old, 15),))
         self.trail.appendleft(at)          # prepend new atom to list of latest additions
 
         empty_neighbours = self.real_neighbours(at, void=True)
@@ -367,14 +356,14 @@ class Flake(object):
                     self.surface[e_slot].remove(each)
                     try:
                         self.surface[e_slot + 1].add(each)
-                        self.colors.update(((each, e_slot + 1),))
+                        # self.colors.update(((each, e_slot + 1),))
                     except IndexError:
-                        self.colors.pop(each)
+                        # self.colors.pop(each)
                         Flake.logger.warn("Filled a bubble...oO")
                     break
             else:
                 self.surface[1].add(each)        # create new surface entry for new ones
-                self.colors.update(((each, 1),))
+                # self.colors.update(((each, 1),))
         self.iter += 1
 
 
@@ -406,6 +395,20 @@ class Flake(object):
                   atom.location[2])
                 xyz_file.write(string)
 
+    def colorize(self):
+        """ Initialize the `color` attribute.
+
+        Assign each atom a fixed value and surface elements according to their slot
+        position. This is stored as dict in `self.colors`. The colors-attribute
+        keeps track of atoms and surface values for visual representation.
+        """
+        Flake.logger.info("Generating colors...")
+        color_dict = dict((at, 15) for at in self.atoms)
+        color_dict.update((at, 13) for at in self.trail)
+        color_dict.update([(entry, slot) for slot, shelf in enumerate(self.surface)
+                                            for entry in shelf])
+        return color_dict
+
 
     def plot(self, save=False, pipeline=False):
         """ Transforms the `colors` list to 4 lists of x, y, z, c.
@@ -414,8 +417,9 @@ class Flake(object):
         Optionally a picture is saved to disk.
         """
         co = self.grid.coord
+        colors = self.colorize()
         clist = zip(*[(co(idx).x, co(idx).y, co(idx).z, c) for (idx, c) in
-                                    self.colors.items()])
+                                    colors.items()])
         if pipeline:
             return clist
         from mayavi import mlab
