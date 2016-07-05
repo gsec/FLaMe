@@ -9,6 +9,7 @@ fig/
 *.orig
 output
 output_bckp
+bckp_output
 *[._]xyz
 *.box
 
