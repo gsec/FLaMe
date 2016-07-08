@@ -9,7 +9,7 @@ import arrow
 import cPickle
 import itertools as it
 import logging
-from helper import *
+from helper import AtomsIO, Grid, pi
 from collections import deque, OrderedDict
 from os import path, mkdir, environ
 from random import choice, random
@@ -77,7 +77,6 @@ class Flake(object):
 
         self.grid = Grid(twins)
         self.create_entire_surface()
-        # self.colors = self.color_init()
 
 
     def __repr__(self):
@@ -222,7 +221,7 @@ class Flake(object):
 
 
   ########################
-  #     NEIGHBORHOOD     #
+  #     NEIGHBOURHOOD     #
   ########################
     def abs_neighbours(self, atom):
         """ Return the list of next neighbours in index space of atom `idx`.
@@ -281,7 +280,7 @@ class Flake(object):
         than a `cap` number of bindings, growth will stop; then ask the user to continue.
         """
         def go():
-            Flake.logger.info("[{}]  :{}:  +{} rounds   CAP {}".format(
+            Flake.logger.debug("[{}]  :{}:  +{} rounds   CAP {}".format(
                 mode.upper(), self.iter, rounds, cap))
             func_dict = {'prob': prob_grow, 'det': det_grow, 'rand': rand_grow}
             for step in range(int(rounds)):
@@ -375,6 +374,7 @@ class Flake(object):
         """
         with open(Flake.daily_output(*args) + '.flm', 'wb') as file_handler:
             cPickle.dump(self, file_handler)
+        Flake.logger.info("Flake instance saved to disk.")
 
     def export(self, *args):
         """ Exports the **xyz**-coordinates of the Flake atoms.
@@ -396,18 +396,20 @@ class Flake(object):
                 xyz_file.write(string)
 
     def colorize(self):
-        """ Initialize the `color` attribute.
+        """ Generate colors for visual representation of atoms and surface sites.
 
-        Assign each atom a fixed value and surface elements according to their slot
-        position. This is stored as dict in `self.colors`. The colors-attribute
-        keeps track of atoms and surface values for visual representation.
+        Assign each atom and surface element a fix value according to their
+        slot position, i.e. the amount of binding options. We have special
+        values for the center atom and the trail, the last atoms added.
+        Returns dict.
         """
         Flake.logger.info("Generating colors...")
-        color_dict = dict((at, 15) for at in self.atoms)
-        color_dict.update((at, 13) for at in self.trail)
-        color_dict.update([(entry, slot) for slot, shelf in enumerate(self.surface)
-                                            for entry in shelf])
-        return color_dict
+        colors = dict((at, 15) for at in self.atoms)
+        colors.update({(0, 0, 0): 14})      # mark the middle spot
+        colors.update((at, 13) for at in self.trail)
+        colors.update([(entry, slot) for slot, shelf in enumerate(self.surface)
+                       for entry in shelf])
+        return colors
 
 
     def plot(self, save=False, pipeline=False):
@@ -422,17 +424,17 @@ class Flake(object):
                                     colors.items()])
         if pipeline:
             return clist
-        from mayavi import mlab
 
+        from mayavi import mlab
         mlab.clf()
         mlab.points3d(*clist, colormap="gist_ncar", scale_factor=0.1, vmin=0, vmax=15)
         if save:
             mlab.options.offscreen = True      # currently not working (bug in mayavi?)
-            DATE_NOW = arrow.now().isoformat().rsplit('T')
-            _time = DATE_NOW[1].rsplit('.')[0].replace(':', '-')
+            _time = Flake.DATE[1].rsplit('.')[0].replace(':', '-')
             fname = 'Flake@' + _time + '_T' + str(self.twins) + '.png'
             fpath = Flake.daily_output(fname)
             mlab.savefig(fpath, size=(1024, 768))
+            Flake.logger.info("Figure saved to {}".format(fpath))
             mlab.close()
         else:
             mlab.show()

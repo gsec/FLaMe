@@ -8,4 +8,9 @@ setup(name='flame',
       author_email='gui@posteo.net',
       license='GPL',
       packages=['flame'],
-      zip_safe=False)
+      zip_safe=False,
+      test_suite='nose.collector',
+      tests_require=['nose'],
+      entry_points={
+          'console_scripts': ['flame=flame.cli:main']}
+      )
