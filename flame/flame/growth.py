@@ -6,13 +6,25 @@
 """
 from __future__ import print_function, division, generators
 import arrow
-import cPickle
 import itertools as it
 import logging
 from helper import AtomsIO, Grid, pi
 from collections import deque, OrderedDict
-from os import path, mkdir, environ
+from os import path, makedirs, environ
 from random import choice, random
+
+try:
+    import cPickle
+except ImportError:
+    print("No cPickle module availiable (Not installed or using py3).")
+    print("Saving the Flake object will not be possible.")
+
+try:
+    from mayavi import mlab
+except ImportError:
+    print("No mayavi module availiable (Not installed or using py3).")
+    print("the plot() method will not work. The colors-list can still be returned using"
+          "plot(pipeline=True)")
 
 
 class Flake(object):
@@ -27,43 +39,52 @@ class Flake(object):
         `trail`: int for length of the marked atoms trail
         `temp`: float in {0 .. 273}, determines the probability through exponential.
     """
-
     logging.basicConfig(level=logging.INFO)   # logging.INFO=20, logging.DEBUG=10
     logger = logging.getLogger(__name__)
     OUTPUT_DIR = path.join(environ['THESIS_PATH'], 'output')
     DATE = arrow.now().isoformat().rsplit('T')
     DIFF_CAP = 2.1
+    PICKLE_EXT = '.flm'
 
 
     @staticmethod
     def daily_output(fpath=None):
-        """ Generator for the date output folder.
+        """ Return output folder according to date.
 
-        Creates the folder if not already existent.
+        Create the folder if not already existent.
         """
         if not fpath:
-            fpath = path.join(Flake.OUTPUT_DIR, 'TEMP')
+            new_path = path.join(Flake.OUTPUT_DIR, 'TEMP')
         elif len(fpath.split('/')) == 1:
-            fpath = path.join(Flake.OUTPUT_DIR, Flake.DATE[0], fpath)
+            new_path = path.join(Flake.OUTPUT_DIR, Flake.DATE[0], fpath)
         else:
-            fpath = path.join(Flake.OUTPUT_DIR, fpath)
-        if not path.exists(path.dirname(fpath)):
-            mkdir(path.dirname(fpath))
-        return fpath
+            new_path = path.join(Flake.OUTPUT_DIR, fpath)
+        if not path.exists(path.dirname(new_path)):
+            makedirs(path.dirname(new_path))
+        return new_path
 
 
     @staticmethod
     def load(*args):
         """ Return a flake instance from pickled file.
         """
-        with open(Flake.daily_output(*args) + '.flm', 'rb') as file_handler:
+        with open(Flake.daily_output(*args) + Flake.PICKLE_EXT, 'rb') as file_handler:
             return cPickle.load(file_handler)
+
+
+    def save(self, *args):
+        """ Save the flake as pickled instance.
+        """
+        with open(Flake.daily_output(*args) + Flake.PICKLE_EXT, 'wb') as file_handler:
+            cPickle.dump(self, file_handler)
+        Flake.logger.info("Flake instance saved to disk.")
+
 
     def __init__(self, *twins, **kwargs):
         """ Flake bootstrap.
 
         * Create a seed
-        * Add those to atoms list
+        * Add seed sites to atoms list
         * Generate appropriate surface
         """
         self.twins = twins
@@ -116,7 +137,7 @@ class Flake(object):
 
 
   ####################
-  #     SURFACES     #
+  #     SURFACE     #
   ####################
     def set_surface(self, site):
         """ Adds an empty site to the corresponding surface slot.
@@ -127,10 +148,11 @@ class Flake(object):
 
 
     def create_entire_surface(self):
-        """ Create a list of 12 sets (NN possibilities) and populates them.
+        """ Generate the list for the surface sites based on occupied sites.
 
-        Iterates through every atom and populates each adjacent empty site to the
-        surface list.
+        Create a list of 12 sets (each corresponding to the  possibilities of next
+        neighbors). Iterates through every atom and populates each adjacent empty site
+        to the surface list.
         """
         self.surface = [set() for _ in self.maxNB]
         for atom in self.atoms:
@@ -143,8 +165,8 @@ class Flake(object):
         """ Return a set with all surface sites.
         """
         integrated_surface = set()
-        for i in self.maxNB:
-            integrated_surface.update(self.surface[i])
+        for index in self.maxNB:
+            integrated_surface.update(self.surface[index])
         return integrated_surface
 
 
@@ -157,7 +179,9 @@ class Flake(object):
     def carve(self):
         """ Makes the flake hollow by removing atoms without adjacent surface.
 
-        Affects self.atoms and self.colors
+        * each spot on surface is checked for neighbors
+        * every occupied neighbor is added to `skin`
+        * all atoms not in `skin` are discarded
         """
         t_start = arrow.now()
         skin = set()
@@ -166,25 +190,21 @@ class Flake(object):
         for spot in srfc:
             occupied_surface = self.real_neighbours(spot, void=False)
             skin.update(occupied_surface)
-        diff = len(self.atoms) - len(skin)
         self.atoms = skin
-
-        # whole = srfc.union(skin)
-        # new_dict = {x: self.colors[x] for x in whole}
-        # self.colors = new_dict
 
         t_end = arrow.now()
         t_delta = (t_end - t_start).total_seconds()
+        diff = len(self.atoms) - len(skin)
         Flake.logger.info("Carved out {} atoms in {} sec.".format(diff, t_delta))
 
 
     def geometry(self):
         """ Calculate geometry information about the Flake.
 
-        `height`: diff + 1 of furthest atoms in z-direction
-        `radius`: distance from center to farmost atom
+        `height`: Distance between furthest atoms in z direction (+1, taking the outside)
+        `radius`: distance from center to far most atom
         `area`: pi*radius**2
-        `aspect ratio`: comparison between the vertikal and horizontal dimension
+        `aspect ratio`: comparison between the vertical and horizontal dimension
                                         (2*radius/height)
         """
         COORD = self.grid.coord
@@ -221,10 +241,10 @@ class Flake(object):
 
 
   ########################
-  #     NEIGHBOURHOOD     #
+  #     NEIGHBORHOOD     #
   ########################
     def abs_neighbours(self, atom):
-        """ Return the list of next neighbours in index space of atom `idx`.
+        """ Return the list of next neighbors in index space of atom `idx`.
         """
         absNB = set(it.product(range(-1, 2), repeat=3))         # create NN indices
         absNB.remove((0, 0, 0))
@@ -233,14 +253,14 @@ class Flake(object):
 
 
     def real_neighbours(self, atom, void=False):
-        """ Creates next neighbours based on the distances.
+        """ Creates next neighbors based on the distances.
 
         * choose a site (ensure later that every possibility is covered...)
         * build all (1, -1, 0) permutations
         * get coordinates of all surrounding sites
-        * get vector differences between the atom and its neighbours
+        * get vector differences between the atom and its neighbors
         * filter those, which are larger than DIFF_CAP
-        * return `void` or `occupied` neighbours
+        * return `void` or `occupied` neighbors
         """
         indexed = self.abs_neighbours(atom)
         coordinates = (self.grid.coord(ai_site) for ai_site in indexed)
@@ -318,8 +338,8 @@ class Flake(object):
         def ask(step):
             while True:
                 Flake.logger.warn("Flake has no sites with {} or more free bindings. "
-                                 "STOPP at {}th growth step.\n".format(cap, step))
-                ans = raw_input("Continue with single growth? [y/n]  ")
+                                 "STOP at {}th growth step.\n".format(cap, step))
+                ans = input("Continue with single growth? [y/n]  ")
                 if ans in 'Yy':
                     return True
                 elif ans in 'nN':
@@ -334,10 +354,10 @@ class Flake(object):
     def put_atom(self, at, slot):
         """ * remove atom from its slot
             * append it to atoms list
-            * check which nb are free, with those:
-                * check every slot if it contains the nb
+            * check which neighbors are free, with those:
+                * check every slot if it contains the neighbor
                 * remove it from there
-                * add it to next higher slot (cause now he's got one nb more)
+                * add it to next higher slot (cause now it has one more neighbor)
         """
         self.surface[slot].remove(at)
         self.atoms.add(at)
@@ -346,7 +366,7 @@ class Flake(object):
             self.trail.pop()
             # old = self.trail.pop()
             # self.colors.update(((old, 15),))
-        self.trail.appendleft(at)          # prepend new atom to list of latest additions
+        self.trail.appendleft(at)          # prepends new atom to list of latest additions
 
         empty_neighbours = self.real_neighbours(at, void=True)
         for each in empty_neighbours:
@@ -355,27 +375,17 @@ class Flake(object):
                     self.surface[e_slot].remove(each)
                     try:
                         self.surface[e_slot + 1].add(each)
-                        # self.colors.update(((each, e_slot + 1),))
                     except IndexError:
-                        # self.colors.pop(each)
-                        Flake.logger.warn("Filled a bubble...oO")
+                        Flake.logger.warn("Filled a bubble...oO Site: {}".format(each))
                     break
             else:
                 self.surface[1].add(each)        # create new surface entry for new ones
-                # self.colors.update(((each, 1),))
         self.iter += 1
 
 
   ##################
   #     OUTPUT     #
   ##################
-    def save(self, *args):
-        """ Saves the flake as pickled instance.
-        """
-        with open(Flake.daily_output(*args) + '.flm', 'wb') as file_handler:
-            cPickle.dump(self, file_handler)
-        Flake.logger.info("Flake instance saved to disk.")
-
     def export(self, *args):
         """ Exports the **xyz**-coordinates of the Flake atoms.
         Adapted from Atomic Blender, can be imported with xyz_io_mesh.
@@ -405,10 +415,11 @@ class Flake(object):
         """
         Flake.logger.info("Generating colors...")
         colors = dict((at, 15) for at in self.atoms)
-        colors.update({(0, 0, 0): 14})      # mark the middle spot
         colors.update((at, 13) for at in self.trail)
+        colors.update({(0, 0, 0): 14})      # mark the middle spot
         colors.update([(entry, slot) for slot, shelf in enumerate(self.surface)
                        for entry in shelf])
+        Flake.logger.info("Color generation finished.")
         return colors
 
 
@@ -418,16 +429,16 @@ class Flake(object):
         This list, the `clist` is either returned or displayed in mayavi.
         Optionally a picture is saved to disk.
         """
-        co = self.grid.coord
+        coords = self.grid.coord
         colors = self.colorize()
-        clist = zip(*[(co(idx).x, co(idx).y, co(idx).z, c) for (idx, c) in
-                                    colors.items()])
+        clist = zip(*[(coords(idx).x, coords(idx).y, coords(idx).z, c) for
+                      (idx, c) in colors.items()])
         if pipeline:
             return clist
 
-        from mayavi import mlab
         mlab.clf()
-        mlab.points3d(*clist, colormap="gist_ncar", scale_factor=0.1, vmin=0, vmax=15)
+        mlab.points3d(*clist, colormap='gist_ncar', scale_factor=0.1, vmin=0, vmax=15)
+
         if save:
             mlab.options.offscreen = True      # currently not working (bug in mayavi?)
             _time = Flake.DATE[1].rsplit('.')[0].replace(':', '-')

@@ -7,10 +7,10 @@ from flame import growth
 from flame.helper import Vector
 
 
-class TestFlake(unittest.TestCase):
+class TestFlakeBasics(unittest.TestCase):
   """ Flake sanity checks.
   """
-  def test_point_structure(self):
+  def test_seed_init(self):
     f = growth.Flake(seed='point')
     surface_one = set([(-1, 0, 1), (0, 0, 1), (0, -1, 1), (0, -1, 0),
                         (-1, 0, 0), (0, 1, 0), (-1, 1, 0), (1, 0, 0),
@@ -89,6 +89,16 @@ class TestVector(unittest.TestCase):
   def test_abs(self):
     vec1 = Vector(2, 5, 0)
     self.assertEqual(abs(vec1), vec1.dist(Vector(0, 0, 0)))
+
+
+class TestFlakeGrowth(unittest.TestCase):
+    def SetUp(self):
+        twinplanes = (-2, 3)
+        self.F = growth.Flake(*twinplanes)
+
+    def test_prob(self):
+        # probability distribution test
+        pass
 
 
 if __name__ == '__main__':
