@@ -13,18 +13,15 @@ from collections import deque, OrderedDict
 from os import path, makedirs, environ
 from random import choice, random
 
-try:
-    import cPickle
-except ImportError:
-    print("No cPickle module availiable (Not installed or using py3).")
-    print("Saving the Flake object will not be possible.")
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 try:
-    from mayavi import mlab
-except ImportError:
-    print("No mayavi module availiable (Not installed or using py3).")
-    print("the plot() method will not work. The colors-list can still be returned using"
-          "plot(pipeline=True)")
+    import cPickle
+except ImportError as e:
+    import pickle as cPickle
 
 
 class Flake(object):
@@ -39,45 +36,46 @@ class Flake(object):
         `trail`: int for length of the marked atoms trail
         `temp`: float in {0 .. 273}, determines the probability through exponential.
     """
-    logging.basicConfig(level=logging.INFO)   # logging.INFO=20, logging.DEBUG=10
-    logger = logging.getLogger(__name__)
-    OUTPUT_DIR = path.join(environ['THESIS_PATH'], 'output')
+    OUTPUT_DIR = path.join(environ['THESIS_PATH'], 'output/grow')
     DATE = arrow.now().isoformat().rsplit('T')
     DIFF_CAP = 2.1
     PICKLE_EXT = '.flm'
 
 
     @staticmethod
-    def daily_output(fpath=None):
+    def daily_output(name):
         """ Return output folder according to date.
 
         Create the folder if not already existent.
         """
-        if not fpath:
-            new_path = path.join(Flake.OUTPUT_DIR, 'TEMP')
-        elif len(fpath.split('/')) == 1:
-            new_path = path.join(Flake.OUTPUT_DIR, Flake.DATE[0], fpath)
+        # if not name:
+            # name = input("Please specify a name: ")
+        if len(name.split('/')) == 1:
+            new_path = path.join(Flake.OUTPUT_DIR, Flake.DATE[0], name)
         else:
-            new_path = path.join(Flake.OUTPUT_DIR, fpath)
+            new_path = path.join(Flake.OUTPUT_DIR, name)
         if not path.exists(path.dirname(new_path)):
             makedirs(path.dirname(new_path))
         return new_path
 
 
     @staticmethod
-    def load(*args):
+    def load(name):
         """ Return a flake instance from pickled file.
         """
-        with open(Flake.daily_output(*args) + Flake.PICKLE_EXT, 'rb') as file_handler:
+        fname = Flake.daily_output(name) + Flake.PICKLE_EXT
+        with open(fname, 'rb') as file_handler:
+            logger.info("Loading Flake instance from file {} ...".format(fname))
             return cPickle.load(file_handler)
 
 
-    def save(self, *args):
+    def save(self, name):
         """ Save the flake as pickled instance.
         """
-        with open(Flake.daily_output(*args) + Flake.PICKLE_EXT, 'wb') as file_handler:
-            cPickle.dump(self, file_handler)
-        Flake.logger.info("Flake instance saved to disk.")
+        fname = Flake.daily_output(name) + Flake.PICKLE_EXT
+        with open(fname, 'wb') as file_handler:
+            cPickle.dump(self, file_handler, protocol=2)
+        logger.info("Flake instance saved to disk: {}".format(fname))
 
 
     def __init__(self, *twins, **kwargs):
@@ -190,12 +188,12 @@ class Flake(object):
         for spot in srfc:
             occupied_surface = self.real_neighbours(spot, void=False)
             skin.update(occupied_surface)
+        diff = len(self.atoms) - len(skin)
         self.atoms = skin
 
         t_end = arrow.now()
         t_delta = (t_end - t_start).total_seconds()
-        diff = len(self.atoms) - len(skin)
-        Flake.logger.info("Carved out {} atoms in {} sec.".format(diff, t_delta))
+        logger.info("Carved out {} atoms in {} sec.".format(diff, t_delta))
 
 
     def geometry(self):
@@ -300,7 +298,7 @@ class Flake(object):
         than a `cap` number of bindings, growth will stop; then ask the user to continue.
         """
         def go():
-            Flake.logger.debug("[{}]  :{}:  +{} rounds   CAP {}".format(
+            logger.debug("[{}]  :{}:  +{} rounds   CAP {}".format(
                 mode.upper(), self.iter, rounds, cap))
             func_dict = {'prob': prob_grow, 'det': det_grow, 'rand': rand_grow}
             for step in range(int(rounds)):
@@ -314,10 +312,10 @@ class Flake(object):
 
         def prob_grow():
             weights = self.prob()
-            Flake.logger.debug("WEIGHTS: {}  Sum:{:e}".format(weights, sum(weights)))
+            logger.debug("WEIGHTS: {}  Sum:{:e}".format(weights, sum(weights)))
             rnd = random()*sum(weights)
             for slot, w in enumerate(weights):
-                Flake.logger.debug("RAND:{:e}  Slot:{}  Weight:{:e}".format(rnd, slot, w))
+                logger.debug("RAND:{:e}  Slot:{}  Weight:{:e}".format(rnd, slot, w))
                 rnd -= w
                 if rnd < 0:
                     break
@@ -337,7 +335,7 @@ class Flake(object):
 
         def ask(step):
             while True:
-                Flake.logger.warn("Flake has no sites with {} or more free bindings. "
+                logger.warn("Flake has no sites with {} or more free bindings. "
                                  "STOP at {}th growth step.\n".format(cap, step))
                 ans = input("Continue with single growth? [y/n]  ")
                 if ans in 'Yy':
@@ -376,7 +374,7 @@ class Flake(object):
                     try:
                         self.surface[e_slot + 1].add(each)
                     except IndexError:
-                        Flake.logger.warn("Filled a bubble...oO Site: {}".format(each))
+                        logger.warn("Filled a bubble...oO Site: {}".format(each))
                     break
             else:
                 self.surface[1].add(each)        # create new surface entry for new ones
@@ -386,7 +384,7 @@ class Flake(object):
   ##################
   #     OUTPUT     #
   ##################
-    def export(self, *args):
+    def export(self, name):
         """ Exports the **xyz**-coordinates of the Flake atoms.
         Adapted from Atomic Blender, can be imported with xyz_io_mesh.
         Text format with a header and four columns: [ELEMENT, X, Y, Z]
@@ -394,7 +392,7 @@ class Flake(object):
         raw_atoms = (AtomsIO('Au', tuple(self.grid.coord(at))) for at in
                      self.atoms)
 
-        with open(Flake.daily_output(*args) + '.xyz', 'w') as xyz_file:
+        with open(Flake.daily_output(name) + '.xyz', 'w') as xyz_file:
             xyz_file.write('{}\n{}\nThis is a XYZ file.\n'.format(
               len(self.atoms), str(self.geometry())))
             for atom in raw_atoms:
@@ -413,13 +411,13 @@ class Flake(object):
         values for the center atom and the trail, the last atoms added.
         Returns dict.
         """
-        Flake.logger.info("Generating colors...")
+        logger.info("Generating colors...")
         colors = dict((at, 15) for at in self.atoms)
         colors.update((at, 13) for at in self.trail)
         colors.update({(0, 0, 0): 14})      # mark the middle spot
         colors.update([(entry, slot) for slot, shelf in enumerate(self.surface)
                        for entry in shelf])
-        Flake.logger.info("Color generation finished.")
+        logger.info("Color generation finished.")
         return colors
 
 
@@ -436,6 +434,12 @@ class Flake(object):
         if pipeline:
             return clist
 
+        try:
+            from mayavi import mlab
+        except ImportError as e:
+            logger.warn("Module {} not available for Python 3. "
+                        "Flake can not be plotted.".format(str(e).split()[-1]))
+
         mlab.clf()
         mlab.points3d(*clist, colormap='gist_ncar', scale_factor=0.1, vmin=0, vmax=15)
 
@@ -445,7 +449,7 @@ class Flake(object):
             fname = 'Flake@' + _time + '_T' + str(self.twins) + '.png'
             fpath = Flake.daily_output(fname)
             mlab.savefig(fpath, size=(1024, 768))
-            Flake.logger.info("Figure saved to {}".format(fpath))
+            logger.info("Figure saved to {}".format(fpath))
             mlab.close()
         else:
             mlab.show()
