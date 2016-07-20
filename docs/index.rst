@@ -4,16 +4,17 @@
    contain the root `toctree` directive.
 
 Welcome to FLaMe's documentation!
-================================
+=================================
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
+   introduction
+   goals
    cookbook
    growth
-   goals
    structure
 
 

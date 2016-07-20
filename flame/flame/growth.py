@@ -1,14 +1,23 @@
 #!/usr/bin/env python2
 ## encoding: utf-8
 """                           FLaMe - a FLakeLAtticeMOdelEr
-
                               <guilherme.stein@physik.uni-wuerzburg.de>
+
+    GROWTH module of the FLaMe package
+    **********************************
+
+    This package is written in Python 2, nevertheless we seek maximum compatibility for
+    Python 3. The main issue is the `mayavi` package not yet running properly in Python 3.
+    Mayavi is required for plotting, although the simulations and all the other Flake()
+    operations will also work under Python 3.
 """
 from __future__ import print_function, division, generators
+from builtins import input
 import arrow
 import itertools as it
 import logging
-from helper import AtomsIO, Grid, pi
+from flame.helper import AtomsIO, Grid, pi
+from flame import settings as st
 from collections import deque, OrderedDict
 from os import path, makedirs, environ
 from random import choice, random
@@ -23,6 +32,15 @@ try:
 except ImportError as e:
     import pickle as cPickle
 
+# try:
+    # FLAME_OUTPUT = environ['FLAME_OUTPUT']
+# except KeyError as e:
+    # logger.warn("No {} specified. Please specify path manually.".format(e))
+    # FLAME_OUTPUT = ''
+    # while not path.isdir(FLAME_OUTPUT):
+        # FLAME_OUTPUT = input("Top level output directory: ")
+# logger.info("\nFLaMe output path set to: {}".format(FLAME_OUTPUT))
+
 
 class Flake(object):
     """ Generates a whole Flake object with a FCC lattice and twin planes.
@@ -36,10 +54,10 @@ class Flake(object):
         `trail`: int for length of the marked atoms trail
         `temp`: float in {0 .. 273}, determines the probability through exponential.
     """
-    OUTPUT_DIR = path.join(environ['THESIS_PATH'], 'output/grow')
     DATE = arrow.now().isoformat().rsplit('T')
-    DIFF_CAP = 2.1
-    PICKLE_EXT = '.flm'
+    # GROW_OUTPUT = path.join(FLAME_OUTPUT, 'grow')
+    # DIFF_CAP = 2.1
+    # PICKLE_EXT = '.flm'
 
 
     @staticmethod
@@ -48,12 +66,10 @@ class Flake(object):
 
         Create the folder if not already existent.
         """
-        # if not name:
-            # name = input("Please specify a name: ")
         if len(name.split('/')) == 1:
-            new_path = path.join(Flake.OUTPUT_DIR, Flake.DATE[0], name)
+            new_path = path.join(st.GROW_OUTPUT, Flake.DATE[0], name)
         else:
-            new_path = path.join(Flake.OUTPUT_DIR, name)
+            new_path = path.join(st.GROW_OUTPUT, name)
         if not path.exists(path.dirname(new_path)):
             makedirs(path.dirname(new_path))
         return new_path
@@ -63,7 +79,7 @@ class Flake(object):
     def load(name):
         """ Return a flake instance from pickled file.
         """
-        fname = Flake.daily_output(name) + Flake.PICKLE_EXT
+        fname = Flake.daily_output(name) + st.PICKLE_EXT
         with open(fname, 'rb') as file_handler:
             logger.info("Loading Flake instance from file {} ...".format(fname))
             return cPickle.load(file_handler)
@@ -72,7 +88,7 @@ class Flake(object):
     def save(self, name):
         """ Save the flake as pickled instance.
         """
-        fname = Flake.daily_output(name) + Flake.PICKLE_EXT
+        fname = Flake.daily_output(name) + st.PICKLE_EXT
         with open(fname, 'wb') as file_handler:
             cPickle.dump(self, file_handler, protocol=2)
         logger.info("Flake instance saved to disk: {}".format(fname))
@@ -266,7 +282,7 @@ class Flake(object):
         diffs = (choice_vec.dist(ac_site) for ac_site in coordinates)
         associated = zip(indexed, diffs)
 
-        nearest = (nb for nb, diff in associated if diff < Flake.DIFF_CAP)
+        nearest = (nb for nb, diff in associated if diff < st.DIFF_CAP)
         if void:
             return [nb for nb in nearest if nb not in self.atoms]
         else:

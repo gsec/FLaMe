@@ -5,6 +5,7 @@ from __future__ import print_function, division, generators
 import unittest
 from flame import growth
 from flame.helper import Vector
+from os import environ
 
 
 class TestFlakeBasics(unittest.TestCase):

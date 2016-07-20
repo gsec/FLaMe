@@ -22,12 +22,10 @@ class Grid(object):
         Mapping an ABC layer to: A -> 0, B -> 1, C -> 2
         And flipping the order at each twin plane: ABCABCAB... -> AB'C'BACBA...
 
-
-        In the range of the passed twin planes this is a `list` of the mapped
-        permutation.
-        Below to -iNf the order is as without twin planes.
-        Above we take the `counter` for offset and `sign` for correct order of the
-        remaining planes up to +iNf.
+        The `counter` keeps track of the permutation, while `sign` determines the
+        permutation direction. `sign` is flipped at each twin plane we encounter.
+        The generated layers are returned, along with the last `counter` and `sign` value
+        to continue building the grid indefinitely.
         """
         if not self.twins:
             return None, None, None
@@ -44,13 +42,17 @@ class Grid(object):
 
 
     def shift(self, idx):
-        """ Performs the twinplanes permutation shift.
+        """ Performs the permutation shift for twin planes TP=self.twin_gen().
 
-        LOW:    Index is smaller than lowest twinplane, or there isn't a TP at all,
-                    just permutate happily mod 3
-        TPs:    Index is in TP range, get shift from twin_gen()-generated list
-        HIGH: Index is bigger than highest twinplane, shift index by highest TP
-                    and continue in correct direction through sign
+        LOW:    Index is smaller than lowest twin plane, or there isn't a TP at all.
+                Down to -iNf the order is as without twin planes. Just permutate happily
+                mod 3.
+
+        TP:     Index is in TP range, get shift directly.
+                In the range of twin planes this is the list created by `twin_gen()`.
+
+        HIGH:   Index is bigger than highest twinplane, shift index by `counter` as
+                offset and continue in correct order given through `sign` up to +iNf.
         """
         if not self.twins or idx < min(self.twins):
             return idx % 3

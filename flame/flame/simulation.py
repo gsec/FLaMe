@@ -59,11 +59,11 @@ def run(name, params):
     """
     while True:             # ensure that the id is unique
         identifier = str(name) + '_' + hex(hash(random()))
-        fname = identifier + '.hdf5'
+        fname = identifier + '.hdf'
         if not path.isfile(fname):
             break
 
-    logger.info('\t\t STARTED >>> {}'.format(identifier))
+    logger.info('\t STARTED >>> {}\n'.format(identifier))
     for k, v in params.items():
         logger.info('{}: {}'.format(k, v))
 
@@ -72,7 +72,7 @@ def run(name, params):
     with tb.open_file(fname, mode='w', title='Test file') as h5file:
         for each_value in params['values']:
             twinplane_set = tuple(set(mapping(each_value)))
-            twinplane_string = '/twins_{}'.format(
+            twinplane_string = '/twins_{}'.format(      # convert minus sign to zero char
                 '_'.join('0' + str(abs(tp)) if tp < 0 else str(tp) for tp in
                          sorted(list(twinplane_set))))
             logger.info(' @{time} Twinplanes {twins} Total Size: {size}'.format(
@@ -120,20 +120,22 @@ def read_params():
     return name, params
 
 
-def builder(tp, total_size=10000, snapshot_intervall=1000, **kwargs):
-    """ Generate a `Flake` instance from the `growth` module and sample the
-    given parameters to generate meaningful statistics. The `geometry()` method
-    of the flake is called at each snapshot, stored and returned with the corresponding
-    header.
+def builder(tp, total_size=10000, snapshot_interval=1000, **kwargs):
+    """ Create generator that yields the geometry of growing Flake.
+
+    Generate a `Flake` instance from the `growth` module. By consuming an item we grow
+    the flake by the amount in `snapshot_interval` and yield the output of our
+    `geometry` method.
     """
     try:
         xargs = kwargs['flake']
     except KeyError:
         xargs = {'': None}
+
     thisFlake = Flake(*tp, **xargs)
 
     while thisFlake.iter < total_size:
-        thisFlake.grow(snapshot_intervall)
+        thisFlake.grow(snapshot_interval)
         yield thisFlake.geometry()
 
 
@@ -161,7 +163,7 @@ values: [0, 1, 2, 5]
     # How many averaging runs are done with exact same parameters
 sample_size: 5
     # Interval between Flake.geometry() calls
-snapshot_intervall: 100
+snapshot_interval: 100
     # End size of the flake in atoms
 total_size: 100000
 
