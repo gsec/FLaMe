@@ -1,26 +1,18 @@
 #!/usr/bin/env python2
 ## encoding: utf-8
-"""                           FLaMe - a FLakeLAtticeMOdelEr
-                              <guilherme.stein@physik.uni-wuerzburg.de>
 
-    GROWTH module of the FLaMe package
-    **********************************
-
-    This package is written in Python 2, nevertheless we seek maximum compatibility for
-    Python 3. The main issue is the `mayavi` package not yet running properly in Python 3.
-    Mayavi is required for plotting, although the simulations and all the other Flake()
-    operations will also work under Python 3.
-"""
 from __future__ import print_function, division, generators
 from builtins import input
 import arrow
 import itertools as it
 import logging
-from flame.helper import AtomsIO, Grid, pi
-from flame import settings as st
+from flame.grid import AtomsIO, Grid, seed_gen
 from collections import deque, OrderedDict
-from os import path, makedirs, environ
+from math import pi
+from os import path, makedirs
 from random import choice, random
+
+from flame.settings import GROW_OUTPUT, PICKLE_EXT, DIFF_CAP, get_time
 
 
 logging.basicConfig(level=logging.INFO)
@@ -28,18 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 try:
-    import cPickle
-except ImportError as e:
-    import pickle as cPickle
-
-# try:
-    # FLAME_OUTPUT = environ['FLAME_OUTPUT']
-# except KeyError as e:
-    # logger.warn("No {} specified. Please specify path manually.".format(e))
-    # FLAME_OUTPUT = ''
-    # while not path.isdir(FLAME_OUTPUT):
-        # FLAME_OUTPUT = input("Top level output directory: ")
-# logger.info("\nFLaMe output path set to: {}".format(FLAME_OUTPUT))
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 
 class Flake(object):
@@ -54,10 +37,7 @@ class Flake(object):
         `trail`: int for length of the marked atoms trail
         `temp`: float in {0 .. 273}, determines the probability through exponential.
     """
-    DATE = arrow.now().isoformat().rsplit('T')
-    # GROW_OUTPUT = path.join(FLAME_OUTPUT, 'grow')
-    # DIFF_CAP = 2.1
-    # PICKLE_EXT = '.flm'
+    DATE = get_time()
 
 
     @staticmethod
@@ -67,9 +47,9 @@ class Flake(object):
         Create the folder if not already existent.
         """
         if len(name.split('/')) == 1:
-            new_path = path.join(st.GROW_OUTPUT, Flake.DATE[0], name)
+            new_path = path.join(GROW_OUTPUT, Flake.DATE[0], name)
         else:
-            new_path = path.join(st.GROW_OUTPUT, name)
+            new_path = path.join(GROW_OUTPUT, name)
         if not path.exists(path.dirname(new_path)):
             makedirs(path.dirname(new_path))
         return new_path
@@ -79,18 +59,18 @@ class Flake(object):
     def load(name):
         """ Return a flake instance from pickled file.
         """
-        fname = Flake.daily_output(name) + st.PICKLE_EXT
+        fname = Flake.daily_output(name) + PICKLE_EXT
         with open(fname, 'rb') as file_handler:
             logger.info("Loading Flake instance from file {} ...".format(fname))
-            return cPickle.load(file_handler)
+            return pickle.load(file_handler)
 
 
     def save(self, name):
         """ Save the flake as pickled instance.
         """
-        fname = Flake.daily_output(name) + st.PICKLE_EXT
+        fname = Flake.daily_output(name) + PICKLE_EXT
         with open(fname, 'wb') as file_handler:
-            cPickle.dump(self, file_handler, protocol=2)
+            pickle.dump(self, file_handler, protocol=2)
         logger.info("Flake instance saved to disk: {}".format(fname))
 
 
@@ -107,7 +87,7 @@ class Flake(object):
         self.seed_shape = kwargs.get('seed', 'sphere')
         self.trail_length = kwargs.get('trail', 20)
         self.temp = kwargs.get('temp', 50)
-        self.iter, self.atoms = self.seed(self.seed_shape)
+        self.iter, self.atoms = seed_gen(self.seed_shape)
         self.trail = deque(maxlen=self.trail_length)    # specify length of trail
 
         self.grid = Grid(twins)
@@ -119,35 +99,6 @@ class Flake(object):
         """
         return ("fLakE :: twiNpLaNes:{}  Iterations:[{}]   Seed:[{}]  Temperature:"
                 "[{}K]".format(self.twins, self.iter, self.seed_shape, self.temp))
-
-
-  ##########################
-  #     INITIALIZATION     #
-  ##########################
-    def seed(self, shape='point'):
-        """ Create the first atoms to initialize the surface creation.
-
-        `seeds` are sets of tuples containing atom indices. The return value is a
-        tuple with the first element being the number of seed atoms and the second
-        the set of tuples.
-        """
-        if shape == 'point':
-            seed = set(((0, 0, 0),))
-        elif shape == 'cube':
-            seed = set(it.product((-1, 0, 1), repeat=3))
-        elif shape == 'bigcube':
-            seed = set(it.product((-2, -1, 0, 1, 2), repeat=3))
-        elif shape == 'sphere':
-            seed = set(((0, -1, 1), (0, 0, 1), (-1, 0, 1), (-1, -1, -1), (0, -1, -1),
-                        (0, 0, -1), (-1, -1, 0), (-1, 0, 0), (-1, 1, 0), (0, -1, 0),
-                        (0, 1, 0), (1, 0, 0), (0, 0, 0)))
-        elif shape == 'plane':
-            seed = set(((1, 0, 0), (1, 2, 0), (-2, 1, 0), (-2, 0, 0), (1, -1, 0),
-                        (0, 1, 0), (-2, 2, 0), (-1, 0, 0), (-2, -2, 0), (0, -1, 0),
-                        (1, 1, 0), (1, -2, 0), (0, -2, 0), (0, 2, 0), (2, 0, 0),
-                        (-1, -2, 0), (-1, 1, 0), (-1, 2, 0), (2, -1, 0), (-1, -1, 0),
-                        (2, 2, 0), (0, 0, 0), (2, 1, 0), (-2, -1, 0), (2, -2, 0)))
-        return len(seed), seed
 
 
   ####################
@@ -282,7 +233,7 @@ class Flake(object):
         diffs = (choice_vec.dist(ac_site) for ac_site in coordinates)
         associated = zip(indexed, diffs)
 
-        nearest = (nb for nb, diff in associated if diff < st.DIFF_CAP)
+        nearest = (nb for nb, diff in associated if diff < DIFF_CAP)
         if void:
             return [nb for nb in nearest if nb not in self.atoms]
         else:
@@ -375,11 +326,8 @@ class Flake(object):
         """
         self.surface[slot].remove(at)
         self.atoms.add(at)
-        # self.colors.update(((at, 13),))
         if len(self.trail) >= self.trail.maxlen:
             self.trail.pop()
-            # old = self.trail.pop()
-            # self.colors.update(((old, 15),))
         self.trail.appendleft(at)          # prepends new atom to list of latest additions
 
         empty_neighbours = self.real_neighbours(at, void=True)
@@ -461,8 +409,7 @@ class Flake(object):
 
         if save:
             mlab.options.offscreen = True      # currently not working (bug in mayavi?)
-            _time = Flake.DATE[1].rsplit('.')[0].replace(':', '-')
-            fname = 'Flake@' + _time + '_T' + str(self.twins) + '.png'
+            fname = 'Flake@' + Flake.DATE[1] + '_T' + str(self.twins) + '.png'
             fpath = Flake.daily_output(fname)
             mlab.savefig(fpath, size=(1024, 768))
             logger.info("Figure saved to {}".format(fpath))

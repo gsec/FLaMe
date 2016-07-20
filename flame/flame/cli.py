@@ -1,5 +1,15 @@
+"""
+    FLaMe - a FLakeLAtticeMOdelEr
+    **********************************
+
+    This package is written in Python 2, nevertheless we seek maximum compatibility for
+    Python 3. The main issue is the `mayavi` package not yet running properly in Python 3.
+    Mayavi is required for plotting, although the simulations and all the other Flake()
+    operations will also work under Python 3.
+"""
 from flame import simulation as sim
 import os, argparse
+
 
 def main():
     parser = argparse.ArgumentParser(prog='FLaMe')
