@@ -19,6 +19,7 @@ logger.info("\nFLaMe output path set to: {}".format(FLAME_OUTPUT))
 
 GROW_OUTPUT = path.join(FLAME_OUTPUT, 'grow')
 SIM_OUTPUT = path.join(FLAME_OUTPUT, 'sim')
+GRAPH_OUTPUT = path.join(FLAME_OUTPUT, 'graph')
 DIFF_CAP = 2.1
 PICKLE_EXT = '.flm'
 HDF_EXT = '.hdf'

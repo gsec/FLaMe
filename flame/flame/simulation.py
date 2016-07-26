@@ -21,6 +21,11 @@ logger = logging.getLogger(__name__)
 
 class Stage(tb.IsDescription):
     """ Definition class for output of `geometry()` at a snapshot.
+
+    The most interesting here are the `aspect_ratio` as we want to maximize this through
+    the twin plane configuration. As well as `height` or `layers` for vertical size and
+    `iter` indicating how many atoms have been grown. We want to average those and plot
+    the height against the iterations, indicating the growth time.
     """
     radius          = tb.Float32Col()
     height          = tb.Float32Col()
@@ -35,6 +40,12 @@ def run(name, params):
 
     The `identifier` is composed from the name and a random hash value to
     differentiate different runs of the same simulation.
+
+
+    * create an unique identifier value
+    * create a mapping through lambda evaluation
+    * generate twin plane configuration for each value
+      and match the string in the description
     """
     while True:             # ensure that the id is unique
         identifier = str(name) + '_' + hex(hash(random()))
