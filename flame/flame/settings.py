@@ -1,11 +1,14 @@
 """ FLaMe settings
 """
+import sys
+import yaml
 from os import environ, path
 from logging import getLogger
 
 
 logger = getLogger(__name__)
-global FLAME_OUTPUT, GROW_OUTPUT, DIFF_CAP, PICKLE_EXT, HDF_EXT
+global FLAME_OUTPUT, GROW_OUTPUT, GRAPH_OUTPUT
+global DIFF_CAP, PICKLE_EXT, HDF_EXT
 
 try:
     FLAME_OUTPUT = environ['FLAME_OUTPUT']
@@ -22,9 +25,7 @@ SIM_OUTPUT = path.join(FLAME_OUTPUT, 'sim')
 GRAPH_OUTPUT = path.join(FLAME_OUTPUT, 'graph')
 DIFF_CAP = 2.1
 PICKLE_EXT = '.flm'
-HDF_EXT = '.hdf'
-
-# canonical file name for configs
+HDF_EXT = '.h5'
 PARAMS_YAML = 'sim_params.yaml'
 
 
@@ -52,9 +53,9 @@ def get_skel(project_name):
 # to edit responsibly.
 
     # Name of the Project
-name: {name}
+name: '{name}'
     # Function string will be parsed as 'lambda x: ' + function
-function: "{TP_FUNC}"
+function: '{TP_FUNC}'
     # Values that will be fed as input to f(x)
 values: {VALS}
     # How many averaging runs are done with exact same parameters
@@ -80,5 +81,19 @@ flake:
                     TOTAL_SIZE=200000,
                     FLAKE_TEMP=30,
                     FLAKE_SEED='point')
-
     return rendered
+
+
+def get_params():
+    """ Ensures the parameters are read in from a YAML file.
+
+    A simulation is defined through its configuration file. Here we use YAML
+    since it is human- and machine-readable.
+    """
+    try:
+        with open(PARAMS_YAML, 'r') as file_handler:
+            params = yaml.load(file_handler)
+        return params
+    except IOError:
+        sys.exit("'{}' must be created before running a simulation. "
+                    "Try the `create` command.".format(PARAMS_YAML))

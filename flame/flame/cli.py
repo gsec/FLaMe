@@ -8,7 +8,7 @@
     operations will also work under Python 3.
 """
 from flame import simulation as sim
-from flame import bokeh_intro as bok
+from flame import paint
 import os, argparse
 
 
@@ -19,11 +19,11 @@ def main():
     args = parser.parse_args()
 
     if args.command == 'run':
-        sim.run(*sim.read_params())
+        sim.run(sim.get_params())
     if args.command == 'create':
         if not args.name:
             args.name = [os.getcwd().split('/')[-1]]
         sim.create('_'.join(args.name))
     if args.command == 'paint':
         for each in args.name:
-            bok.simple_plot(each)
+            paint.mean_plot(each)
