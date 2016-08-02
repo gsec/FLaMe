@@ -4,8 +4,7 @@
 from __future__ import print_function, division, generators
 import unittest
 from flame import growth
-from flame.helper import Vector
-from os import environ
+from flame.grid import Vector
 
 
 class TestFlakeBasics(unittest.TestCase):
@@ -38,7 +37,7 @@ class TestFlakeBasics(unittest.TestCase):
                       (3, 6, 9), (1, 6, 8), (3, 6, 8), (1, 6, 9), (1, 4, 9),
                       (3, 5, 7), (1, 4, 8), (3, 4, 9), (2, 6, 8), (2, 6, 7),
                       (1, 4, 7)]
-    self.assertEqual(all_neighbours, f.abs_neighbours(atom))
+    self.assertEqual(set(all_neighbours), set(f.abs_neighbours(atom)))
 
     point_seed = (0, 0, 0)
     next_neighbours = [(0, -1, -1), (0, 0, -1),  (-1, 0, 1),  (-1, 0, 0),

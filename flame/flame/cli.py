@@ -7,8 +7,7 @@
     Mayavi is required for plotting, although the simulations and all the other Flake()
     operations will also work under Python 3.
 """
-from flame import simulation as sim
-from flame import paint
+from flame import simulation, paint
 import os, argparse
 
 
@@ -19,11 +18,10 @@ def main():
     args = parser.parse_args()
 
     if args.command == 'run':
-        sim.run(sim.get_params())
+        simulation.run(simulation.get_params())
     if args.command == 'create':
         if not args.name:
             args.name = [os.getcwd().split('/')[-1]]
-        sim.create('_'.join(args.name))
+        simulation.create('_'.join(args.name))
     if args.command == 'paint':
-        for each in args.name:
-            paint.mean_plot(each)
+        paint.mean_plot(*args.name)

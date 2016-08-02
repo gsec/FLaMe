@@ -62,8 +62,15 @@ def run(params=None):
         logger.info('\t\t{}: {}'.format(k, v))
 
     tp_func = eval('lambda x:' + params['function'])        # Care, eval is evil
-    mapping = map(tp_func, params['values'])
-    twins = (set(x) for x in mapping)
+
+    if type(params['values']) is str:
+        objct = eval(params['values'])
+    else:
+        objct = params['values']
+
+    mapping = map(tp_func, objct)
+    twins = [set(x) for x in mapping]
+    params['planes'] = twins
 
     with pd.HDFStore(fname, title=identifier) as h5:
         h5.put('/parameters', pd.Series(params))
