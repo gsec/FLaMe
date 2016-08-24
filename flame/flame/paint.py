@@ -3,18 +3,20 @@
 from os import path, mkdir
 import logging
 import pandas as pd
-from bokeh.plotting import figure, output_file, show, save
+from bokeh.plotting import figure, output_file, show
 from flame.settings import GRAPH_OUTPUT, HDF_METADATA, get_colors
 
 logger = logging.getLogger(__name__)
 
 
 def mscatter(p, x, y, marker, color, legend=None):
+    """ Shamelessly stolen from bokeh documentation.
+    """
     p.scatter(x, y, marker=marker, size=5,
               line_color=color, fill_color=color, alpha=0.6, legend=legend)
 
 
-def mean_plot(file_path, *columns):
+def mean_plot(file_path, *columns, **kwargs):
     """ Paint bokeh over the mean of samples for each twinplane configuration.
 
     Outputs to html file in `output/graph/<filebasename>/<column>.html`.
@@ -42,14 +44,25 @@ def mean_plot(file_path, *columns):
             X = mean_flake['iter']
             mscatter(p, X, Y, "circle", color, legend=plane)
 
-        p.legend.location = 'top_left'
+        p.legend.location = 'bottom_right'
         output_file(path.join(output_dir, col + '.html'))
         show(p)
 
+"""
+TODO:
+    separate averaging from plotting
 
-def averaged_planes(fname):
+    create buttons for each twin plane as selector to switch their display
+
+    each tp selector should also have a switch to display all or only averaged results
+"""
+
+
+def averaged_planes(fname, choices=None):
     with pd.HDFStore(fname, 'r') as h5:
         twins  = [group for group in h5.root if HDF_METADATA not in str(group)]
+        if choices:
+            twins = [x for i, x in enumerate(twins) if i in choices]
         for index, twin, color in get_colors(twins):
             tmp = []
             for sample in twin:

@@ -17,7 +17,7 @@ class TestFlakeBasics(unittest.TestCase):
                         (-1, -1, 0), (0, -1, -1), (0, 0, -1), (-1, -1, -1)])
     self.assertEqual(f.atoms, set([(0, 0, 0)]))
     self.assertEqual(f.surface[1], surface_one)
-    self.assertEquals(len(f.integrated_surface()), len(f.maxNB))
+    self.assertEqual(len(f.integrated_surface()), len(f.maxNB))
 
     self.assertEqual(f.grid.twins, ())
     self.assertEqual(f.grid.twin_layers, None)
@@ -43,7 +43,7 @@ class TestFlakeBasics(unittest.TestCase):
     next_neighbours = [(0, -1, -1), (0, 0, -1),  (-1, 0, 1),  (-1, 0, 0),
                        (1, 0, 0),   (0, 0, 1),   (0, -1, 1),  (0, -1, 0),
                        (-1, 1, 0),  (-1, -1, 0), (0, 1, 0),   (-1, -1, -1)]
-    self.assertEqual(next_neighbours, f.real_neighbours(point_seed, void=True))
+    self.assertEqual(set(next_neighbours), set(f.real_neighbours(point_seed, void=True)))
     for each in next_neighbours:
       self.assertEqual([point_seed], f.real_neighbours(each, void=False))
 

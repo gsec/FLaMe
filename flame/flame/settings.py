@@ -14,12 +14,10 @@ global DIFF_CAP, PICKLE_EXT, HDF_EXT
 try:
     FLAME_OUTPUT = environ['FLAME_OUTPUT']
 except KeyError as e:
-    logger.warn("No {} specified. Please specify path manually.".format(e))
-    FLAME_OUTPUT = ''
-    while not path.isdir(FLAME_OUTPUT):
-        FLAME_OUTPUT = input("Top level output directory: ")
+    logger.warn("No {} specified. Path is chosen relative to `settings.py`.".format(e))
+    fallback = path.dirname(path.dirname(path.abspath(__file__)))
+    FLAME_OUTPUT = path.join(fallback, 'output')
 logger.info("\nFLaMe output path set to: {}".format(FLAME_OUTPUT))
-
 
 GROW_OUTPUT = path.join(FLAME_OUTPUT, 'grow')
 SIM_OUTPUT = path.join(FLAME_OUTPUT, 'sim')

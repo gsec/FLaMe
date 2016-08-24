@@ -2,12 +2,12 @@
 ## encoding: utf-8
 
 from __future__ import print_function, division, generators
-from builtins import input
+# from builtins import input
 import arrow
 import itertools as it
 import logging
 from flame.grid import AtomsIO, Grid, seed_gen
-from collections import deque, OrderedDict
+from collections import deque  # , OrderedDict
 from math import pi
 from os import path, makedirs
 from random import choice, random
@@ -138,7 +138,8 @@ class Flake(object):
     def sites(self):
         """ Return a dictionary mapping binding slots to their quantity in surface.
         """
-        return {i: len(x) for (i, x) in enumerate(self.surface)}
+        # return {i: len(x) for (i, x) in enumerate(self.surface)}
+        return [len(x) for x in self.surface]
 
 
     def carve(self):
@@ -174,14 +175,16 @@ class Flake(object):
         """
         COORD = self.grid.coord
         POOL = self.atoms
+        SITES = self.sites()
 
         mxz = max(POOL, key=lambda i: i[2])[2]
         mnz = min(POOL, key=lambda i: i[2])[2]
         mxr = max(POOL, key=lambda i: i[0]**2 + i[1]**2)
+        mean_binds = sum(weight*i for i, weight in enumerate(num/sum(SITES) for num in SITES))
 
-        attr = OrderedDict({
+        attr = {
             'radius': COORD(mxr).dist(COORD((0, 0, mxr[2])))
-        })
+        }
         attr.update({                # + 1 correct for border
             'height': COORD((0, 0, mxz + 1)).dist(COORD((0, 0, mnz)))
         })
@@ -196,6 +199,9 @@ class Flake(object):
         })
         attr.update({
             'iter': self.iter
+        })
+        attr.update({
+            'bindings': mean_binds
         })
 
 
@@ -396,23 +402,25 @@ class Flake(object):
         clist = zip(*[(coords(idx).x, coords(idx).y, coords(idx).z, c) for
                       (idx, c) in colors.items()])
         if pipeline:
+            # used for external mayavi rendering
             return clist
 
         try:
             from mayavi import mlab
         except ImportError as e:
-            logger.warn("Module {} not available for Python 3. "
-                        "Flake can not be plotted.".format(str(e).split()[-1]))
+            logger.warn("Module {} not available for Python 3. Flake can not be plotted."
+                        "Returning (x, y, z, colors) columns".format(str(e).split()[-1]))
+            return clist
 
         mlab.clf()
         mlab.points3d(*clist, colormap='gist_ncar', scale_factor=0.1, vmin=0, vmax=15)
 
-        if save:
+        if not save:
+            mlab.show()
+        else:
             mlab.options.offscreen = True      # currently not working (bug in mayavi?)
             fname = 'Flake@' + Flake.DATE[1] + '_T' + str(self.twins) + '.png'
             fpath = Flake.daily_output(fname)
             mlab.savefig(fpath, size=(1024, 768))
             logger.info("Figure saved to {}".format(fpath))
             mlab.close()
-        else:
-            mlab.show()
