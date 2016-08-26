@@ -12,6 +12,8 @@ output_bckp
 bckp_output
 *[._]xyz
 *.box
+*.h5
+sim_params.yaml
 
 doc/
 

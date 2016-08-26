@@ -1,7 +1,5 @@
-#!/usr/bin/env python2
 #coding: utf-8
-#                     The test module for the flake simulation
-from __future__ import print_function, division, generators
+
 import unittest
 from flame import growth
 from flame.grid import Vector

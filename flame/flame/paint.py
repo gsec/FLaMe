@@ -11,6 +11,8 @@ logger = logging.getLogger(__name__)
 
 def mscatter(p, x, y, marker, color, legend=None):
     """ Shamelessly stolen from bokeh documentation.
+
+    This is basically an intermediate layer to simplify scatter creation.
     """
     p.scatter(x, y, marker=marker, size=5,
               line_color=color, fill_color=color, alpha=0.6, legend=legend)
@@ -79,3 +81,7 @@ def averaged_planes(fname, choices=None):
             except KeyError:
                 plane = str(twin).split()[0]
             yield (plane, twin, color, mean_flake)
+
+
+def get_planes(fname):
+    return pd.HDFStore(fname, 'r').keys()
