@@ -10,6 +10,7 @@ from __future__ import print_function, division, generators
 import logging
 import sys
 import pandas as pd
+from multiprocessing import Pool
 from os import getcwd, path
 from random import random
 from flame.growth import Flake
@@ -33,6 +34,21 @@ def create(project_name):
         handler.write(output)
     logger.info('Parameter file written to {}'.format(PARAMS_YAML))
 
+
+def tp_gen(params):
+    tp_func = eval('lambda x:' + params['function'])        # Care, eval is evil
+
+    if type(params['values']) is str:
+        objct = eval(params['values'])
+    else:
+        objct = params['values']
+
+    mapping = map(tp_func, objct)
+    return [set(x) for x in mapping]
+
+
+def growth_sample(twin, params):
+    return pd.DataFrame(builder(twin, **params))
 
 
 def run(params=None):
@@ -61,30 +77,26 @@ def run(params=None):
     for k, v in params.items():
         logger.info('\t\t{}: {}'.format(k, v))
 
-    tp_func = eval('lambda x:' + params['function'])        # Care, eval is evil
-
-    if type(params['values']) is str:
-        objct = eval(params['values'])
-    else:
-        objct = params['values']
-
-    mapping = map(tp_func, objct)
-    twins = [set(x) for x in mapping]
-    params['planes'] = twins
+    twins = tp_gen(params)
 
     with pd.HDFStore(fname, title=identifier) as h5:
         h5.put('/parameters', pd.Series(params))
 
         for tp_idx, twin in enumerate(twins):
+            twin_loc = 'twinplane{:02}'.format(tp_idx)
             logger.info(' @{time} \t Twinplanes {twin} \t Total Size: {size}'.format(
                 time=' :: '.join(get_time()), twin=twin, size=params['total_size']))
-            twin_loc = 'twinplane{:02}'.format(tp_idx)
 
-            for sample in range(params['sample_size']):
-                df = pd.DataFrame(builder(twin, **params))
-                flake_loc = 'flake{:03}'.format(sample)
+            # here comes the data crunching
+            args = ((twin, params) for _ in range(params['sample_size']))
+            with Pool() as p:
+                samples = p.starmap(growth_sample, args)
+
+            # and the storage on to disk
+            for idx, sample in enumerate(samples):
+                flake_loc = 'flake{:03}'.format(idx)
                 location = "/".join((twin_loc, flake_loc))
-                h5.put(location, df, format='table')
+                h5.put(location, sample, format='table')
 
     logger.info('SIMULATION ENDED >>> {}'.format(identifier))
 
