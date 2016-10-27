@@ -1,4 +1,5 @@
 # own things to exclude
+flame/flame/tests/time_evals_0x*
 .ropeproject/
 aux
 tools/

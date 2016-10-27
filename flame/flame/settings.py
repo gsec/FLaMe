@@ -8,6 +8,8 @@ from logging import getLogger
 
 
 logger = getLogger(__name__)
+
+# These are the variables we are setting in this file and are exporting to the simulation.
 global FLAME_OUTPUT, GROW_OUTPUT, GRAPH_OUTPUT
 global DIFF_CAP, PICKLE_EXT, HDF_EXT
 
@@ -22,7 +24,8 @@ logger.info("\nFLaMe output path set to: {}".format(FLAME_OUTPUT))
 GROW_OUTPUT = path.join(FLAME_OUTPUT, 'grow')
 SIM_OUTPUT = path.join(FLAME_OUTPUT, 'sim')
 GRAPH_OUTPUT = path.join(FLAME_OUTPUT, 'graph')
-DIFF_CAP = 2.1
+DIFF_CAP = 2.1      # This is the distance between two atoms to be considered nearest
+                    # neighbors.
 PICKLE_EXT = '.flm'
 HDF_EXT = '.h5'
 HDF_METADATA = 'parameters'
@@ -30,7 +33,8 @@ PARAMS_YAML = 'sim_params.yaml'
 
 
 def get_time():
-    """ Returns formatted time string.
+    """ Returns a list with two items: date and time.
+    Both are formatted as unicode strings.
 
     If arrow import fails, warning is issued, and dummy string is returned.
     """

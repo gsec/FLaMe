@@ -16,6 +16,7 @@ Contents:
    cookbook
    growth
    structure
+   flame
 
 
 Indices and tables

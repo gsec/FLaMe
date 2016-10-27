@@ -2,16 +2,15 @@
 ## encoding: utf-8
 
 from __future__ import print_function, division, generators
-# from builtins import input
-import arrow
-import itertools as it
-import logging
-from flame.grid import AtomsIO, Grid, seed_gen
-from collections import deque  # , OrderedDict
 from math import pi
+from arrow import now
+from collections import deque
 from os import path, makedirs
 from random import choice, random
+import itertools as it
+import logging
 
+from flame.grid import AtomsIO, Grid, seed_gen
 from flame.settings import GROW_OUTPUT, PICKLE_EXT, DIFF_CAP, get_time
 
 
@@ -19,6 +18,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+# This handles the `pickle` module for python 2 and 3
 try:
     import cPickle as pickle
 except ImportError:
@@ -26,7 +26,7 @@ except ImportError:
 
 
 class Flake(object):
-    """ Generates a whole Flake object with a FCC lattice and twin planes.
+    """ Generates a Flake object with a FCC lattice and twin planes.
 
     The Flake take an arbitrary number of integers as `*args`, the twin planes.
     They are converted into a twin-plane tuple and proper layer stacking is
@@ -67,6 +67,9 @@ class Flake(object):
 
     def save(self, name):
         """ Save the flake as pickled instance.
+
+        For further analysis, continuation of growth with different parameters and simple
+        pause/continue of growth.
         """
         fname = Flake.daily_output(name) + PICKLE_EXT
         with open(fname, 'wb') as file_handler:
@@ -77,18 +80,24 @@ class Flake(object):
     def __init__(self, *twins, **kwargs):
         """ Flake bootstrap.
 
-        * Create a seed
-        * Add seed sites to atoms list
-        * Generate appropriate surface
+        The Flake is initialized with our (possibly empty) list of twin planes. The
+        desired seed is evaluated and added to the atoms attribute. All settings have
+        sane defaults for a typical growth. At the end we create the surface of
+        possibilities around the newly generated atoms and weigh them according to the
+        surrounding neighbors.
+
+        `maxNB` goes from 0 to 11 neighbors. This is because we can have zero neighbors
+        if we fill a hole, but we can never have all 12 neighbors empty since we do not
+        allow for single atoms detached from the Flake.
         """
         self.twins = twins
-        self.maxNB = range(12)                          # take all 12 NN as possibilities
+        self.maxNB = range(12)
 
         self.seed_shape = kwargs.get('seed', 'sphere')
-        self.trail_length = kwargs.get('trail', 20)
-        self.temp = kwargs.get('temp', 50)
         self.iter, self.atoms = seed_gen(self.seed_shape)
-        self.trail = deque(maxlen=self.trail_length)    # specify length of trail
+        self.trail_length = kwargs.get('trail', 20)
+        self.trail = deque(maxlen=self.trail_length)
+        self.temp = kwargs.get('temp', 50)
 
         self.grid = Grid(twins)
         self.create_entire_surface()
@@ -137,19 +146,22 @@ class Flake(object):
 
     def sites(self):
         """ Return a dictionary mapping binding slots to their quantity in surface.
+
+        This allows to check quickly for the distribution of free binding sites on the
+        surface.
         """
-        # return {i: len(x) for (i, x) in enumerate(self.surface)}
         return [len(x) for x in self.surface]
 
 
     def carve(self):
         """ Makes the flake hollow by removing atoms without adjacent surface.
 
-        * each spot on surface is checked for neighbors
-        * every occupied neighbor is added to `skin`
-        * all atoms not in `skin` are discarded
+        Optimizes the visualization of the Flake when plotted with mayavi. Growth can
+        continue normally, since the inward empty space in the Flake is not part of the
+        surface. This will fail if the `create_entire_surface()` method is used as it
+        would also create an inner surface.
         """
-        t_start = arrow.now()
+        t_start = now()
         skin = set()
         srfc = self.integrated_surface()
 
@@ -159,7 +171,7 @@ class Flake(object):
         diff = len(self.atoms) - len(skin)
         self.atoms = skin
 
-        t_end = arrow.now()
+        t_end = now()
         t_delta = (t_end - t_start).total_seconds()
         logger.info("Carved out {} atoms in {} sec.".format(diff, t_delta))
 
@@ -167,6 +179,10 @@ class Flake(object):
     def geometry(self):
         """ Calculate geometry information about the Flake.
 
+        Here we generate all the data of the growth process we will later use. The
+        dictionary returned here will be the data we collect in growth simulations.
+        We can add other data with the dict.update() method, but existing fields should
+        not be changed for compatibility reasons.
         `height`: Distance between furthest atoms in z direction (+1, taking the outside)
         `radius`: distance from center to far most atom
         `area`: pi*radius**2
@@ -179,11 +195,12 @@ class Flake(object):
 
         mxz = max(POOL, key=lambda i: i[2])[2]
         mnz = min(POOL, key=lambda i: i[2])[2]
-        mxr = max(POOL, key=lambda i: i[0]**2 + i[1]**2)
-        mean_binds = sum(weight*i for i, weight in enumerate(num/sum(SITES) for num in SITES))
+        max_outer = max(POOL, key=lambda i: i[0]**2 + i[1]**2)
+        mean_binds = sum(weight*i for i, weight in
+                         enumerate(num/sum(SITES) for num in SITES))
 
         attr = {
-            'radius': COORD(mxr).dist(COORD((0, 0, mxr[2])))
+            'radius': COORD(max_outer).dist(COORD((0, 0, max_outer[2])))
         }
         attr.update({                # + 1 correct for border
             'height': COORD((0, 0, mxz + 1)).dist(COORD((0, 0, mnz)))
@@ -316,9 +333,9 @@ class Flake(object):
                 elif ans in 'nN':
                     return False
 
-        t_start = arrow.now()
+        t_start = now()
         go()
-        t_delta = (arrow.now() - t_start).total_seconds()
+        t_delta = (now() - t_start).total_seconds()
         return t_delta
 
 
