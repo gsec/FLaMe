@@ -1,0 +1,40 @@
+    :: MULTICORE ::
+INFO:flame.simulation:STARTED >>> hiho_0x15571706ea8f4200
+INFO:flame.simulation:          function: (-x, x)
+INFO:flame.simulation:          sample_size: 8
+INFO:flame.simulation:          values: [0, 1, 2]
+INFO:flame.simulation:          name: hiho
+INFO:flame.simulation:          snapshot_interval: 10
+INFO:flame.simulation:          total_size: 20000
+INFO:flame.simulation:          flake: {'seed': 'point', 'temp': 30}
+INFO:flame.simulation: @2016-10-28 :: 02-28-47   Twinplanes {0}          Total Size: 20000
+INFO:flame.simulation: @2016-10-28 :: 02-33-48   Twinplanes {1, -1}      Total Size: 20000
+INFO:flame.simulation: @2016-10-28 :: 02-38-49   Twinplanes {2, -2}      Total Size: 20000
+INFO:flame.simulation:SIMULATION ENDED >>> hiho_0x15571706ea8f4200
+1 loop, best of 3: 13min 41s per loop
+
+==========================================================================================
+==========================================================================================
+
+    :: SINGLE CORE ::
+INFO:flame.simulation:STARTED >>> hiho_0x1d3ac00252d9b900
+INFO:flame.simulation:          sample_size: 8
+INFO:flame.simulation:          function: (-x, x)
+INFO:flame.simulation:          name: hiho
+INFO:flame.simulation:          values: [0, 1, 2]
+INFO:flame.simulation:          snapshot_interval: 10
+INFO:flame.simulation:          total_size: 20000
+INFO:flame.simulation:          flake: {'seed': 'point', 'temp': 30}
+INFO:flame.simulation: @2016-10-28 :: 03-13-12   Twinplanes {0}          Total Size: 20000
+INFO:flame.simulation: @2016-10-28 :: 03-20-51   Twinplanes {1, -1}      Total Size: 20000
+INFO:flame.simulation: @2016-10-28 :: 03-28-36   Twinplanes {2, -2}      Total Size: 20000
+INFO:flame.simulation:SIMULATION ENDED >>> hiho_0x1d3ac00252d9b900
+1 loop, best of 1: 22min 58s per loop
+
+==========================================================================================
+==========================================================================================
+
+Speedup for 8 samples, multicore with 4 cores:
+            ********************************
+            **  t_single / t_multi = 1.7  **
+            ********************************
