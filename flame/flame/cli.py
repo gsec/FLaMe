@@ -1,11 +1,12 @@
 """
     FLaMe - a FLakeLAtticeMOdelEr
     **********************************
+    - command line entry point -
 
     This package is written in Python 2, nevertheless we seek maximum compatibility for
-    Python 3. The main issue is the `mayavi` package not yet running properly in Python 3.
-    Mayavi is required for plotting, although the simulations and all the other Flake()
-    operations will also work under Python 3.
+    Python 3. The main issue is the `mayavi` package not yet running properly in Python
+    3. Mayavi is required for 3D single flake plotting, although the simulations and all
+    the other Flake() operations will also work under Python 3.
 """
 from flame import simulation, paint
 import os, argparse

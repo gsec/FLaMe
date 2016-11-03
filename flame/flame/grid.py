@@ -7,7 +7,7 @@ from itertools import product
 from math import sqrt
 
 
-def seed_gen(self, shape='point'):
+def seed_gen(shape='point'):
     """ Create the first atoms to initialize the surface creation.
 
     `seeds` are sets of tuples containing atom indices. The return value is a

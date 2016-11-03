@@ -77,7 +77,7 @@ def run(params=None):
     for k, v in params.items():
         logger.info('\t\t{}: {}'.format(k, v))
 
-    twins = tp_gen(params)
+    params['twins'] = twins = tp_gen(params)
 
     with pd.HDFStore(fname, title=identifier) as h5:
         h5.put('/parameters', pd.Series(params))

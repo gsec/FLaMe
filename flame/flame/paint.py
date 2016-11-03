@@ -33,7 +33,7 @@ def mean_plot(file_path, *columns, **kwargs):
             logger.debug('Did not create {}.\n{}'.format(output_dir, e))
 
     if not columns:
-        columns = ('height',)
+        columns = ('aspect_ratio',)
 
     for col in columns:
         figtitle = "{} ({})".format(name, col)
@@ -76,9 +76,10 @@ def averaged_planes(fname, choices=None):
             group_by_index = flake_sum.groupby(flake_sum.index)
             mean_flake = group_by_index.mean()
             try:
-                plane = str(h5.select('/parameters')['planes'][index]).replace(
+                plane = str(h5.select('/parameters')['twins'][index]).replace(
                     'set', 'Twinplanes: ')
             except KeyError:
+                logger.error("Could not retrieve twin plane metadata from /parameters.")
                 plane = str(twin).split()[0]
             yield (plane, twin, color, mean_flake)
 
