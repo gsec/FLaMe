@@ -25,6 +25,6 @@ The most interesting here, on which we also will focus in further discussions is
 probabilistic mode. The function we start with is an exponential governed by some kind of 
 'temperature'.
 
-.. automodule:: growth
-    :members:
-    :show-inheritance:
+# .. automodule:: growth
+#     :members:
+#     :show-inheritance:
