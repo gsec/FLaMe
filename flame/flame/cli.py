@@ -14,15 +14,18 @@ import os, argparse
 
 def main():
     parser = argparse.ArgumentParser(prog='FLaMe')
-    parser.add_argument('command', choices=['run', 'create', 'paint'])
+    parser.add_argument('command', choices=['run', 'create', 'paint', 'extract'])
     parser.add_argument("name", nargs=argparse.REMAINDER)
     args = parser.parse_args()
 
     if args.command == 'run':
         simulation.run(simulation.get_params())
-    if args.command == 'create':
+    elif args.command == 'create':
         if not args.name:
             args.name = [os.getcwd().split('/')[-1]]
         simulation.create('_'.join(args.name))
-    if args.command == 'paint':
+    elif args.command == 'paint':
         paint.mean_plot(*args.name)
+    elif args.command == 'extract':
+        for fname in args.name:
+            paint.extractor(fname)

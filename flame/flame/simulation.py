@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # encoding: utf-8
 """
 Define the general structure of the simulations. We will create a hierarchy in the HDF
@@ -98,7 +98,7 @@ def run(params=None):
                 location = "/".join((twin_loc, flake_loc))
                 h5.put(location, sample, format='table')
 
-    logger.info('SIMULATION ENDED >>> {}'.format(identifier))
+    logger.info('SIMULATION ENDED @{} >>> {}'.format(' :: '.join(get_time()), identifier))
 
 
 def builder(tp, total_size=10000, snapshot_interval=1000, **kwargs):

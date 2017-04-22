@@ -5,8 +5,18 @@ import logging
 import pandas as pd
 from bokeh.plotting import figure, output_file, show
 from flame.settings import GRAPH_OUTPUT, HDF_METADATA, get_colors
+from flame.growth import Flake
 
 logger = logging.getLogger(__name__)
+
+
+def extractor(file_path):
+    h5 = pd.HDFStore(file_path, 'r')
+
+    logger.info("{}\t{}\t{}".format(20*'>', file_path, 20*'<'))
+    for key, val in h5.parameters.items():
+        logger.info("{}:{}{}".format(key, (20-len(key))*" ", val))
+    h5.close()
 
 
 def mscatter(p, x, y, marker, color, legend=None):
@@ -34,6 +44,12 @@ def mean_plot(file_path, *columns, **kwargs):
 
     if not columns:
         columns = ('aspect_ratio',)
+    elif 'all' in columns:
+        # with little hack to remove 'iter' variable from 'all'
+        columns = list(Flake().geometry().keys())
+        columns.pop(-2)
+
+    logger.info("Generating columns:\t{}".format(columns))
 
     for col in columns:
         figtitle = "{} ({})".format(name, col)
@@ -62,7 +78,7 @@ TODO:
 
 def averaged_planes(fname, choices=None):
     with pd.HDFStore(fname, 'r') as h5:
-        twins  = [group for group in h5.root if HDF_METADATA not in str(group)]
+        twins = [group for group in h5.root if HDF_METADATA not in str(group)]
         if choices:
             twins = [x for i, x in enumerate(twins) if i in choices]
         for index, twin, color in get_colors(twins):

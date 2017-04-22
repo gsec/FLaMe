@@ -114,8 +114,8 @@ def get_params():
             params = yaml.load(file_handler)
         return params
     except IOError:
-        sys.exit("'{}' must be created before running a simulation. "
-                    "Try the `create` command.".format(PARAMS_YAML))
+        sys.exit("'{}' must be created before running a simulation. Try the `create` "
+                 "command or look at `flame --help`".format(PARAMS_YAML))
 
 
 def get_colors(twins):
