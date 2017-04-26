@@ -82,7 +82,7 @@ language = None
 #
 # Else, today_fmt is used as the format for a strftime call.
 #
-# today_fmt = '%B %d, %Y'
+today_fmt = '%B %d, %Y'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -322,9 +322,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'FLaMe', u'FLaMe Documentation',
-     author, 'FLaMe', 'One line description of project.',
-     'Miscellaneous'),
+  (master_doc, 'FLaMe', u'FLaMe Documentation',
+   author, 'Guilherme Stein', 'Flake Lattice modeling and simulation',
+   'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.

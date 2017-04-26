@@ -55,40 +55,6 @@ class TestFlakeBasics(unittest.TestCase):
     self.assertEqual(f.grid.twin_layers, layers)
 
 
-class TestVector(unittest.TestCase):
-  """ Sanity checks of the Vector class for basic operations.
-  """
-  def test_equality(self):
-    vec = Vector(3, 4, 8)
-    self.assertEqual(vec, Vector(3, 4, 8))
-    self.assertNotEqual(vec, Vector(1, 2, 3))
-
-  def test_add(self):
-    vec1 = Vector(3, 4, 7)
-    vec2 = Vector(6, 3, 4)
-    res = vec1 + vec2
-    testvec = Vector(9, 7, 11)
-    self.assertEqual(res, testvec)
-
-  def test_sub(self):
-    vec1 = Vector(2, 5, 0)
-    vec2 = Vector(3, 2, -7)
-    testvec = Vector(-1, 3, 7)
-    res = vec1 - vec2
-    self.assertEqual(res, testvec)
-
-  def test_dist(self):
-    vec1 = Vector(2, 5, 0)
-    vec2 = Vector(3, 3, -7)
-    self.assertEqual(7.3484692283495345, vec1.dist(vec2))
-    self.assertEqual(vec1.dist(vec2), vec2.dist(vec1))
-    self.assertEqual(0, vec1.dist(vec1))
-
-  def test_abs(self):
-    vec1 = Vector(2, 5, 0)
-    self.assertEqual(abs(vec1), vec1.dist(Vector(0, 0, 0)))
-
-
 class TestFlakeGrowth(unittest.TestCase):
     def SetUp(self):
         twinplanes = (-2, 3)

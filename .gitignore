@@ -1,22 +1,19 @@
 # own things to exclude
-flame/flame/tests/*.txt
-.ropeproject/
-aux
+aux/
+doc/
 tools/
+output/
+fig/
+.ropeproject/
 ipython_log*.py
 _OLD*
-venv/
-fig/
 *.orig
-output
-output_bckp
-bckp_output
 *[._]xyz
 *.box
 *.h5
+*.mp4
 sim_params.yaml
 
-doc/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -32,6 +29,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
+venv/
 build/
 develop-eggs/
 dist/
@@ -60,6 +58,7 @@ pip-delete-this-directory.txt
 
 # Unit test / coverage reports
 htmlcov/
+cover/
 .tox/
 .coverage
 .coverage.*

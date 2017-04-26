@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='flame',
-      version='0.1',
+      version='0.2',
       description='A flake lattice modeler and growth simulation.',
       url='https://github.com/gsec/thesis',
       author='Guilherme Stein',
@@ -9,8 +9,8 @@ setup(name='flame',
       license='GPL',
       packages=['flame'],
       zip_safe=False,
-      test_suite='nose.collector',
-      tests_require=['nose'],
+      test_suite='py.test',
+      tests_require=['py.test'],
       entry_points={
           'console_scripts': ['flame=flame.cli:main']}
       )

@@ -10,8 +10,9 @@ from random import choice, random
 import itertools as it
 import logging
 
-from flame.grid import AtomsIO, Grid, seed_gen
-from flame.settings import GROW_OUTPUT, PICKLE_EXT, DIFF_CAP, get_time
+from flame.grid import Grid
+from flame.settings import (GROW_OUTPUT, PICKLE_EXT, DIFF_CAP,
+                            AtomsIO, get_time, seed_gen)
 
 
 logging.basicConfig(level=logging.INFO)
@@ -223,8 +224,7 @@ class Flake(object):
 
 
         for (k, i) in attr.items():
-            if not hasattr(self, k):
-                setattr(self, k, i)
+            setattr(self, k, i)
         return attr
 
 
@@ -361,7 +361,7 @@ class Flake(object):
                     try:
                         self.surface[e_slot + 1].add(each)
                     except IndexError:
-                        logger.warn("Filled a bubble...oO Site: {}".format(each))
+                        logger.debug("Filled a bubble...oO Site: {}".format(each))
                     break
             else:
                 self.surface[1].add(each)        # create new surface entry for new ones
