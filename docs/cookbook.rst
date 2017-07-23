@@ -1,3 +1,5 @@
+.o0| FLaMe - a flake lattice modeller |0o.
+============================================
 This is a simulation for crystal growth with combined HCP/FCC stacking written in python.
 It started as my thesis but is not actively developed anymore. Nevertheless comments and
 improvements are welcome under <o0v0o.ix@gmail.com>
@@ -22,7 +24,7 @@ This is run in a python console or as script.
 
 * Inspect the Flake:
   To view basic information, the representation of ``myFlake`` will display it's
-  properties (**twinplanes**, **seed**, **iterations**, etc.). A visual representation is
+  properties (twinplanes, seed, iterations, etc.). A visual representation is
   rendered in mayavi through ``myFlake.plot()``
 
 * Grow atoms:
