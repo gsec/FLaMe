@@ -1,4 +1,4 @@
-.o0| FLaMe - a flake lattice modeller |0o.
+FLaMe - a flake lattice modeller
 ============================================
 This is a simulation for crystal growth with combined HCP/FCC stacking written in python.
 It started as my thesis but is not actively developed anymore. Nevertheless comments and
