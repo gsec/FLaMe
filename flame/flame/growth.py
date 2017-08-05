@@ -3,27 +3,20 @@
 
 from __future__ import print_function, division, generators
 from math import pi
+from mayavi import mlab
 from arrow import now
 from collections import deque
-from os import path, makedirs
+from os.path import join
 from random import choice, random
 import itertools as it
 import logging
 
 from flame.grid import Grid
-from flame.settings import (GROW_OUTPUT, PICKLE_EXT, DIFF_CAP,
-                            AtomsIO, get_time, seed_gen)
+from flame.settings import (GROW_OUTPUT, DIFF_CAP, AtomsIO, seed_gen)
 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-# This handles the `pickle` module for python 2 and 3
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
 
 class Flake(object):
@@ -38,46 +31,6 @@ class Flake(object):
         `trail`: int for length of the marked atoms trail
         `temp`: float in {0 .. 273}, determines the probability through exponential.
     """
-    DATE = get_time()
-
-
-    @staticmethod
-    def daily_output(name):
-        """ Return output folder according to date.
-
-        Create the folder if not already existent.
-        """
-        if len(name.split('/')) == 1:
-            new_path = path.join(GROW_OUTPUT, Flake.DATE[0], name)
-        else:
-            new_path = path.join(GROW_OUTPUT, name)
-        if not path.exists(path.dirname(new_path)):
-            makedirs(path.dirname(new_path))
-        return new_path
-
-
-    @staticmethod
-    def load(name):
-        """ Return a flake instance from pickled file.
-        """
-        fname = Flake.daily_output(name) + PICKLE_EXT
-        with open(fname, 'rb') as file_handler:
-            logger.info("Loading Flake instance from file {} ...".format(fname))
-            return pickle.load(file_handler)
-
-
-    def save(self, name):
-        """ Save the flake as pickled instance.
-
-        For further analysis, continuation of growth with different parameters and simple
-        pause/continue of growth.
-        """
-        fname = Flake.daily_output(name) + PICKLE_EXT
-        with open(fname, 'wb') as file_handler:
-            pickle.dump(self, file_handler, protocol=2)
-        logger.info("Flake instance saved to disk: {}".format(fname))
-
-
     def __init__(self, *twins, **kwargs):
         """ Flake bootstrap.
 
@@ -111,9 +64,9 @@ class Flake(object):
                 "[{}K]".format(self.twins, self.iter, self.seed_shape, self.temp))
 
 
-  ####################
-  #     SURFACE     #
-  ####################
+####################
+#     SURFACE     #
+####################
     def set_surface(self, site):
         """ Adds an empty site to the corresponding surface slot.
         """
@@ -222,15 +175,14 @@ class Flake(object):
             'bindings': mean_binds
         })
 
-
         for (k, i) in attr.items():
             setattr(self, k, i)
         return attr
 
 
-  ########################
-  #     NEIGHBORHOOD     #
-  ########################
+########################
+#     NEIGHBORHOOD     #
+########################
     def abs_neighbours(self, atom):
         """ Return the list of next neighbors in index space of atom `idx`.
         """
@@ -263,9 +215,9 @@ class Flake(object):
             return [nb for nb in nearest if nb in self.atoms]
 
 
-  ##################
-  #     GROWTH     #
-  ##################
+##################
+#     GROWTH     #
+##################
     def prob(self):
         """ Return a list of probability weights for each slot in surface.
 
@@ -326,7 +278,7 @@ class Flake(object):
         def ask(step):
             while True:
                 logger.warn("Flake has no sites with {} or more free bindings. "
-                                 "STOP at {}th growth step.\n".format(cap, step))
+                            "STOP at {}th growth step.\n".format(cap, step))
                 ans = input("Continue with single growth? [y/n]  ")
                 if ans in 'Yy':
                     return True
@@ -368,27 +320,42 @@ class Flake(object):
         self.iter += 1
 
 
-  ##################
-  #     OUTPUT     #
-  ##################
-    def export(self, name):
+##################
+#     OUTPUT     #
+##################
+    def export_coordinates(self, name):
         """ Exports the **xyz**-coordinates of the Flake atoms.
         Adapted from Atomic Blender, can be imported with xyz_io_mesh.
         Text format with a header and four columns: [ELEMENT, X, Y, Z]
         """
+        time_string = str(now()).split('.')[0]
+        fname = name + '__' + time_string + '.xyz'
+        full_name = join(GROW_OUTPUT, fname)
+
+        output = ['XYZ file (Blender format) ' + 24*'+']
+        output.extend(['Inital conditions:',
+                       '\tTwinplanes: ' + str(self.twins),
+                       '\tTemperature: ' + str(self.temp),
+                       '\tSeed: ' + str(self.seed_shape)
+                       ])
+        output.append("Flake properties:")
+        output.extend(['\t{}: {}'.format(k, v) for k, v in self.geometry().items()])
+        output.extend([50*'=', ''])
+
         raw_atoms = (AtomsIO('Au', tuple(self.grid.coord(at))) for at in
                      self.atoms)
+        for atom in raw_atoms:
+            string = '{:3s}{:15.5f}{:15.5f}{:15.5f}'.format(
+                atom.element,
+                atom.location[0],
+                atom.location[1],
+                atom.location[2])
+            output.append(string)
 
-        with open(Flake.daily_output(name) + '.xyz', 'w') as xyz_file:
-            xyz_file.write('{}\n{}\nThis is a XYZ file.\n'.format(
-              len(self.atoms), str(self.geometry())))
-            for atom in raw_atoms:
-                string = '{:3s}{:15.5f}{:15.5f}{:15.5f}\n'.format(
-                  atom.element,
-                  atom.location[0],
-                  atom.location[1],
-                  atom.location[2])
-                xyz_file.write(string)
+        with open(full_name, 'w') as xyz_file:
+            xyz_file.writelines([line + '\n' for line in output])
+        return full_name
+
 
     def colorize(self):
         """ Generate colors for visual representation of atoms and surface sites.
@@ -408,36 +375,19 @@ class Flake(object):
         return colors
 
 
-    def plot(self, save=False, pipeline=False):
+    def plot(self, ret=False):
         """ Transforms the `colors` list to 4 lists of x, y, z, c.
 
         This list, the `clist` is either returned or displayed in mayavi.
-        Optionally a picture is saved to disk.
         """
         coords = self.grid.coord
         colors = self.colorize()
         clist = zip(*[(coords(idx).x, coords(idx).y, coords(idx).z, c) for
                       (idx, c) in colors.items()])
-        if pipeline:
-            # used for external mayavi rendering
-            return clist
-
-        try:
-            from mayavi import mlab
-        except ImportError as e:
-            logger.warn("Module {} not available for Python 3. Flake can not be plotted."
-                        "Returning (x, y, z, colors) columns".format(str(e).split()[-1]))
+        if ret:
+            logger.info("Returning (x, y, z, colors) columns")
             return clist
 
         mlab.clf()
         mlab.points3d(*clist, colormap='gist_ncar', scale_factor=0.1, vmin=0, vmax=15)
-
-        if not save:
-            mlab.show()
-        else:
-            mlab.options.offscreen = True      # currently not working (bug in mayavi?)
-            fname = 'Flake@' + Flake.DATE[1] + '_T' + str(self.twins) + '.png'
-            fpath = Flake.daily_output(fname)
-            mlab.savefig(fpath, size=(1024, 768))
-            logger.info("Figure saved to {}".format(fpath))
-            mlab.close()
+        mlab.show()

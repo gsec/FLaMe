@@ -40,7 +40,11 @@ def mean_plot(file_path, *columns, **kwargs):
         mkdir(output_dir)
     except OSError as e:
         if e.errno == 17:
-            logger.debug('Did not create {}.\n{}'.format(output_dir, e))
+            logger.info('Directory exists. Did not create {}.\n{}'.format(output_dir, e))
+        elif e.errno == 2:
+            logger.warning('Invalid path! Did not create {}.\n{}'.format(output_dir, e))
+        else:
+            raise e
 
     if not columns:
         columns = ('aspect_ratio',)
@@ -65,6 +69,7 @@ def mean_plot(file_path, *columns, **kwargs):
         p.legend.location = 'bottom_right'
         output_file(path.join(output_dir, col + '.html'))
         show(p)
+
 
 """
 TODO:
