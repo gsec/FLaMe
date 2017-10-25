@@ -85,7 +85,7 @@ def seed_gen(shape='point'):
         logger.warn("Requested shape: {} not found! Defaulting to "
                     "`point`.".format(shape))
         seed = SEEDS['point']
-    return len(seed), seed
+    return len(seed), seed.copy()
 
 
 def get_time():

@@ -1,6 +1,7 @@
 # own things to exclude
 aux/
 doc/
+refs/
 tools/
 output/
 fig/
