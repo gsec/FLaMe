@@ -3,7 +3,6 @@
 
 from __future__ import print_function, division, generators
 from math import pi
-from mayavi import mlab
 from arrow import now
 from collections import deque
 from os.path import join
@@ -301,9 +300,10 @@ class Flake(object):
         """
         self.surface[slot].remove(at)
         self.atoms.add(at)
+
         if len(self.trail) >= self.trail.maxlen:
             self.trail.pop()
-        self.trail.appendleft(at)          # prepends new atom to list of latest additions
+        self.trail.appendleft(at)       # prepends new atom to list of latest additions
 
         empty_neighbours = self.real_neighbours(at, void=True)
         for each in empty_neighbours:
@@ -387,7 +387,14 @@ class Flake(object):
         if ret:
             logger.info("Returning (x, y, z, colors) columns")
             return clist
-
-        mlab.clf()
-        mlab.points3d(*clist, colormap='gist_ncar', scale_factor=0.1, vmin=0, vmax=15)
-        mlab.show()
+        else:
+            try:
+                from mayavi import mlab
+                mlab.clf()
+                mlab.points3d(*clist, colormap='gist_ncar',
+                              scale_factor=0.1, vmin=0, vmax=15)
+                mlab.show()
+            except ImportError as e:
+                logger.warn("Could not load {}. Is mayavi installed properly?\n"
+                             "You may want to try flake.plot(ret=True) to return "
+                             "the xyz coordinates.".format(e))
