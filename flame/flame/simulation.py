@@ -118,3 +118,5 @@ def builder(tp, total_size=10000, snapshot_interval=1000, **kwargs):
     while thisFlake.iter < total_size:
         thisFlake.grow(snapshot_interval)
         yield thisFlake.geometry()
+    thisFlake.carve()
+    thisFlake.export_coordinates(kwargs['name'])

@@ -328,19 +328,29 @@ class Flake(object):
         Adapted from Atomic Blender, can be imported with xyz_io_mesh.
         Text format with a header and four columns: [ELEMENT, X, Y, Z]
         """
-        time_string = str(now()).split('.')[0]
-        fname = name + '__' + time_string + '.xyz'
-        full_name = join(GROW_OUTPUT, fname)
+        def fname(ext='xyz'):
+            time_string = str(now()).split('.')[0]
+            fname = "{name}__{time}.{ext}".format(name=name, time=time_string, ext=ext)
+            return join(GROW_OUTPUT, fname)
 
-        output = ['XYZ file (Blender format) ' + 24*'+']
-        output.extend(['Inital conditions:',
-                       '\tTwinplanes: ' + str(self.twins),
-                       '\tTemperature: ' + str(self.temp),
-                       '\tSeed: ' + str(self.seed_shape)
-                       ])
-        output.append("Flake properties:")
-        output.extend(['\t{}: {}'.format(k, v) for k, v in self.geometry().items()])
-        output.extend([50*'=', ''])
+        geo = [(k, v) for k, v in self.geometry().items()]
+
+        info = """
+        XYZ file (Blender format) ++++++++++++++++++
+
+        Inital conditions:
+            Twinplanes: {twin}
+            Temperature: {temp}
+            Seed: {shape}
+
+        Flake Properties:
+            {geo}
+        """.format(twin=self.twins, temp=self.temp, shape=self.seed_shape, geo=geo)
+
+        with open(fname(ext='info'), 'w') as infofile:
+            infofile.write(info)
+
+        output = ['{}\n'.format(self.iter)]
 
         raw_atoms = (AtomsIO('Au', tuple(self.grid.coord(at))) for at in
                      self.atoms)
@@ -352,9 +362,10 @@ class Flake(object):
                 atom.location[2])
             output.append(string)
 
-        with open(full_name, 'w') as xyz_file:
+        with open(fname(), 'w') as xyz_file:
             xyz_file.writelines([line + '\n' for line in output])
-        return full_name
+
+        return fname()
 
 
     def colorize(self):
@@ -396,5 +407,5 @@ class Flake(object):
                 mlab.show()
             except ImportError as e:
                 logger.warn("Could not load {}. Is mayavi installed properly?\n"
-                             "You may want to try flake.plot(ret=True) to return "
-                             "the xyz coordinates.".format(e))
+                            "You may want to try flake.plot(ret=True) to return "
+                            "the xyz coordinates.".format(e))
