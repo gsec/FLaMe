@@ -328,29 +328,31 @@ class Flake(object):
         Adapted from Atomic Blender, can be imported with xyz_io_mesh.
         Text format with a header and four columns: [ELEMENT, X, Y, Z]
         """
-        def fname(ext='xyz'):
+        def fnames():
             time_string = str(now()).split('.')[0]
-            fname = "{name}__{time}.{ext}".format(name=name, time=time_string, ext=ext)
-            return join(GROW_OUTPUT, fname)
+            fnamexyz = "{n}__{time}.{ext}".format(n=name, time=time_string, ext='xyz')
+            fnameinfo = "{n}__{time}.{ext}".format(n=name, time=time_string, ext='info')
+            return (join(GROW_OUTPUT, fnamexyz), join(GROW_OUTPUT, fnameinfo))
 
-        geo = [(k, v) for k, v in self.geometry().items()]
+        geostr = ''.join(str((k, v)) + '\n' for k, v in self.geometry().items())
 
-        info = """
-        XYZ file (Blender format) ++++++++++++++++++
+        info = """XYZ file (Blender format) ++++++++++++++++++
 
-        Inital conditions:
-            Twinplanes: {twin}
-            Temperature: {temp}
-            Seed: {shape}
+Inital conditions:
+    Twinplanes: {twin}
+    Temperature: {temp}
+    Seed: {shape}
 
-        Flake Properties:
-            {geo}
-        """.format(twin=self.twins, temp=self.temp, shape=self.seed_shape, geo=geo)
+Flake Properties:
 
-        with open(fname(ext='info'), 'w') as infofile:
+{geo}""".format(twin=self.twins, temp=self.temp, shape=self.seed_shape, geo=geostr)
+
+        xyzfile, infofile = fnames()
+
+        with open(infofile, 'w') as infofile:
             infofile.write(info)
 
-        output = ['{}\n'.format(self.iter)]
+        output = ['{}\n'.format(len(self.atoms))]
 
         raw_atoms = (AtomsIO('Au', tuple(self.grid.coord(at))) for at in
                      self.atoms)
@@ -362,10 +364,10 @@ class Flake(object):
                 atom.location[2])
             output.append(string)
 
-        with open(fname(), 'w') as xyz_file:
+        with open(xyzfile, 'w') as xyz_file:
             xyz_file.writelines([line + '\n' for line in output])
 
-        return fname()
+        return infofile
 
 
     def colorize(self):

@@ -119,4 +119,5 @@ def builder(tp, total_size=10000, snapshot_interval=1000, **kwargs):
         thisFlake.grow(snapshot_interval)
         yield thisFlake.geometry()
     thisFlake.carve()
-    thisFlake.export_coordinates(kwargs['name'])
+    if 'name' in kwargs:
+        thisFlake.export_coordinates(kwargs['name'])
