@@ -4,7 +4,6 @@ import sys
 import yaml
 from os import environ, path
 from matplotlib.cm import viridis
-from itertools import product
 from logging import getLogger
 
 
@@ -36,56 +35,20 @@ except KeyError as e:
     FLAME_OUTPUT = path.join(fallback, 'output')
 logger.debug("\nFLaMe output path set to: {}".format(FLAME_OUTPUT))
 
+""" Output paths for the simulation
+"""
 GROW_OUTPUT = path.join(FLAME_OUTPUT, 'grow')
 SIM_OUTPUT = path.join(FLAME_OUTPUT, 'sim')
 GRAPH_OUTPUT = path.join(FLAME_OUTPUT, 'graph')
-DIFF_CAP = 2.1      # This is the maximum distance between two atoms to be considered
-                    # nearest neighbors.
+
+""" This is the maximum distance between two atoms to be considered nearest neighbors.
+"""
+DIFF_CAP = 2.1
+
 PICKLE_EXT = '.flm'
 HDF_EXT = '.h5'
 HDF_METADATA = 'parameters'
 PARAMS_YAML = 'sim_params.yaml'
-
-SEEDS = {
-    'point': set(
-        ((0, 0, 0),)
-    ),
-    'cube': set(
-        product((-1, 0, 1), repeat=3)
-    ),
-    'bigcube': set(
-        product((-2, -1, 0, 1, 2), repeat=3)
-    ),
-    'sphere': set(
-        ((0, -1, 1), (-1, 0, 1), (0, 0, 1),
-         (-1, -1, 0), (-1, 0, 0), (-1, 1, 0), (0, 0, 0), (0, -1, 0), (0, 1, 0), (1, 0, 0),
-         (-1, -1, -1), (0, 0, -1), (0, -1, -1))
-    ),
-
-    'plane': set(
-        ((1, 0, 0), (1, 2, 0), (-2, 1, 0), (-2, 0, 0), (1, -1, 0), (0, 1, 0), (-2, 2, 0),
-         (-1, 0, 0), (-2, -2, 0), (0, -1, 0), (1, 1, 0), (1, -2, 0), (0, -2, 0),
-         (0, 2, 0), (2, 0, 0), (-1, -2, 0), (-1, 1, 0), (-1, 2, 0), (2, -1, 0),
-         (-1, -1, 0), (2, 2, 0), (0, 0, 0), (2, 1, 0), (-2, -1, 0), (2, -2, 0))
-    )
-}
-
-
-def seed_gen(shape='point'):
-    """ Create the first atoms to initialize the surface creation.
-
-    `seeds` are sets of tuples containing atom indices. The return value is a
-    tuple with the first element being the number of seed atoms and the second
-    the set of tuples. If the requested shape is not found in the `SEEDS` dictionary it
-    defaults to `point`.
-    """
-    try:
-        seed = SEEDS[shape]
-    except KeyError:
-        logger.warn("Requested shape: {} not found! Defaulting to "
-                    "`point`.".format(shape))
-        seed = SEEDS['point']
-    return len(seed), seed.copy()
 
 
 def get_time():

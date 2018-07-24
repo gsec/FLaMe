@@ -10,8 +10,8 @@ from random import choice, random
 import itertools as it
 import logging
 
-from flame.grid import Grid
-from flame.settings import (GROW_OUTPUT, DIFF_CAP, AtomsIO, seed_gen)
+from flame.grid import Grid, Seed
+from flame.settings import (GROW_OUTPUT, DIFF_CAP, AtomsIO)
 
 
 logging.basicConfig(level=logging.INFO)
@@ -47,7 +47,7 @@ class Flake(object):
         self.maxNB = range(12)
 
         self.seed_shape = kwargs.get('seed', 'sphere')
-        self.iter, self.atoms = seed_gen(self.seed_shape)
+        self.iter, self.atoms = Seed().seed_gen(self.seed_shape)
         self.trail_length = kwargs.get('trail', 20)
         self.trail = deque(maxlen=self.trail_length)
         self.temp = kwargs.get('temp', 50)

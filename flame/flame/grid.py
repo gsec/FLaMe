@@ -4,6 +4,7 @@ Low level functions for `growth`
 """
 from __future__ import print_function, division, generators
 from math import sqrt
+from itertools import product
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -80,6 +81,51 @@ class Grid(object):
                            sqrt(3)*(j + shift/3),
                            k*2*sqrt(6)/3)
         return prototype
+
+
+class Seed():
+    def __init__(self):
+        self.seeds = {
+                'point': set(
+                    ((0, 0, 0),)
+                ),
+                'cube': set(
+                    product((-1, 0, 1), repeat=3)
+                ),
+                'bigcube': set(
+                    product((-2, -1, 0, 1, 2), repeat=3)
+                ),
+                'sphere': set(
+                    ((0, -1, 1), (-1, 0, 1), (0, 0, 1),
+                     (-1, -1, 0), (-1, 0, 0), (-1, 1, 0),
+                     (0, 0, 0), (0, -1, 0), (0, 1, 0), (1, 0, 0),
+                     (-1, -1, -1), (0, 0, -1), (0, -1, -1))
+                ),
+                'plane': set(
+                    ((1, 0, 0), (1, 2, 0), (-2, 1, 0), (-2, 0, 0), (1, -1, 0),
+                     (0, 1, 0), (-2, 2, 0), (-1, 0, 0), (-2, -2, 0), (0, -1, 0),
+                     (1, 1, 0), (1, -2, 0), (0, -2, 0), (0, 2, 0), (2, 0, 0),
+                     (-1, -2, 0), (-1, 1, 0), (-1, 2, 0), (2, -1, 0), (-1, -1, 0),
+                     (2, 2, 0), (0, 0, 0), (2, 1, 0), (-2, -1, 0), (2, -2, 0)))
+            }
+
+
+    def seed_gen(self, shape=None):
+        """ Create the first atoms to initialize the surface creation.
+
+        `seeds` are sets of tuples containing atom indices. The return value is a
+        tuple with the first element being the number of seed atoms and the second
+        the set of tuples. If the requested shape is not found in the `SEEDS`
+        dictionary it defaults to `point`.
+        """
+        try:
+            seed = self.seeds[shape]
+        except KeyError:
+            if shape:
+                logger.warn("Requested shape: {} not found! Defaulting to "
+                            "`point`.".format(shape))
+            seed = self.seeds['point']
+        return len(seed), seed.copy()
 
 
 class Vector(object):
