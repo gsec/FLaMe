@@ -3,11 +3,9 @@
 import sys
 import yaml
 from os import environ, path
+from os.path import dirname as parent
 from matplotlib.cm import viridis
 from logging import getLogger
-
-
-logger = getLogger(__name__)
 
 """ This file stores global settings used across all simulations.
 
@@ -23,20 +21,24 @@ is two atomic radii, while we give it here 2.1 to include small deviations due t
 numerical rounding errors when calculating the distance.
 """
 
-# These are the variables we are setting in this file and are exporting to the simulation.
-global FLAME_OUTPUT, GROW_OUTPUT, GRAPH_OUTPUT
-global DIFF_CAP, PICKLE_EXT, HDF_EXT
+logger = getLogger(__name__)
 
-try:
-    FLAME_OUTPUT = environ['FLAME_OUTPUT']
-except KeyError as e:
-    logger.warn("No {} specified. Path is chosen relative to `settings.py`.".format(e))
-    fallback = path.dirname(path.dirname(path.abspath(__file__)))
-    FLAME_OUTPUT = path.join(fallback, 'output')
-logger.debug("\nFLaMe output path set to: {}".format(FLAME_OUTPUT))
+
+def get_output_folder():
+    try:
+        output_folder = environ['FLAME_OUTPUT']
+    except KeyError as e:
+        print(path.abspath(__file__))
+        fallback = parent(parent(parent(__file__)))
+        output_folder = path.join(fallback, 'output')
+        logger.warning("{} not specified, hence chosen relative to "
+                       "module directory as:\n{}".format(e, output_folder))
+    return output_folder
+
 
 """ Output paths for the simulation
 """
+FLAME_OUTPUT = get_output_folder()
 GROW_OUTPUT = path.join(FLAME_OUTPUT, 'grow')
 SIM_OUTPUT = path.join(FLAME_OUTPUT, 'sim')
 GRAPH_OUTPUT = path.join(FLAME_OUTPUT, 'graph')
@@ -44,7 +46,6 @@ GRAPH_OUTPUT = path.join(FLAME_OUTPUT, 'graph')
 """ This is the maximum distance between two atoms to be considered nearest neighbors.
 """
 DIFF_CAP = 2.1
-
 PICKLE_EXT = '.flm'
 HDF_EXT = '.h5'
 HDF_METADATA = 'parameters'
@@ -60,8 +61,8 @@ def get_time():
     try:
         import arrow
     except ImportError:
-        logger.warn("Import of arrow failed. No time is recorded. Please check "
-                    "dependencies.")
+        logger.warning("Import of arrow failed. No time is recorded. "
+                       "Please check dependencies.")
         return "n0timet0day"
     return arrow.now().format('YYYY-MM-DD HH-mm-ss').split(' ')
 

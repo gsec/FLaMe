@@ -2,7 +2,8 @@
 """
 from __future__ import print_function, division, generators
 import unittest
-from flame.grid import Grid, Vector
+from testfixtures import LogCapture
+from flame.grid import Grid, Vector, Seed
 
 ATOM_DIA = 2
 
@@ -98,3 +99,41 @@ class TestTwinnedGrid(unittest.TestCase):
 
         for i in range(-20, -1):
             self.assertEqual(self.tGrid.shift(i), i % 3)
+
+
+class TestSeedGeneration(unittest.TestCase):
+    """ Make sure correct seeds are return on correct/invalid/without input.
+    """
+    def setUp(self):
+        self.seed = Seed()
+        self.point_ref_seed = (1, {(0, 0, 0)})
+        self.sphere_ref_seed = (13, {
+            (-1, -1, -1), (-1, -1, 0), (-1, 0, 0), (-1, 0, 1), (-1, 1, 0),
+            (0, -1, -1), (0, -1, 0), (0, -1, 1), (0, 0, -1), (0, 0, 0),
+            (0, 0, 1), (0, 1, 0), (1, 0, 0)})
+
+    def test_seed_exists(self):
+        for seed in ('point', 'sphere', 'cube'):
+            self.assertIn(seed, self.seed.raw_seeds)
+
+    def test_point_seed(self):
+        point_seed = self.seed.seed_gen('point')
+        self.assertEqual(point_seed, self.point_ref_seed)
+
+    def test_sphere_seed(self):
+        sphere_seed = self.seed.seed_gen('sphere')
+        self.assertEqual(sphere_seed, self.sphere_ref_seed)
+
+    def test_no_argument(self):
+        default_seed = self.seed.seed_gen()
+        self.assertEqual(default_seed, self.point_ref_seed)
+
+    def test_invalid_argument(self):
+        invalid_arg = 'GNAARKS!!'
+        expected_log = ("Requested shape: {} not found! "
+                        "Defaulting to `point`.").format(invalid_arg)
+        with LogCapture() as lcap:
+            invalid_seed = self.seed.seed_gen(invalid_arg)
+
+        lcap.check(('flame.grid', 'WARNING', expected_log))
+        self.assertEqual(invalid_seed, self.point_ref_seed)

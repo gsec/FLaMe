@@ -85,7 +85,7 @@ class Grid(object):
 
 class Seed():
     def __init__(self):
-        self.seeds = {
+        self.raw_seeds = {
                 'point': set(
                     ((0, 0, 0),)
                 ),
@@ -119,12 +119,12 @@ class Seed():
         dictionary it defaults to `point`.
         """
         try:
-            seed = self.seeds[shape]
+            seed = self.raw_seeds[shape]
         except KeyError:
             if shape:
                 logger.warn("Requested shape: {} not found! Defaulting to "
                             "`point`.".format(shape))
-            seed = self.seeds['point']
+            seed = self.raw_seeds['point']
         return len(seed), seed.copy()
 
 
