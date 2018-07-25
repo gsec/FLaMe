@@ -42,6 +42,7 @@ FLAME_OUTPUT = get_output_folder()
 GROW_OUTPUT = path.join(FLAME_OUTPUT, 'grow')
 SIM_OUTPUT = path.join(FLAME_OUTPUT, 'sim')
 GRAPH_OUTPUT = path.join(FLAME_OUTPUT, 'graph')
+TIMING_OUTPUT = path.join(FLAME_OUTPUT, 'timing')
 
 """ This is the maximum distance between two atoms to be considered nearest neighbors.
 """
@@ -119,7 +120,7 @@ def get_params():
         with open(PARAMS_YAML, 'r') as file_handler:
             params = yaml.load(file_handler)
         return params
-    except IOError:
+    except IOError:     # pragma: no cover
         sys.exit("'{}' must be created before running a simulation. Try the `create` "
                  "command or look at `flame --help`".format(PARAMS_YAML))
 
@@ -132,7 +133,7 @@ def get_colors(twins):
     """
     norm = float(len(twins) - 1)
     if norm == 0:
-        logger.warn("Single Flakes, no averaging.")
+        logger.info("Single Flakes, no averaging.")
         norm = 1
 
     color_filler = []
@@ -144,7 +145,7 @@ def get_colors(twins):
     return zip(range(len(twins)), twins, color_filler)
 
 
-class AtomsIO(object):
+class AtomsIO():
     """ Creates the atom object with two slots.
 
     This is the format to export a blender file.
