@@ -71,7 +71,12 @@ class Flake(object):
         """
         occupied_neighbours = self.real_neighbours(site, void=False)
         slot = len(occupied_neighbours)
-        self.surface[slot].add(site)
+        try:
+            self.surface[slot].add(site)
+        except IndexError:
+            logger.warn("Tried to add following atom: [{}] to non-existing surface slot"
+                        " {}.\nThis probably means it does not belong to the surface.\n"
+                        "Skipping...".format(site, slot))
 
 
     def create_entire_surface(self):
@@ -217,6 +222,28 @@ class Flake(object):
 ##################
 #     GROWTH     #
 ##################
+    def temperature_dist(self, slot, temp=None):
+        """ Create the probabilty distribution for the surface.
+
+        Depends on the slot (the more bindings,  the more probable it is to attach)
+        scaled with an artificial temperature.
+        """
+        SCALE = 1/10            # scaling paramter
+        UPPER_T = 1000          # temperature/numerical limits
+        LOWER_T = 0
+
+        if not temp:
+            temp = self.temp
+        if not LOWER_T <= temp <= UPPER_T:
+            raise ValueError("Temperature parameter must be between {} and {}.".format(
+                LOWER_T, UPPER_T))
+        if slot not in self.maxNB:
+            raise IndexError("Slot must be in the range of next neighbours.")
+
+        func = len(self.surface[slot]) * slot**(temp*SCALE)
+        return func
+
+
     def prob(self):
         """ Return a list of probability weights for each slot in surface.
 
@@ -224,9 +251,8 @@ class Flake(object):
         power of a constant.
         """
         weights = []
-        func = lambda x: len(self.surface[x]) * x**(abs(self.temp))
         for slot in self.maxNB:
-            p = func(slot)
+            p = self.temperature_dist(slot)
             weights.append(p)
         return weights
 

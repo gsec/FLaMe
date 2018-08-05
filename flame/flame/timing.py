@@ -107,7 +107,7 @@ Total speedup (averaged time ratios):
 
 
 if __name__ == '__main__':
-    SIZE = 50000
-    BENCHMARKS = 30
+    SIZE = 100000
+    BENCHMARKS = 20
 
     main(itersize=SIZE, benchmark_range=BENCHMARKS)
