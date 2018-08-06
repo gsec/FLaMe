@@ -37,10 +37,10 @@ class Flake(object):
         desired seed is evaluated and added to the atoms attribute. All settings have
         sane defaults for a typical growth. At the end we create the surface of
         possibilities around the newly generated atoms and weigh them according to the
-        surrounding neighbors.
+        surrounding neighbours.
 
-        `maxNB` goes from 0 to 11 neighbors. This is because we can have zero neighbors
-        if we fill a hole, but we can never have all 12 neighbors empty since we do not
+        `maxNB` goes from 0 to 11 neighbours. This is because we can have zero neighbours
+        if we fill a hole, but we can never have all 12 neighbours empty since we do not
         allow for single atoms detached from the Flake.
         """
         self.twins = twins
@@ -50,7 +50,7 @@ class Flake(object):
         self.iter, self.atoms = Seed().seed_gen(self.seed_shape)
         self.trail_length = kwargs.get('trail', 20)
         self.trail = deque(maxlen=self.trail_length)
-        self.temp = kwargs.get('temp', 50)
+        self.temp = kwargs.get('temp', 100)
 
         self.grid = Grid(twins)
         self.create_entire_surface()
@@ -83,7 +83,7 @@ class Flake(object):
         """ Generate the list for the surface sites based on occupied sites.
 
         Create a list of 12 sets (each corresponding to the  possibilities of next
-        neighbors). Iterates through every atom and populates each adjacent empty site
+        neighbours). Iterates through every atom and populates each adjacent empty site
         to the surface list.
         """
         self.surface = [set() for _ in self.maxNB]
@@ -184,11 +184,11 @@ class Flake(object):
         return attr
 
 
-########################
-#     NEIGHBORHOOD     #
-########################
+#########################
+#     NEIGHBOURHOOD     #
+#########################
     def abs_neighbours(self, atom):
-        """ Return the list of next neighbors in index space of atom `idx`.
+        """ Return the list of next neighbours in index space of atom `idx`.
         """
         absNB = set(it.product(range(-1, 2), repeat=3))         # create NN indices
         absNB.remove((0, 0, 0))
@@ -197,14 +197,16 @@ class Flake(object):
 
 
     def real_neighbours(self, atom, void=False):
-        """ Creates next neighbors based on the distances.
+        """ Creates next neighbours based on the distances.
 
-        * choose a site (ensure later that every possibility is covered...)
+        * choose a site
+            #TODO:  we still have to that every possibility is covered,
+                    check atomic radius
         * build all (1, -1, 0) permutations
         * get coordinates of all surrounding sites
-        * get vector differences between the atom and its neighbors
+        * get vector differences between the atom and its neighbours
         * filter those, which are larger than DIFF_CAP
-        * return `void` or `occupied` neighbors
+        * return `void` or `occupied` neighbours
         """
         indexed = self.abs_neighbours(atom)
         coordinates = (self.grid.coord(ai_site) for ai_site in indexed)
@@ -228,11 +230,11 @@ class Flake(object):
         Depends on the slot (the more bindings,  the more probable it is to attach)
         scaled with an artificial temperature.
         """
-        SCALE = 1/10            # scaling paramter
+        SCALE = 1/30            # scaling paramter
         UPPER_T = 1000          # temperature/numerical limits
         LOWER_T = 0
 
-        if not temp:
+        if temp is None:
             temp = self.temp
         if not LOWER_T <= temp <= UPPER_T:
             raise ValueError("Temperature parameter must be between {} and {}.".format(
@@ -240,11 +242,11 @@ class Flake(object):
         if slot not in self.maxNB:
             raise IndexError("Slot must be in the range of next neighbours.")
 
-        func = len(self.surface[slot]) * slot**(temp*SCALE)
+        func = len(self.surface[slot]) * slot**(SCALE * (UPPER_T - temp))
         return func
 
 
-    def prob(self):
+    def weights(self):
         """ Return a list of probability weights for each slot in surface.
 
         Each element of the surface is weighted with the number of bindings to the
@@ -278,7 +280,7 @@ class Flake(object):
                 self.put_atom(*func())
 
         def prob_grow():
-            weights = self.prob()
+            weights = self.weights()
             logger.debug("WEIGHTS: {}  Sum:{:e}".format(weights, sum(weights)))
             rnd = random()*sum(weights)
             for slot, w in enumerate(weights):
@@ -317,12 +319,12 @@ class Flake(object):
 
 
     def put_atom(self, at, slot):
-        """ * remove atom from its slot
-            * append it to atoms list
-            * check which neighbors are free, with those:
-                * check every slot if it contains the neighbor
+        """ * remove atom from its surface slot
+            * append to atoms list
+            * check which neighbours are free, with those:
+                * check every slot if it contains the neighbour
                 * remove it from there
-                * add it to next higher slot (cause now it has one more neighbor)
+                * add it to next higher slot (cause now it has one more neighbour)
         """
         self.surface[slot].remove(at)
         self.atoms.add(at)

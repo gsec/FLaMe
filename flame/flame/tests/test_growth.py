@@ -77,6 +77,12 @@ class TestFlakeGrowth(unittest.TestCase):
 
         self.assertEqual(self.tF.temperature_dist(0), 0)
 
+    def test_weights(self):
+        simple = growth.Flake(seed='point')
+        initp = [0 for i in simple.maxNB]
+        initp[1] = 12
+        self.assertEqual(initp, simple.weights())
+
 
 if __name__ == '__main__':
     unittest.main()
