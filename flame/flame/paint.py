@@ -29,23 +29,30 @@ def mscatter(p, x, y, marker, color, legend=None):
               line_color=color, fill_color=color, alpha=0.6, legend=legend)
 
 
-def mean_plot(file_path, *columns, **kwargs):
-    """ Paint bokeh over the mean of samples for each twinplane configuration.
-
-    Outputs to html file in `output/graph/<filebasename>/<column>.html`.
+def cols_output(file_path):
+    """ Create path and return columns
     """
     fname = path.basename(file_path)
     name = fname.split('.')[0]
     output_dir = path.join(GRAPH_OUTPUT, name)
     try:
         mkdir(output_dir)
-    except OSError as e:
+    except OSError as e:     # pragma: nocover
         if e.errno == 17:
             logger.info('Directory exists. Did not create {}.\n{}'.format(output_dir, e))
         elif e.errno == 2:
             logger.warning('Invalid path! Did not create {}.\n{}'.format(output_dir, e))
         else:
             raise e
+    return output_dir, fname, name
+
+
+def mean_plot(file_path, *columns):
+    """ Paint bokeh over the mean of samples for each twinplane configuration.
+
+    Outputs to html file in `output/graph/<filebasename>/geometry_##_cols.html`.
+    """
+    output_dir, fname, name = cols_output(file_path)
 
     if not columns:
         columns = ('aspect_ratio',)
@@ -69,8 +76,9 @@ def mean_plot(file_path, *columns, **kwargs):
 
         p.legend.location = 'bottom_right'
         plot_cols.append(p)
-    out_file = 'geometry_{}_cols.html'.format(len(columns))
-    output_file(path.join(output_dir, out_file))
+
+    out_fname = 'geometry_{}_cols.html'.format(len(columns))
+    output_file(path.join(output_dir, out_fname))
     show(bokeh_column(plot_cols))
 
 
