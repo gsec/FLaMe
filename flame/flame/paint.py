@@ -4,6 +4,7 @@ from os import path, mkdir
 import logging
 import pandas as pd
 from bokeh.plotting import figure, output_file, show
+from bokeh.layouts import column as bokeh_column
 from flame.settings import GRAPH_OUTPUT, HDF_METADATA, get_colors
 from flame.growth import Flake
 
@@ -49,11 +50,11 @@ def mean_plot(file_path, *columns, **kwargs):
     if not columns:
         columns = ('aspect_ratio',)
     elif 'all' in columns:
-        # with little hack to remove 'iter' variable from 'all'
         columns = list(Flake().geometry().keys())
-        columns.pop(-2)
+        columns.pop(-2)         # remove 'iter' variable from 'all'
 
     logger.info("Generating columns:\t{}".format(columns))
+    plot_cols = []
 
     for col in columns:
         figtitle = "{} ({})".format(name, col)
@@ -67,8 +68,10 @@ def mean_plot(file_path, *columns, **kwargs):
             mscatter(p, X, Y, "circle", color, legend=plane)
 
         p.legend.location = 'bottom_right'
-        output_file(path.join(output_dir, col + '.html'))
-        show(p)
+        plot_cols.append(p)
+    out_file = 'geometry_{}_cols.html'.format(len(columns))
+    output_file(path.join(output_dir, out_file))
+    show(bokeh_column(plot_cols))
 
 
 """
