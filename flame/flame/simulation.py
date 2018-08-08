@@ -67,11 +67,8 @@ def run(params=None):
     """
     if not params:
         params = get_params()
-    while True:                         # ensure that the id is unique
-        identifier = params['name'] + '_' + hex(hash(random()))
-        fname = identifier + HDF_EXT
-        if not path.isfile(fname):
-            break
+    identifier = params['name'] + '_' + hex(hash(random()))
+    fname = identifier + HDF_EXT
 
     logger.info('STARTED >>> {}'.format(identifier))
     for k, v in params.items():
@@ -114,10 +111,11 @@ def builder(tp, total_size=10000, snapshot_interval=1000, **kwargs):
         xargs = {'': None}
 
     thisFlake = Flake(*tp, **xargs)
+    print(thisFlake)
 
     while thisFlake.iter < total_size:
         thisFlake.grow(snapshot_interval)
         yield thisFlake.geometry()
-    thisFlake.carve()
     if 'name' in kwargs:
+        thisFlake.carve()
         thisFlake.export_coordinates(kwargs['name'])
