@@ -4,9 +4,17 @@ from __future__ import print_function, division, generators
 import unittest
 import mock
 import sys
-from os import stat, path, environ
+from os import stat, environ, listdir
+from os.path import join, dirname, abspath
 
 from flame import settings as S
+
+
+MOCK_DIR = join(dirname(abspath(__file__)), 'mock_dir')
+
+
+def grab_mock():
+    return listdir(MOCK_DIR)
 
 
 class TestSettings(unittest.TestCase):
@@ -25,7 +33,7 @@ class TestSettings(unittest.TestCase):
         the folders.
         """
         del(environ['FLAME_OUTPUT'])
-        fpath = path.join(S.parent(__file__), '../../../output')
+        fpath = join(S.parent(__file__), '../../../output')
 
         ref_inode = stat(fpath).st_ino
         test_inode = stat(S.get_output_folder()).st_ino
@@ -67,7 +75,3 @@ class TestSettings(unittest.TestCase):
     def tearDown(self):
         environ.clear()
         environ.update(self._environ)
-
-
-if __name__ == '__main__':
-    unittest.main()

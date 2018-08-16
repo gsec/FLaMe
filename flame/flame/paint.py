@@ -69,7 +69,7 @@ def mean_plot(file_path, *columns):
         p.grid.grid_line_color = "white"
         p.background_fill_color = "#eeeeee"
 
-        for plane, twin, color, mean_flake in averaged_planes(fname):
+        for plane, color, mean_flake in averaged_planes(fname):
             Y = mean_flake[col]
             X = mean_flake['iter']
             mscatter(p, X, Y, "circle", color, legend=plane)
@@ -80,16 +80,6 @@ def mean_plot(file_path, *columns):
     out_fname = 'geometry_{}_cols.html'.format(len(columns))
     output_file(path.join(output_dir, out_fname))
     show(bokeh_column(plot_cols))
-
-
-"""
-TODO:
-    separate averaging from plotting
-
-    create buttons for each twin plane as selector to switch their display
-
-    each tp selector should also have a switch to display all or only averaged results
-"""
 
 
 def averaged_planes(fname, choices=None):
@@ -107,14 +97,16 @@ def averaged_planes(fname, choices=None):
             flake_sum = pd.concat(tmp)
             group_by_index = flake_sum.groupby(flake_sum.index)
             mean_flake = group_by_index.mean()
-            try:
-                plane = str(h5.select('/parameters')['twins'][index]).replace(
-                    'set', 'Twinplanes: ')
-            except KeyError:
-                logger.error("Could not retrieve twin plane metadata from /parameters.")
-                plane = str(twin).split()[0]
-            yield (plane, twin, color, mean_flake)
+            plane = str(h5.select('/' + HDF_METADATA)['twins'][index]).replace(
+                'set', 'Twinplanes: ')
+            yield (plane, color, mean_flake)
 
 
-def get_planes(fname):
-    return pd.HDFStore(fname, 'r').keys()
+"""
+TODO:
+    separate averaging from plotting
+
+    create buttons for each twin plane as selector to switch their display
+
+    each tp selector should also have a switch to display all or only averaged results
+"""

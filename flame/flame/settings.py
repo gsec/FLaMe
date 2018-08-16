@@ -101,10 +101,10 @@ flake:
                     time=get_time(),
                     name=project_name,
                     TP_FUNC="(-(x%2), x, -x**2)",
-                    VALS=[0, 1, 2, 3, 5],
-                    SMPSIZE=10,
-                    SNAPSHOT=100,
-                    TOTAL_SIZE=200000,
+                    VALS=[0, 1, 2],
+                    SMPSIZE=2,
+                    SNAPSHOT=1000,
+                    TOTAL_SIZE=2000,
                     FLAKE_TEMP=30,
                     FLAKE_SEED='point')
     return rendered

@@ -82,7 +82,3 @@ class TestFlakeGrowth(unittest.TestCase):
         initp = [0 for i in simple.maxNB]
         initp[1] = 12
         self.assertEqual(initp, simple.weights())
-
-
-if __name__ == '__main__':
-    unittest.main()

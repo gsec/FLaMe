@@ -19,7 +19,7 @@ from flame.settings import HDF_EXT, PARAMS_YAML, get_time, get_skel, get_params
 logger = logging.getLogger(__name__)
 
 
-def create(project_name):
+def create(project_name, to_file=True):
     """ Create a default YAML file for the project.
 
     Optional argument: @name   :: If not provided, naming defaults to directory name.
@@ -29,6 +29,9 @@ def create(project_name):
                  "Please create each simulation in a separate folder.")
 
     output = get_skel(project_name)
+
+    if not to_file:
+        return output
 
     with open(PARAMS_YAML, 'w') as handler:
         handler.write(output)
