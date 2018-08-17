@@ -189,14 +189,13 @@ class Flake(object):
     def real_neighbours(self, atom, void=False):
         """ Creates next neighbours based on the distances.
 
-        * choose a site
-            #TODO:  we still have to that every possibility is covered,
-                    check atomic radius
-        * build all (1, -1, 0) permutations
+        * build all neighbouring (1, -1, 0) index permutations of `atom`
         * get coordinates of all surrounding sites
         * get vector differences between the atom and its neighbours
         * filter those, which are larger than DIFF_CAP
         * return `void` or `occupied` neighbours
+
+        TODO:  choose meaningful atomic radius
         """
         indexed = self.abs_neighbours(atom)
         coordinates = (self.grid.coord(ai_site) for ai_site in indexed)
@@ -214,100 +213,6 @@ class Flake(object):
 ##################
 #     GROWTH     #
 ##################
-    def temperature_dist(self, slot, temp=None):
-        """ Create the probabilty distribution for the surface.
-
-        Depends on the slot (the more bindings,  the more probable it is to attach)
-        scaled with an artificial temperature.
-        """
-        SCALE = 1/30            # scaling paramter
-        UPPER_T = 1000          # temperature/numerical limits
-        LOWER_T = 0
-
-        if temp is None:
-            temp = self.temp
-        if not LOWER_T <= temp <= UPPER_T:
-            raise ValueError("Temperature parameter must be between {} and {}.".format(
-                LOWER_T, UPPER_T))
-        if slot not in self.maxNB:
-            raise IndexError("Slot must be in the range of next neighbours.")
-
-        func = len(self.surface[slot]) * slot**(SCALE * (UPPER_T - temp))
-        return func
-
-
-    def weights(self):
-        """ Return a list of probability weights for each slot in surface.
-
-        Each element of the surface is weighted with the number of bindings to the
-        power of a constant.
-        """
-        weights = []
-        for slot in self.maxNB:
-            p = self.temperature_dist(slot)
-            weights.append(p)
-        return weights
-
-
-    def grow(self, rounds=1, mode='prob', cap=1):
-        """ Transform a surface site into an atom.
-
-        `rounds` is the number of growth iterations. We have three different modes:
-        'prob', 'det' and 'rand'.  If there are no more surface sites with equal or more
-        than a `cap` number of bindings, growth will stop; then ask the user to continue.
-        """
-        def go():
-            logger.debug("[{}]  :{}:  +{} rounds   CAP {}".format(
-                mode.upper(), self.iter, rounds, cap))
-            func_dict = {'prob': prob_grow, 'det': det_grow, 'rand': rand_grow}
-            for step in range(int(rounds)):
-                func = func_dict[mode]
-                while not any(self.sites()[x] for x in range(cap, 12)):
-                    if ask(step):
-                        break
-                    else:
-                        return None
-                self.put_atom(*func())
-
-        def prob_grow():
-            weights = self.weights()
-            logger.debug("WEIGHTS: {}  Sum:{:e}".format(weights, sum(weights)))
-            rnd = random()*sum(weights)
-            for slot, w in enumerate(weights):
-                logger.debug("RAND:{:e}  Slot:{}  Weight:{:e}".format(rnd, slot, w))
-                rnd -= w
-                if rnd < 0:
-                    break
-            chosen = choice(tuple(self.surface[slot]))
-            return chosen, slot
-
-        def det_grow():
-            for slot in range(11, 0, -1):
-                if self.surface[slot]:
-                    chosen = choice(tuple(self.surface[slot]))
-                    return chosen, slot
-
-        def rand_grow():
-            chosen = choice(list(it.chain.from_iterable(self.surface)))
-            slot = next(i for i, x in enumerate(self.surface) if chosen in x)
-            return chosen, slot
-
-        def ask(step):
-            while True:
-                logger.warn("Flake has no sites with {} or more free bindings. "
-                            "STOP at {}th growth step.\n".format(cap, step))
-                ans = input("Continue with single growth? [y/n]  ")
-                if ans in 'Yy':
-                    return True
-                elif ans in 'nN':
-                    return False
-
-        t_start = now()
-        go()
-        t_delta = (now() - t_start).total_seconds()
-        return t_delta
-
-
     def put_atom(self, at, slot):
         """ * remove atom from its surface slot
             * append to atoms list
@@ -336,6 +241,99 @@ class Flake(object):
             else:
                 self.surface[1].add(each)        # create new surface entry for new ones
         self.iter += 1
+
+
+    def grow(self, rounds=1, mode='prob', **kwargs):
+        """ Here we manage which growth and other parameters as cap and iterations.
+
+        The choices we get from each growth are then passed to the `put_atom` method,
+        which then changes the atoms and surface of our flake.
+        """
+        modes = {'prob': self.prob_grow, 'rand': self.rand_grow, 'det': self.det_grow}
+
+        for step in range(rounds):
+            self.put_atom(*modes[mode](**kwargs))
+
+
+    def prob_grow(self, rounds=1):
+        """ The probabilistic growth mode, the most relevant in this simulation.
+
+        The `temperature_dist` method returns the weights for each slot depending on
+        slotnumber, temperature and number of atoms occupying that slot.
+
+        All those weights are then added to our probability stack, where we randomly
+        choose a point on this stack `stack_pointer`. To get the choice on which slot, we
+        'consume' the weights-stack from the bottom upwards, until the 'stack-pointer' is
+        reached. By breaking at this point we have the added probabilities as height on
+        the stack and chosen our slot where the 'stack-pointer' lies.
+        """
+        # Here we save time by executing the function only once
+        weights = self.weights()
+        stack_pointer = random()*sum(weights)
+
+        for slot, w in enumerate(weights):
+            stack_pointer -= w
+            if stack_pointer < 0:
+                break
+        chosen = choice(tuple(self.surface[slot]))
+
+        return chosen, slot
+
+
+    def weights(self):
+        """ Return a list of probability weights for each slot in surface.
+
+        Each element of the surface is weighted with the number of bindings to the
+        power of a constant.
+        """
+        weights = []
+        for slot in self.maxNB:
+            p = self.temperature_dist(slot)
+            weights.append(p)
+        return weights
+
+
+    def temperature_dist(self, slot, temp=None):
+        """ Create the probabilty distribution for the surface.
+
+        Depends on the slot (the more bindings,  the more probable it is to attach)
+        scaled with an artificial temperature.
+        """
+        SCALE = 1/30            # scaling paramter
+        UPPER_T = 1000          # temperature/numerical limits
+        LOWER_T = 0
+
+        if temp is None:
+            temp = self.temp
+        if not LOWER_T <= temp <= UPPER_T:
+            raise ValueError("Temperature parameter must be between {} and {}.".format(
+                LOWER_T, UPPER_T))
+        if slot not in self.maxNB:
+            raise IndexError("Slot must be in the range of next neighbours.")
+
+        func = len(self.surface[slot]) * slot**(SCALE * (UPPER_T - temp))
+        return func
+
+
+    def det_grow(self, cap=0):
+        """ Walk down the slots until the highest occupied slot is reached, then choose
+        randomly an atom from there.
+        """
+        for slot in range(11, cap, -1):
+            if self.surface[slot]:
+                chosen = choice(tuple(self.surface[slot]))
+                return chosen, slot
+        else:
+            raise StopIteration("Caplimit of <{}> for minimun free bindings reached.\n"
+                                "Aborting further growth.".format(cap))
+
+
+    def rand_grow(self):
+        """ Choose uniformly between any valid surface site.
+        """
+        chosen = choice(list(it.chain.from_iterable(self.surface)))
+        slot = next(i for i, x in enumerate(self.surface) if chosen in x)
+        return chosen, slot
 
 
 ##################

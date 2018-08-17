@@ -86,3 +86,19 @@ class TestFlakeGrowth(unittest.TestCase):
         initp = [0 for i in simple.maxNB]
         initp[1] = 12
         self.assertEqual(initp, simple.weights())
+
+
+class TestProbGrowth(unittest.TestCase):
+    def setUp(self):
+        twins = tuple()
+        seed = 'point'
+        self.tF = growth.Flake(*twins, seed=seed)
+
+    def test_deterministic_lowtemp(self):
+        middle_atom = (0, 0, 0)
+        adjacent_voids = set(self.tF.real_neighbours(middle_atom, void=True))
+        self.tF.grow(12, mode='det')
+        new_grown = set(self.tF.atoms)
+        new_grown.remove(middle_atom)
+        # TODO: make this something meaningful
+        self.assertNotEqual(new_grown, adjacent_voids)
