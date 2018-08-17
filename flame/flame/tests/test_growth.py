@@ -1,7 +1,8 @@
 ## encoding: utf-8
 
 import unittest
-from flame import growth
+from os.path import isfile
+from flame.growth import Flake
 
 
 class TestFlakeBasics(unittest.TestCase):
@@ -10,7 +11,7 @@ class TestFlakeBasics(unittest.TestCase):
     Only for static flake tests.
     """
     def setUp(self):
-        self.tF = growth.Flake(seed='point')
+        self.tF = Flake(seed='point')
 
     def test_seed_init(self):
         surface_one = set([(-1, 0, 1), (0, 0, 1), (0, -1, 1), (0, -1, 0),
@@ -54,17 +55,17 @@ class TestFlakeBasics(unittest.TestCase):
 
     def test_twin_plane_creation(self):
         twinplanes = (4, 5, 6)
-        f = growth.Flake(*twinplanes)
+        f = Flake(*twinplanes)
         self.assertEqual(f.grid.twins, twinplanes)
 
         layers = [1, 0, 1]
         self.assertEqual(f.grid.twin_layers, layers)
 
 
-class TestFlakeGrowth(unittest.TestCase):
+class TestStaticFlake(unittest.TestCase):
     def setUp(self):
         twinplanes = (-2, 3)
-        self.tF = growth.Flake(*twinplanes)
+        self.tF = Flake(*twinplanes)
 
     def test_prob_grow(self):
         self.tF.grow(mode='prob')
@@ -82,23 +83,64 @@ class TestFlakeGrowth(unittest.TestCase):
         self.assertEqual(self.tF.temperature_dist(0), 0)
 
     def test_weights(self):
-        simple = growth.Flake(seed='point')
+        simple = Flake(seed='point')
         initp = [0 for i in simple.maxNB]
         initp[1] = 12
         self.assertEqual(initp, simple.weights())
 
 
-class TestProbGrowth(unittest.TestCase):
+class TestFlakeGrowth(unittest.TestCase):
     def setUp(self):
-        twins = tuple()
-        seed = 'point'
-        self.tF = growth.Flake(*twins, seed=seed)
+        self.twins = (0, 1)
+        self.seed = 'point'
+        self.rounds = 37
 
-    def test_deterministic_lowtemp(self):
-        middle_atom = (0, 0, 0)
-        adjacent_voids = set(self.tF.real_neighbours(middle_atom, void=True))
-        self.tF.grow(12, mode='det')
-        new_grown = set(self.tF.atoms)
-        new_grown.remove(middle_atom)
-        # TODO: make this something meaningful
-        self.assertNotEqual(new_grown, adjacent_voids)
+    def test_base_modes(self):
+        prbF = Flake(seed=self.seed, temp=0)
+        detF = Flake(seed=self.seed)
+        rndF = Flake(seed=self.seed)
+
+        prbF.grow(self.rounds, mode='prob')
+        detF.grow(self.rounds, mode='det')
+        rndF.grow(self.rounds, mode='rand')
+
+        for flake in (prbF, detF, rndF):
+            self.assertEqual(flake.iter, self.rounds + 1)
+
+    def test_carve(self):
+        tF = Flake()
+        tF.grow(self.rounds)
+        tF.carve()
+
+        self.assertGreater(tF.iter, len(tF.atoms))
+
+    def test_cap_limit(self):
+        detF = Flake()
+        with self.assertRaises(StopIteration):
+            detF.grow(self.rounds, mode='det', cap=10)
+
+    def test_export_function(self):
+        tF = Flake()
+        tF.grow(self.rounds)
+        fname = tF.export_coordinates('testexporter010')
+        self.assertTrue(isfile(fname.name))
+
+    def test_colorize(self):
+        tF = Flake()
+        self.assertIsInstance(tF.colorize(), dict)
+
+    def test_plotting(self):
+        """ Only testing the returned colors, not mayavi plotting...
+        """
+        tF = Flake()
+        tF.grow(self.rounds)
+        plot_data = list(tF.plot(ret=True))
+        data_length = len(tF.atoms) + len(tF.integrated_surface())
+
+        self.assertEqual(len(plot_data), 4)
+        self.assertTrue(all(len(col) == data_length for col in plot_data))
+
+    def test_bubbles(self):
+        tF = Flake()
+        while not tF.surface[0]:
+            tF.grow(500, mode='rand')

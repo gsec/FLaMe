@@ -236,7 +236,12 @@ class Flake(object):
                     try:
                         self.surface[e_slot + 1].add(each)
                     except IndexError:
-                        logger.debug("Filled a bubble...oO Site: {}".format(each))
+                        """ When this occours, we the surface is completely surrounded
+                            by atoms, hence creating a bubble. We move those to surface
+                            zero, which is otherwise unused.
+                        """
+                        self.surface[0].add(each)
+                        logger.info("Bubble created...oO >> Site: {}".format(each))
                     break
             else:
                 self.surface[1].add(each)        # create new surface entry for new ones
@@ -416,7 +421,7 @@ Flake Properties:
         if ret:
             logger.info("Returning (x, y, z, colors) columns")
             return clist
-        else:
+        else:       # pragma: no cover
             try:
                 from mayavi import mlab
                 mlab.clf()
