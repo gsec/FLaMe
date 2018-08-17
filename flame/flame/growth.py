@@ -53,7 +53,7 @@ class Flake(object):
         self.temp = kwargs.get('temp', 100)
 
         self.grid = Grid(twins)
-        self.create_entire_surface()
+        self._create_entire_surface()
 
 
     def __repr__(self):
@@ -66,20 +66,15 @@ class Flake(object):
 ####################
 #     SURFACE     #
 ####################
-    def set_surface(self, site):
+    def _set_surface(self, site):
         """ Adds an empty site to the corresponding surface slot.
         """
         occupied_neighbours = self.real_neighbours(site, void=False)
         slot = len(occupied_neighbours)
-        try:
-            self.surface[slot].add(site)
-        except IndexError:
-            logger.warn("Tried to add following atom: [{}] to non-existing surface slot"
-                        " {}.\nThis probably means it does not belong to the surface.\n"
-                        "Skipping...".format(site, slot))
+        self.surface[slot].add(site)
 
 
-    def create_entire_surface(self):
+    def _create_entire_surface(self):
         """ Generate the list for the surface sites based on occupied sites.
 
         Create a list of 12 sets (each corresponding to the  possibilities of next
@@ -90,7 +85,7 @@ class Flake(object):
         for atom in self.atoms:
             adjacent_voids = self.real_neighbours(atom, void=True)
             for nb in adjacent_voids:
-                self.set_surface(nb)
+                self._set_surface(nb)
 
 
     def integrated_surface(self):
@@ -103,7 +98,7 @@ class Flake(object):
 
 
     def sites(self):
-        """ Return a dictionary mapping binding slots to their quantity in surface.
+        """ Return a list mapping binding slots to their quantity in surface.
 
         This allows to check quickly for the distribution of free binding sites on the
         surface.
@@ -119,19 +114,14 @@ class Flake(object):
         surface. This will fail if the `create_entire_surface()` method is used as it
         would also create an inner surface.
         """
-        t_start = now()
         skin = set()
         srfc = self.integrated_surface()
 
         for spot in srfc:
             occupied_surface = self.real_neighbours(spot, void=False)
             skin.update(occupied_surface)
-        diff = len(self.atoms) - len(skin)
-        self.atoms = skin
 
-        t_end = now()
-        t_delta = (t_end - t_start).total_seconds()
-        logger.info("Carved out {} atoms in {} sec.".format(diff, t_delta))
+        self.atoms = skin
 
 
     def geometry(self):

@@ -6,6 +6,8 @@ from flame import growth
 
 class TestFlakeBasics(unittest.TestCase):
     """ Flake sanity checks.
+
+    Only for static flake tests.
     """
     def setUp(self):
         self.tF = growth.Flake(seed='point')
@@ -24,10 +26,10 @@ class TestFlakeBasics(unittest.TestCase):
 
 
     def test_neighbours(self):
-        """ Test if our chosen atom has the proper neighbours in index space,
-        ensure this translates into correct atoms considering the real space
-        distance and make sure all neighbours return our seed as non-void
-        neighborhood.
+        """ Check if the chosen atom has the proper neighbours in index space.
+
+        Ensure this translates into correct atoms considering the real space distance and
+        make sure all neighbours return our seed as non-void neighborhood.
         """
         atom = (2, 5, 8)
         all_neighbours = [(2, 6, 9), (3, 4, 7), (3, 5, 9), (3, 4, 8), (1, 6, 7),
@@ -42,8 +44,10 @@ class TestFlakeBasics(unittest.TestCase):
         next_neighbours = [(0, -1, -1), (0, 0, -1),  (-1, 0, 1),  (-1, 0, 0),
                            (1, 0, 0),   (0, 0, 1),   (0, -1, 1),  (0, -1, 0),
                            (-1, 1, 0),  (-1, -1, 0), (0, 1, 0),   (-1, -1, -1)]
+
         self.assertEqual(set(next_neighbours),
                          set(self.tF.real_neighbours(point_seed, void=True)))
+
         for each in next_neighbours:
             self.assertEqual([point_seed], self.tF.real_neighbours(each, void=False))
 
