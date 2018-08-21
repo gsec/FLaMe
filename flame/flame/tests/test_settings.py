@@ -21,6 +21,7 @@ class TestSettings(unittest.TestCase):
     def setUp(self):
         self._environ = environ.copy()
         self.testpath = '/some/path/we/choose'
+        self.time = S.get_time()
 
     def test_output_dir_with_env(self):
         environ['FLAME_OUTPUT'] = self.testpath
@@ -40,13 +41,13 @@ class TestSettings(unittest.TestCase):
         self.assertEqual(ref_inode, test_inode)
 
     def test_failed_arrow_import(self):
+        module_backup = sys.modules['arrow']
+        # remove arrow temporarily from sys.modules
         sys.modules['arrow'] = None
         notime = S.get_time()
-        self.assertEqual(notime, 'n0timet0day')
+        sys.modules['arrow'] = module_backup
 
-    def test_arrow_import(self):
-        sys.modules['arrow'] = mock.Mock()
-        S.get_time()
+        self.assertEqual(notime, 'n0timet0day')
 
     @mock.patch("builtins.open", mock.mock_open())
     def test_get_params(self):
@@ -71,6 +72,24 @@ class TestSettings(unittest.TestCase):
         self.assertEqual(atom_test.location[0], 3)
         self.assertEqual(atom_test.location[1], 5)
         self.assertEqual(atom_test.location[2], 9)
+
+    def test_gen_params(self):
+        check_dict = {'name': 'test_generator',
+                      'TP_FUNC': "(-(x%2), x, -x**2)",
+                      'VALS': [0, 1, 2],
+                      'SMPSIZE': 2,
+                      'SNAPSHOT': 1000,
+                      'TOTAL_SIZE': 2000,
+                      'FLAKE_TEMP': 30,
+                      'FLAKE_SEED': 'point'}
+
+        generated = S.gen_params(name='testgg', time=self.time)
+        self.assertEqual(generated['time'], self.time)
+        for key, val in check_dict.items():
+            self.assertIn(key, generated)
+
+        dict_gen = S.gen_params(**check_dict)
+        self.assertEqual(dict_gen, check_dict)
 
     def tearDown(self):
         environ.clear()

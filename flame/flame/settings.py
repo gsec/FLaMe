@@ -44,13 +44,14 @@ SIM_OUTPUT = path.join(FLAME_OUTPUT, 'sim')
 GRAPH_OUTPUT = path.join(FLAME_OUTPUT, 'graph')
 TIMING_OUTPUT = path.join(FLAME_OUTPUT, 'timing')
 
-""" This is the maximum distance between two atoms to be considered nearest neighbors.
-"""
-DIFF_CAP = 2.1
 PICKLE_EXT = '.flm'
 HDF_EXT = '.h5'
 HDF_METADATA = 'parameters'
 PARAMS_YAML = 'sim_params.yaml'
+
+""" This is the maximum distance between two atoms to be considered nearest neighbors.
+"""
+DIFF_CAP = 2.1
 
 
 def get_time():
@@ -96,18 +97,22 @@ flake:
     temp: {FLAKE_TEMP}
     seed: '{FLAKE_SEED}'\
 """
-    # defining defaults for sim_params file
     rendered = skeleton.format(
-                    time=get_time(),
-                    name=project_name,
-                    TP_FUNC="(-(x%2), x, -x**2)",
-                    VALS=[0, 1, 2],
-                    SMPSIZE=2,
-                    SNAPSHOT=1000,
-                    TOTAL_SIZE=2000,
-                    FLAKE_TEMP=30,
-                    FLAKE_SEED='point')
+                    **gen_params(time=get_time(), name=project_name))
     return rendered
+
+
+def gen_params(**kwargs):
+        default = { 'TP_FUNC': "0, x",
+                    'VALS': [0, 1, 2],
+                    'SMPSIZE': 2,
+                    'SNAPSHOT': 300,
+                    'TOTAL_SIZE': 2000,
+                    'FLAKE_TEMP': 500,
+                    'FLAKE_SEED': 'point'}
+
+        default.update(kwargs)
+        return default
 
 
 def get_params():
