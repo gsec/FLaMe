@@ -28,7 +28,7 @@ class Flake(object):
     Following keyword arguments are possible:
         `seed`: str in {point, sphere, cube, bigcube, plane}
         `trail`: int for length of the marked atoms trail
-        `temp`: float in {0 .. 273}, determines the probability through exponential.
+        `temp`: float in {0 .. 1000}, determines the probability through exponential.
     """
     def __init__(self, *twins, **kwargs):
         """ Flake bootstrap.

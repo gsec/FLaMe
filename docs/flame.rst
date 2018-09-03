@@ -9,7 +9,6 @@ flame.cli module
 
 .. automodule:: flame.cli
     :members:
-    :undoc-members:
     :show-inheritance:
 
 flame.grid module
@@ -17,7 +16,6 @@ flame.grid module
 
 .. automodule:: flame.grid
     :members:
-    :undoc-members:
     :show-inheritance:
 
 flame.growth module
