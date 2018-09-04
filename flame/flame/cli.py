@@ -1,19 +1,10 @@
-"""
-    FLaMe - a FLakeLAtticeMOdelEr
-    **********************************
-    - command line entry point -
-
-    A hcc/fcc crystal growth simulation, supporting different growth modes, arbitrary
-    twinplanes and an interface for bulk simulation and statistics.
-
-    Support of Python2 is no longer a goal, we transfer it to Py3 while dropping mayavi
-    and instead exporting the atom coordinates in a proper blender format.
-"""
-from flame import simulation, paint
 import os, argparse
+from flame import simulation, paint
 
 
 def main():
+    """ Command line entry point.
+    """
     parser = argparse.ArgumentParser(prog='FLaMe')
     parser.add_argument('command', choices=['run', 'create', 'paint', 'extract'])
     parser.add_argument("name", nargs=argparse.REMAINDER)

@@ -4,18 +4,19 @@ Structural Concept of Experiments
 Tiers
 =====
 
-Sample:
+Sample
 ------
 * Multiple runs of a growth process with the exact same parameters.
   `not relevant with **deterministic** growth`
 
-Unit:
-------
-*   Series of sampling experiments where on parameter is continuously altered to make those
-  effects visible.
+Unit
+----
+* Series of sampling experiments where on parameter is continuously altered to make 
+  those effects visible.
 
-Snapshot:
-------
+
+Snapshot
+--------
 *   Current state of a Flake and the corresponding parameters.
 
   1. size; number of atoms

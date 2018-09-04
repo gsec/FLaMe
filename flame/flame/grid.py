@@ -1,23 +1,23 @@
-"""
-Utilities needed by the Flake Simulation.
-Low level functions for `growth`
-"""
-from __future__ import print_function, division, generators
+import logging
 from math import sqrt
 from itertools import product
-import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class Grid(object):
-    """ Basic Grid object.
-
-    Here we keep track of the twin planes and according shifts.
-    The `coords` method translates positions from index space into real space for this
-    special grid configuration.
+class Grid():
     """
+    Basic Grid object.
+
+    Here we keep track of the twin planes and according shifts. The `coords` method
+    translates positions from index space into real space for this special grid
+    configuration.
+
+        Args:
+            twins (int) : An arbitrary-length sequence of integers, the twinned layers.
+    """
+
     def __init__(self, twins):
         self.twins = twins
         self.twin_layers, self.upcounter, self.upsign = self.twin_gen()
@@ -84,6 +84,11 @@ class Grid(object):
 
 
 class Seed():
+    """
+    Seed creation.
+
+    Generates a Flake seed according to the given seed in `raw_seeds`.
+    """
     def __init__(self):
         self.raw_seeds = {
                 'point': set(
@@ -128,7 +133,7 @@ class Seed():
         return len(seed), seed.copy()
 
 
-class Vector(object):
+class Vector():
     """ Self defined Vector object.
 
     Supports:

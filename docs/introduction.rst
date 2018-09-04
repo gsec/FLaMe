@@ -1,5 +1,6 @@
-Introduction
-++++++++++++
+*********************
+Introductory thoughts
+*********************
 
 Nanotechnology has taken an ever broader space in advancing technologies. Many
 applications and devices are getting smaller, tough maintaining the same functionality or

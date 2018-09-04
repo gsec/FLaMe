@@ -3,8 +3,15 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to FLaMe's documentation!
-=================================
+===============================
+FLaMe - a FLake LAttice ModelEr
+===============================
+This is a simulation for crystal growth with combined HCP/FCC stacking written in python.
+Supports different growth modes, arbitrary twinplanes and an interface for bulk simulation 
+and statistics.
+It started as my thesis but is not actively developed anymore. Nevertheless comments and
+improvements are welcome under <o0v0o.ix@gmail.com>
+
 
 Contents:
 
@@ -15,8 +22,6 @@ Contents:
    goals
    cookbook
    flame
-
-
 
 
 Indices and tables

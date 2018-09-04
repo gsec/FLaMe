@@ -1,12 +1,13 @@
-""" Time benchmarking script. Compares runtime between single-threaded and multi-threaded
-Flake growth simulation.
+""" Time benchmarking script.
+
+Compares runtime between single-threaded and multi-threaded Flake growth simulation.
 """
 import arrow
 import pylab
-from numpy import mean
-from os import path
-from random import random
 import logging
+from os import path
+from numpy import mean
+from random import random
 from multiprocessing import Pool
 
 from flame.growth import Flake

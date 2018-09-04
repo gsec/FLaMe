@@ -1,12 +1,11 @@
-# coding: utf-8
-
-from os import path, mkdir
 import logging
 import pandas as pd
-from bokeh.plotting import figure, output_file, show
+from os import path, mkdir
 from bokeh.layouts import column as bokeh_column
-from flame.settings import GRAPH_OUTPUT, HDF_METADATA, get_colors
+from bokeh.plotting import figure, output_file, show
+
 from flame.growth import Flake
+from flame.settings import GRAPH_OUTPUT, HDF_METADATA, get_colors
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +82,15 @@ def mean_plot(file_path, *columns):
 
 
 def averaged_planes(fname, choices=None):
+    """
+    Extracts data from HDF file and averages over the flakes with same configuration.
+
+    TODO:
+        * separate averaging from plotting
+        * create buttons for each twin plane as selector to switch their display
+        * each tp selector should also have a switch to display all or only averaged
+          results
+    """
     with pd.HDFStore(fname, 'r') as h5:
         twins = [group for group in h5.root if HDF_METADATA not in str(group)]
         if choices:
@@ -100,13 +108,3 @@ def averaged_planes(fname, choices=None):
             plane = str(h5.select('/' + HDF_METADATA)['twins'][index]).replace(
                 'set', 'Twinplanes: ')
             yield (plane, color, mean_flake)
-
-
-"""
-TODO:
-    separate averaging from plotting
-
-    create buttons for each twin plane as selector to switch their display
-
-    each tp selector should also have a switch to display all or only averaged results
-"""

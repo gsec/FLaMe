@@ -1,26 +1,32 @@
-FLaMe - a flake lattice modeller
-============================================
-This is a simulation for crystal growth with combined HCP/FCC stacking written in python.
-It started as my thesis but is not actively developed anymore. Nevertheless comments and
-improvements are welcome under <o0v0o.ix@gmail.com>
+.. _cookbook:
+
+********
+Cookbook
+********
 
 
 Installation
-============
-
-  Install with Python 2 or Python 3. Please note that under Python 3 it is not possible to
+------------
+  Install under Python 3. Please note that under Python 3 it is no longer possible to 
   create a 3D view of the flake due to the lack of the ``mayavi`` package.
+  Switch to main directory and..
+
+  ... first install requirements...
+
+  ``$ pip install -r requirements.txt``
+
+  ... and then the flame module:
 
   ``$ python setup.py install``
 
 
 Single Flake
-============
+------------
 This is run in a python console or as script.
 
 * Create the Flake:
-  Import the growth module with ``import growth`` and create an instance of the Flake:
-  ``myFlake = growth.Flake()``
+  Import the growth module e.g. ``from flame import growth`` and create an instance of the 
+  Flake: ``myFlake = growth.Flake()``
 
 * Inspect the Flake:
   To view basic information, the representation of ``myFlake`` will display it's
@@ -33,17 +39,16 @@ This is run in a python console or as script.
   arguments, particularly the ``mode`` can be specified. As default we will grow with an
   exponential probability distribution according to our temperature in ``myFlake.temp``.
 
-* Export results:
+* Export results(**OUTDATED**):
   After several iterations of inspecting and growing the Flake you can save the picture by
   passing ``save=True`` to the plot() method. This is then exported in output directory of
-  the corresponding date. To save the coordinates in a `xyz`-file call the export method,
-  optionally with a describing tag: ``myFlake.export('unexpected_phenomenon')`` The
-  resulting file is plaintext containing the coordinates and can be used to import the
-  coordinates into Blender for rendering or further use.
-
+  the corresponding date. To save the coordinates in a `xyz`-file call the export method, 
+  with a describing tag: ``myFlake.export_coordinates('unexpected_phenomenon')`` The 
+  resulting file is plaintext containing the coordinates and can be used to import the 
+  coordinates into Blender for rendering or further use.  
 
 Automated Flake generation
-==========================
+--------------------------
 This is run in a shell calling the program with arguments.
 
 * Create a simulation:

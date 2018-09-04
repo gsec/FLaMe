@@ -1,7 +1,3 @@
-#!/usr/bin/env python
-## encoding: utf-8
-
-from __future__ import print_function, division, generators
 from math import pi
 from arrow import now
 from collections import deque
@@ -11,14 +7,13 @@ import itertools as it
 import logging
 
 from flame.grid import Grid, Seed
-from flame.settings import (GROW_OUTPUT, DIFF_CAP, AtomsIO)
-
+from flame.settings import GROW_OUTPUT, DIFF_CAP, AtomsIO
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class Flake(object):
+class Flake():
     """ Generates a Flake object with a FCC lattice and twin planes.
 
     The Flake take an arbitrary number of integers as `*args`, the twin planes.
@@ -131,11 +126,12 @@ class Flake(object):
         dictionary returned here will be the data we collect in growth simulations.
         We can add other data with the dict.update() method, but existing fields should
         not be changed for compatibility reasons.
+
         `height`: Distance between furthest atoms in z direction (+1, taking the outside)
         `radius`: distance from center to far most atom
         `area`: pi*radius**2
         `aspect ratio`: comparison between the vertical and horizontal dimension
-                                        (2*radius/height)
+        (2*radius/height)
         """
         COORD = self.grid.coord
         POOL = self.atoms

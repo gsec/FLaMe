@@ -1,5 +1,6 @@
+*****
 Goals
-~~~~~
+*****
 
 This is my thesis project. Here we have two main aspects: **Science** and
 **Coding**. While I am studying physics and therefore the science aspect is
