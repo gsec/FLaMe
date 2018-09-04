@@ -28,8 +28,8 @@ This stores global settings used across all simulations.
 The options here are set as how the program behaves, while in `sim_params.yaml` we define
 simulations specific parameters.
 
-Output: It is easiest to set an environment variable and fLame outputs data relative to
-that path. `$ export FLAME_OUTPUT=/your/path/here`
+Output: It is easiest to set an environment variable and Flame outputs data relative to
+that path. ``$ export FLAME_OUTPUT=/your/path/here``
 
 Distance => `DIFF_CAP`: This variable denotes the maximum distance (in atomic radii)
 until which atoms are considered nearest neighbors when checked. For touching atoms this
