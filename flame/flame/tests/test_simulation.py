@@ -1,9 +1,8 @@
 import unittest
-from os import chdir
+from os import chdir, listdir, remove
 from flame import simulation as S
+from flame.settings import blender_helper
 from flame.tests.test_settings import MOCK_DIR, grab_mock
-
-chdir(MOCK_DIR)
 
 
 class TestBuilder(unittest.TestCase):
@@ -28,7 +27,9 @@ class TestSimulationRun(unittest.TestCase):
     """ Run complete Simulation from mock directory.
     """
     def setUp(self):
-        self.params = {'name': 'zz_automated_testrun',
+        chdir(MOCK_DIR)
+        self.name = 'zz_automated_testrun'
+        self.params = {'name': self.name,
                        'function': '(0, x)',
                        'values': [1],
                        'sample_size': 2,
@@ -41,3 +42,12 @@ class TestSimulationRun(unittest.TestCase):
 
         # Here we only test if the directory content changed
         self.assertNotEqual(start_list, grab_mock())
+
+    def tearDown(self):
+        _, xfile, ifile = blender_helper(self.name)
+        remove(xfile)
+        remove(ifile)
+
+        for testrun in listdir():
+            if testrun.startswith(self.name):
+                remove(testrun)
