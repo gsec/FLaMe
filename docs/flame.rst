@@ -8,7 +8,7 @@ The :py:mod:`grid` module - a low level mapper
 .. include:: grid.rst
 
 .. automodule:: flame.grid
-    :members: Grid, Vector
+    :members:
 
 The :py:mod:`growth` module - manipulate the flake
 ==================================================
@@ -18,26 +18,18 @@ The :py:mod:`growth` module - manipulate the flake
 .. automodule:: flame.growth
     :members:
 
-Other modules
-=============
+The :py:mod:`settings` module - defaults and constants
+======================================================
 
-flame.settings module
----------------------
-This stores global settings used across all simulations.
-
-The options here are set as how the program behaves, while in `sim_params.yaml` we define
-simulations specific parameters.
-
-Output: It is easiest to set an environment variable and Flame outputs data relative to
-that path. ``$ export FLAME_OUTPUT=/your/path/here``
-
-Distance => `DIFF_CAP`: This variable denotes the maximum distance (in atomic radii)
-until which atoms are considered nearest neighbors when checked. For touching atoms this
-is two atomic radii, while we give it here 2.1 to include small deviations due to
-numerical rounding errors when calculating the distance.
+.. include:: settings.rst
 
 .. automodule:: flame.settings
     :members:
+
+
+Other modules
+=============
+
 
 flame.simulation module
 -----------------------

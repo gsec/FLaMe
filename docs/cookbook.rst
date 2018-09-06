@@ -7,7 +7,7 @@ Cookbook
 
 Installation
 ------------
-  Install under Python 3. Please note that under Python 3 it is no longer possible to 
+  Install under Python 3. Please note that under Python 3 it is no longer possible to
   create a 3D view of the flake due to the lack of the ``mayavi`` package.
   Switch to main directory and..
 
@@ -25,7 +25,7 @@ Single Flake
 This is run in a python console or as script.
 
 * Create the Flake:
-  Import the growth module e.g. ``from flame import growth`` and create an instance of the 
+  Import the growth module e.g. ``from flame import growth`` and create an instance of the
   Flake: ``myFlake = growth.Flake()``
 
 * Inspect the Flake:
@@ -42,10 +42,10 @@ This is run in a python console or as script.
 * Export results(**OUTDATED**):
   After several iterations of inspecting and growing the Flake you can save the picture by
   passing ``save=True`` to the plot() method. This is then exported in output directory of
-  the corresponding date. To save the coordinates in a `xyz`-file call the export method, 
-  with a describing tag: ``myFlake.export_coordinates('unexpected_phenomenon')`` The 
-  resulting file is plaintext containing the coordinates and can be used to import the 
-  coordinates into Blender for rendering or further use.  
+  the corresponding date. To save the coordinates in a `xyz`-file call the export method,
+  with a describing tag: ``myFlake.export_coordinates('unexpected_phenomenon')`` The
+  resulting file is plaintext containing the coordinates and can be used to import the
+  coordinates into Blender for rendering or further use.
 
 Automated Flake generation
 --------------------------

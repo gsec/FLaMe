@@ -1,13 +1,13 @@
 from math import pi
-from arrow import now
+# from arrow import now
 from collections import deque
-from os.path import join
+# from os.path import join
 from random import choice, random
 import itertools as it
 import logging
 
 from flame.grid import Grid, Seed
-from flame.settings import GROW_OUTPUT, DIFF_CAP, AtomsIO
+from flame.settings import blender_helper, DIFF_CAP, AtomsIO
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,24 +20,31 @@ class Flake():
     They are converted into a twin-plane tuple and proper layer stacking is
     calculated accordingly.
 
-    Following keyword arguments are possible:
-        `seed`: str in {point, sphere, cube, bigcube, plane}
-        `trail`: int for length of the marked atoms trail
-        `temp`: float in {0 .. 1000}, determines the probability through exponential.
-    """
-    def __init__(self, *twins, **kwargs):
-        """ Flake bootstrap.
-
+    Flake bootstrap
         The Flake is initialized with our (possibly empty) list of twin planes. The
         desired seed is evaluated and added to the atoms attribute. All settings have
         sane defaults for a typical growth. At the end we create the surface of
         possibilities around the newly generated atoms and weigh them according to the
         surrounding neighbours.
 
-        `maxNB` goes from 0 to 11 neighbours. This is because we can have zero neighbours
-        if we fill a hole, but we can never have all 12 neighbours empty since we do not
-        allow for single atoms detached from the Flake.
-        """
+    Attr:
+        maxNB (range): object we iterate over for neighbours or slots
+            goes from 0 to 11 neighbours. This is because we can have zero neighbours
+            if we fill a hole, but we can never have all 12 neighbours empty since we do
+            not allow for single atoms detached from the Flake.
+
+    Args:
+        trail (int): trail length
+            How many atoms will be marked as atoms trail
+
+        seed (str): seed name
+            from one of the following possibilities:[point, sphere, cube, bigcube, plane]
+
+        temp (float): Artificial temperatures
+            Accepted range [0 .. 1000].
+            Lower temperatures lead to cleaner crystals in probabilty growth mode.
+    """
+    def __init__(self, *twins, **kwargs):
         self.twins = twins
         self.maxNB = range(12)
 
@@ -345,34 +352,15 @@ class Flake():
         Adapted from Atomic Blender, can be imported with xyz_io_mesh.
         Text format with a header and four columns: [ELEMENT, X, Y, Z]
         """
-        def fnames():
-            time_string = str(now()).split('.')[0]
-            fnamexyz = "{n}__{time}.{ext}".format(n=name, time=time_string, ext='xyz')
-            fnameinfo = "{n}__{time}.{ext}".format(n=name, time=time_string, ext='info')
-            return (join(GROW_OUTPUT, fnamexyz), join(GROW_OUTPUT, fnameinfo))
-
         geostr = ''.join(str((k, v)) + '\n' for k, v in self.geometry().items())
+        header, xyzfile, infofile = blender_helper(name)
 
-        info = """XYZ file (Blender format) ++++++++++++++++++
-
-Inital conditions:
-    Twinplanes: {twin}
-    Temperature: {temp}
-    Seed: {shape}
-
-Flake Properties:
-
-{geo}""".format(twin=self.twins, temp=self.temp, shape=self.seed_shape, geo=geostr)
-
-        xyzfile, infofile = fnames()
-
-        with open(infofile, 'w') as infofile:
-            infofile.write(info)
+        attributes = header.format(twin=self.twins, temp=self.temp,
+                                   shape=self.seed_shape, geo=geostr)
 
         output = ['{}\n'.format(len(self.atoms))]
+        raw_atoms = (AtomsIO('Au', tuple(self.grid.coord(at))) for at in self.atoms)
 
-        raw_atoms = (AtomsIO('Au', tuple(self.grid.coord(at))) for at in
-                     self.atoms)
         for atom in raw_atoms:
             string = '{:3s}{:15.5f}{:15.5f}{:15.5f}'.format(
                 atom.element,
@@ -381,8 +369,11 @@ Flake Properties:
                 atom.location[2])
             output.append(string)
 
-        with open(xyzfile, 'w') as xyz_file:
-            xyz_file.writelines([line + '\n' for line in output])
+        with open(xyzfile, 'w') as handler:
+            handler.write('\n'.join(output))
+
+        with open(infofile, 'w') as handler:
+            handler.write(attributes)
 
         return infofile
 

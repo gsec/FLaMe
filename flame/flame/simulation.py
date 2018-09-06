@@ -48,14 +48,16 @@ def run(params=None):
 
     The `identifier` is composed from the name and a random hash value to
     differentiate different runs of the same simulation.
-        * create an unique identifier value
-        * create a mapping through lambda evaluation
-        * generate twin plane configuration for each value
+
+    * create an unique identifier value
+    * create a mapping through lambda evaluation
+    * generate twin plane configuration for each value
 
     New runners function:
-        * with pandas
-        * meta attributes
-        * proper loops
+
+    * with pandas
+    * meta attributes
+    * proper loops
     """
     if not params:
         params = get_params()

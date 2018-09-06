@@ -5,9 +5,3 @@ etc. )
 To begin the flake we must provide two things:
     * a twin-layer configuration/coordinate mapping
     * a seed to start with
-
-Seed generation
----------------
-Here we provide seeds.
-
-.. autoclass:: flame.grid.Seed

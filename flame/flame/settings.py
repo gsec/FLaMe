@@ -9,6 +9,12 @@ logger = getLogger(__name__)
 
 
 def get_output_folder():
+    """ Generate main output folder for `flame`.
+
+    Check for ``FLAME_OUTPUT`` environment variable and sets this as base for the output
+    folders. If no such variable exists, go to fall back mode and set path relative to
+    program file path.
+    """
     try:
         output_folder = environ['FLAME_OUTPUT']
     except KeyError as e:
@@ -40,9 +46,9 @@ DIFF_CAP = 2.1
 
 def get_time():
     """ Returns a list with two items: date and time.
-    Both are formatted as unicode strings.
 
-    If arrow import fails, warning is issued, and dummy string is returned.
+    Both are formatted as unicode strings. If arrow import fails, warning is issued, and
+    a dummy string is returned.
     """
     try:
         import arrow
@@ -54,7 +60,7 @@ def get_time():
 
 
 def get_skel(project_name):
-    """ Returns formatted default yaml file.
+    """ Returns formatted default YAML file.
     """
 
     skeleton = """\
@@ -87,16 +93,20 @@ flake:
 
 
 def gen_params(**kwargs):
-        default = { 'TP_FUNC': "0, x",
-                    'VALS': [0, 1, 2],
-                    'SMPSIZE': 2,
-                    'SNAPSHOT': 300,
-                    'TOTAL_SIZE': 2000,
-                    'FLAKE_TEMP': 500,
-                    'FLAKE_SEED': 'point'}
+    """ Generate default set of flake growth parameters.
 
-        default.update(kwargs)
-        return default
+    Can be updated with any valid keyword argument provided.
+    """
+    default = {'TP_FUNC': "0, x",
+               'VALS': [0, 1, 2],
+               'SMPSIZE': 2,
+               'SNAPSHOT': 300,
+               'TOTAL_SIZE': 2000,
+               'FLAKE_TEMP': 500,
+               'FLAKE_SEED': 'point'}
+
+    default.update(kwargs)
+    return default
 
 
 def get_params():
@@ -137,10 +147,33 @@ def get_colors(twins):
 class AtomsIO():
     """ Creates the atom object with two slots.
 
-    This is the format to export a blender file.
+    This is the format to export a blender file. Exports as four columns defining element
+    and position in a text file::
+
+        |ELEM|  |X|  |Y|  |Z|
+        |ELEM|  |X|  |Y|  |Z|
+        ...
     """
     __slots__ = ('element', 'location')
 
     def __init__(self, element, location):
         self.element = element
         self.location = location
+
+
+def blender_helper(name):
+    time_string = '@'.join(get_time())
+    fnamexyz = "{}__{}.{}".format(name, time_string, 'xyz')
+    fnameinfo = "{}__{}.{}".format(name, time_string, 'info')
+    header = """XYZ file (Blender format) ++++++++++++++++++
+
+Inital conditions:
+    Twinplanes: {twin}
+    Temperature: {temp}
+    Seed: {shape}
+
+Flake Properties:
+
+{geo}"""
+
+    return (header, path.join(GROW_OUTPUT, fnamexyz), path.join(GROW_OUTPUT, fnameinfo))

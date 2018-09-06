@@ -123,7 +123,7 @@ class TestFlakeGrowth(unittest.TestCase):
         tF = Flake()
         tF.grow(self.rounds)
         fname = tF.export_coordinates('testexporter010')
-        self.assertTrue(isfile(fname.name))
+        self.assertTrue(isfile(fname))
 
     def test_colorize(self):
         tF = Flake()
