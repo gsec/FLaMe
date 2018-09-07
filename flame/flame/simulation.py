@@ -64,19 +64,22 @@ def run(params=None):
     identifier = params['name'] + '_' + hex(hash(random()))
     fname = identifier + HDF_EXT
 
-    logger.info('STARTED >>> {}'.format(identifier))
+    logger.info('STARTED >>> {} @ {}'.format(identifier, ' :: '.join(get_time())))
     for k, v in params.items():
         logger.info('\t\t{}: {}'.format(k, v))
 
     params['twins'] = twins = tp_gen(params)
 
     with pd.HDFStore(fname, title=identifier) as h5:
-        h5.put('/parameters', pd.Series(params))
+        h5.put('/parameters', pd.Series(str(params)))
 
         for tp_idx, twin in enumerate(twins):
             twin_loc = 'twinplane{:02}'.format(tp_idx)
-            logger.info(' @{time} \t Twinplanes {twin} \t Total Size: {size}'.format(
-                time=' :: '.join(get_time()), twin=twin, size=params['total_size']))
+            logger.info('F>> TP: {tp}  Samples:{sm}  @{tm}  Total Size: {sz}'.format(
+                tp=twin,
+                sm=params['sample_size'],
+                tm=get_time()[1],
+                sz=params['total_size']))
 
             # here comes the data crunching
             args = ((twin, params) for _ in range(params['sample_size']))
@@ -87,9 +90,9 @@ def run(params=None):
             for idx, sample in enumerate(samples):
                 flake_loc = 'flake{:03}'.format(idx)
                 location = "/".join((twin_loc, flake_loc))
-                h5.put(location, sample, format='table')
+                h5.put(location, sample)
 
-    logger.info('SIMULATION ENDED @{} >>> {}'.format(' :: '.join(get_time()), identifier))
+    logger.info('ENDED >>> {} @ {}'.format(identifier, ' :: '.join(get_time())))
 
 
 def builder(tp, total_size=10000, snapshot_interval=1000, **kwargs):
@@ -105,7 +108,6 @@ def builder(tp, total_size=10000, snapshot_interval=1000, **kwargs):
         xargs = {'': None}
 
     thisFlake = Flake(*tp, **xargs)
-    print(thisFlake)
 
     while thisFlake.iter < total_size:
         thisFlake.grow(snapshot_interval)
