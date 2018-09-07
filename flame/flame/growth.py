@@ -1,7 +1,5 @@
 from math import pi
-# from arrow import now
 from collections import deque
-# from os.path import join
 from random import choice, random
 import itertools as it
 import logging
